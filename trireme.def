@@ -1,0 +1,68 @@
+Bootstrap: docker
+From: ubuntu:22.04
+
+%post
+    # Install dependencies
+    apt-get update && apt-get install -y \
+        git build-essential cmake ninja-build patchelf \
+        libreadline-dev libncursesw5-dev libssl-dev \
+        libsqlite3-dev libgdbm-dev libc6-dev libbz2-dev \
+        libffi-dev zlib1g-dev \
+	lsb-release wget software-properties-common gnupg
+
+    # Switch to a temporary directory
+    cd /tmp
+
+    # Install Bazelisk
+    wget https://github.com/bazelbuild/bazelisk/releases/download/v1.18.0/bazelisk-linux-amd64
+    chmod +x bazelisk-linux-amd64
+    mv bazelisk-linux-amd64 /usr/local/bin/bazel
+
+    # Install llvm-16
+    wget https://apt.llvm.org/llvm.sh
+    chmod +x llvm.sh
+    ./llvm.sh 16
+
+    # Build Python from source
+    VERSION="3.11.6"
+    PYTHON_DIR="/opt/python"
+
+    mkdir -p $PYTHON_DIR
+
+    wget https://www.python.org/ftp/python/$VERSION/Python-$VERSION.tar.xz -P /tmp
+    tar -xvf Python-$VERSION.tar.xz
+    cd Python-$VERSION/
+    ./configure --enable-optimizations --with-lto --prefix=$PYTHON_DIR --with-ensurepip
+    make altinstall
+
+    # Switch to /opt
+    chmod -R 777 /opt
+    cd /opt
+
+    # Get llvm-project
+    git clone https://github.com/llvm/llvm-project.git
+    cd llvm-project
+    /opt/python/bin/python3.11 -m venv venv
+    . ./venv/bin/activate
+    pip install -r mlir/python/requirements.txt
+    mkdir build
+    cd build
+    cmake -G Ninja ../llvm -DLLVM_ENABLE_PROJECTS=mlir -DPython3_EXECUTABLE="/opt/llvm-project/venv/bin/python" -DMLIR_ENABLE_BINDINGS_PYTHON=ON -DLLVM_BUILD_EXAMPLES=ON -DLLVM_TARGETS_TO_BUILD="Native" -DCMAKE_BUILD_TYPE=Release -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+    ninja -j1
+
+    # Get tensorflow
+    cd /opt
+    git clone https://github.com/tensorflow/tensorflow.git
+
+    # Get python deps for building tensorflow
+    cd tensorflow
+    /opt/python/bin/python3.11 -m venv venv
+    . ./venv/bin/activate
+    pip install -U pip numpy wheel packaging requests opt_einsum
+    pip install -U keras_preprocessing --no-deps
+
+%environment
+    export PATH="/opt/python/bin:$PATH"
+
+%runscript
+    exec /bin/bash "$@"
