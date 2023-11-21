@@ -4,17 +4,22 @@ From: ubuntu:22.04
 %post
     # Install dependencies
     apt update && apt upgrade -y && apt-get install -y \
-        git build-essential cmake ninja-build patchelf linux-tools-generic \
+        git build-essential cmake ninja-build patchelf \
         libreadline-dev libncursesw5-dev libssl-dev \
         libsqlite3-dev libgdbm-dev libc6-dev libbz2-dev \
         libffi-dev zlib1g-dev \
-	lsb-release wget software-properties-common gnupg
+	lsb-release wget software-properties-common gnupg \
+	flex bison \
+	libelf-dev libnewt-dev libdw-dev libaudit-dev libiberty-dev \
+	libunwind-dev libcap-dev libzstd-dev libnuma-dev libssl-dev \
+	binutils-dev gcc-multilib liblzma-dev
 
     # Switch to a temporary directory
     cd /tmp
 
     # Build Python from source
-    VERSION="3.11.6"
+    VERSION="3.10.13"
+    VERSION_MAJOR=${VERSION%.*}
     PYTHON_DIR="/opt/python"
 
     mkdir -p $PYTHON_DIR
@@ -23,25 +28,31 @@ From: ubuntu:22.04
     tar -xvf Python-$VERSION.tar.xz
     cd Python-$VERSION/
     ./configure --enable-optimizations --with-lto --prefix=$PYTHON_DIR --with-ensurepip
-    make altinstall
+    make -j 5 altinstall
 
-    # Switch to /opt
-    chmod -R 777 /opt
+    # Tetralith specific: Get the linux kernel and build perf
+    cd /tmp
+    git clone https://github.com/torvalds/linux.git
+    cd linux
+    git checkout v5.14
+
+    mkdir -p /opt/perf
+    PYTHON=/opt/python/bin/python$VERSION_MAJOR make CFLAGS="-Wno-error=maybe-uninitialized" LDFLAGS="-Wno-error=maybe-uninitialized" -C tools/perf prefix=/opt/perf install
+
+    # Get the llvm-project and build mlir
     cd /opt
-
-    # Get llvm-project
     git clone https://github.com/llvm/llvm-project.git
     cd llvm-project
-    /opt/python/bin/python3.11 -m venv venv
+    /opt/python/bin/python$VERSION_MAJOR -m venv venv
     . ./venv/bin/activate
     pip install -r mlir/python/requirements.txt
     mkdir build
     cd build
-    cmake -G Ninja ../llvm -DLLVM_ENABLE_PROJECTS=mlir -DPython3_EXECUTABLE="/opt/llvm-project/venv/bin/python" -DMLIR_ENABLE_BINDINGS_PYTHON=ON -DLLVM_BUILD_EXAMPLES=ON -DLLVM_TARGETS_TO_BUILD="Native" -DCMAKE_BUILD_TYPE=Release -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
-    ninja -j1
+    cmake -G Ninja ../llvm -DLLVM_ENABLE_PROJECTS=mlir -DPython3_EXECUTABLE="/opt/llvm-project/venv/bin/python" -DMLIR_ENABLE_BINDINGS_PYTHON=ON -DLLVM_BUILD_EXAMPLES=ON -DLLVM_TARGETS_TO_BUILD="Native" -DCMAKE_BUILD_TYPE=Debug -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+    ninja -j10
 
 %environment
-    export PATH=/opt/llvm-project/build/bin:/opt/python/bin:$PATH
+    export PATH=/opt/llvm-project/build/bin:/opt/python/bin:/opt/perf/bin:$PATH
     export PYTHONPATH=/opt/llvm-project/build/tools/mlir/python_packages/mlir_core
 
 %runscript
