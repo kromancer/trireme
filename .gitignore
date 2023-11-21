@@ -1,3 +1,8 @@
 /.idea/
 /.envrc
 /__pycache__/
+/*.dot
+/.dir-locals.el
+/*.out
+/*.help.txt
+/*.png
