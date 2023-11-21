@@ -1,5 +1,4 @@
 import ctypes
-import time
 
 import numpy as np
 from scipy.sparse import random as sparse_random
@@ -73,7 +72,7 @@ def build_compile_and_run_SpMV(attr: st.EncodingAttr, compiler):
     module = ir.Module.parse(func + boilerplate(attr, rows, cols))
 
     # Compile.
-    engine = compiler.compile_and_jit(module)
+    engine = compiler.compile(module)
 
     mem_a = ctypes.pointer(ctypes.pointer(rt.get_ranked_memref_descriptor(a)))
     mem_b = ctypes.pointer(ctypes.pointer(rt.get_ranked_memref_descriptor(b)))
