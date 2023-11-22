@@ -1,6 +1,6 @@
 module {
 
-  func.func @spMV(%sparseT: tensor<1024x1024xf64, #sparse_tensor.encoding<{ map = (d0, d1) -> (d0 : dense, d1 : compressed) }>>,
+  func.func @spmv(%sparseT: tensor<1024x1024xf64, #sparse_tensor.encoding<{ map = (d0, d1) -> (d0 : dense, d1 : compressed) }>>,
                   %vec: tensor<1024xf64>,
 		  %res: tensor<1024xf64>) -> tensor<1024xf64> {
 		  

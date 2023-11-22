@@ -1,3 +1,4 @@
+import argparse
 import ctypes
 
 from jinja2 import Template
@@ -29,7 +30,7 @@ def compile_and_run_spmv(module: ir.Module, compiler: Sparsifier, rows: int, col
     b = np.array(rows * [1.0], np.float64)
     c = np.zeros(cols, np.float64)
 
-    # Compile.
+    # Compile and dump object file
     engine = compiler.compile(module)
 
     mem_a = ctypes.pointer(ctypes.pointer(rt.get_ranked_memref_descriptor(a)))
@@ -45,6 +46,11 @@ def compile_and_run_spmv(module: ir.Module, compiler: Sparsifier, rows: int, col
     # Built-in bufferization uses in-out buffers.
     engine.invoke("main", mem_out, mem_a, mem_b, mem_c)
 
+    # dump jitted object file along with location of main function for debug purposes
+    engine.dump_to_object_file("./dump.o")
+    print(f"mlir_main addr: {hex(engine.raw_lookup('main'))}")
+    print(f"spmv addr: { hex(engine.raw_lookup('spmv')) }")
+
     # Sanity check on computed result.
     expected = np.matmul(a, b)
     actual = rt.ranked_memref_to_numpy(mem_out[0])
@@ -54,7 +60,7 @@ def compile_and_run_spmv(module: ir.Module, compiler: Sparsifier, rows: int, col
         quit(f"FAILURE")
 
 
-def main():
+def main(rows: int, cols: int):
 
     with ir.Context() as ctx, ir.Location.unknown():
 
@@ -71,8 +77,6 @@ def main():
                               opt_level=0,
                               shared_libs=["/Users/ioanniss/llvm-project/build/lib/libmlir_c_runner_utils.dylib"])
 
-        rows, cols = 1024, 1024
-
         # Render the template, join it with the boilerplate and deserialize
         module = ir.Module.parse(render_template(rows, cols))
         spmv = str(module.operation.regions[0].blocks[0].operations[0].operation)
@@ -81,5 +85,14 @@ def main():
         compile_and_run_spmv(module=module, compiler=compiler, rows=rows, cols=cols)
 
 
+def get_args():
+    parser = argparse.ArgumentParser(description="Process rows and cols.")
+    parser.add_argument("--rows", type=int, default=1024, help="Number of rows (default=1024)")
+    parser.add_argument("--cols", type=int, default=1024, help="Number of columns (default=1024)")
+    args = parser.parse_args()
+    return args.rows, args.cols
+
+
 if __name__ == "__main__":
-    main()
+    rows, cols = get_args()
+    main(rows, cols)

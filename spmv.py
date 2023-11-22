@@ -24,7 +24,7 @@ def boilerplate(attr: st.EncodingAttr, rows: int, cols: int):
 func.func @main(%ad: tensor<{rows}x{cols}xf64>, %b: tensor<{rows}xf64>, %c: tensor<{cols}xf64>) -> tensor<{cols}xf64>
   attributes {{ llvm.emit_c_interface }} {{
   %a = sparse_tensor.convert %ad : tensor<{rows}x{cols}xf64> to tensor<{rows}x{cols}xf64, {attr}>
-  %0 = call @spMV(%a, %b, %c) : (tensor<{rows}x{cols}xf64, {attr}>,
+  %0 = call @spmv(%a, %b, %c) : (tensor<{rows}x{cols}xf64, {attr}>,
                                   tensor<{rows}xf64>,
                                   tensor<{cols}xf64>) -> tensor<{cols}xf64>
   return %0 : tensor<{cols}xf64>
@@ -51,7 +51,7 @@ def build_SpMV(attr: st.EncodingAttr, rows: int, cols: int):
 
     with ir.InsertionPoint(module.body):
         @func.FuncOp.from_py_func(*arguments)
-        def spMV(*args):
+        def spmv(*args):
             return matvec_dsl(args[0], args[1], outs=[args[2]])
 
     return module

@@ -7,3 +7,4 @@
 /*.help.txt
 /*.png
 /venv/
+*.o
