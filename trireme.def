@@ -39,6 +39,10 @@ From: ubuntu:22.04
     mkdir -p /opt/perf
     PYTHON=/opt/python/bin/python$VERSION_MAJOR make CFLAGS="-Wno-error=maybe-uninitialized" LDFLAGS="-Wno-error=maybe-uninitialized" -C tools/perf prefix=/opt/perf install
 
+    # Get pmu-tools
+    cd /opt
+    git clone https://github.com/andikleen/pmu-tools
+
     # Get the llvm-project and build mlir
     cd /opt
     git clone https://github.com/llvm/llvm-project.git
@@ -52,7 +56,7 @@ From: ubuntu:22.04
     ninja -j10
 
 %environment
-    export PATH=/opt/llvm-project/build/bin:/opt/python/bin:/opt/perf/bin:$PATH
+    export PATH=/opt/llvm-project/build/bin:/opt/python/bin:/opt/perf/bin:/opt/pmu-tools:$PATH
     export PYTHONPATH=/opt/llvm-project/build/tools/mlir/python_packages/mlir_core
 
 %runscript
