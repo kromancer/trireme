@@ -52,12 +52,13 @@ From: ubuntu:22.04
     pip install -r mlir/python/requirements.txt
     mkdir build
     cd build
-    cmake -G Ninja ../llvm -DLLVM_ENABLE_PROJECTS=mlir -DPython3_EXECUTABLE="/opt/llvm-project/venv/bin/python" -DMLIR_ENABLE_BINDINGS_PYTHON=ON -DLLVM_BUILD_EXAMPLES=ON -DLLVM_TARGETS_TO_BUILD="Native" -DCMAKE_BUILD_TYPE=Debug -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+    cmake -G Ninja ../llvm -DLLVM_ENABLE_PROJECTS="clang;mlir" -DPython3_EXECUTABLE="/opt/llvm-project/venv/bin/python" -DMLIR_ENABLE_BINDINGS_PYTHON=ON -DLLVM_BUILD_EXAMPLES=ON -DLLVM_TARGETS_TO_BUILD="Native" -DCMAKE_BUILD_TYPE=Debug -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
     ninja -j10
 
 %environment
     export PATH=/opt/llvm-project/build/bin:/opt/python/bin:/opt/perf/bin:/opt/pmu-tools:$PATH
     export PYTHONPATH=/opt/llvm-project/build/tools/mlir/python_packages/mlir_core
+    export LLVM_BUILD_PATH=/opt/llvm-project/build
 
 %runscript
     exec /bin/bash "$@"
