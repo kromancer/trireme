@@ -8,11 +8,11 @@ From: ubuntu:22.04
         libreadline-dev libncursesw5-dev libssl-dev \
         libsqlite3-dev libgdbm-dev libc6-dev libbz2-dev \
         libffi-dev zlib1g-dev \
-	lsb-release wget software-properties-common gnupg \
-	flex bison \
-	libelf-dev libnewt-dev libdw-dev libaudit-dev libiberty-dev \
-	libunwind-dev libcap-dev libzstd-dev libnuma-dev libssl-dev \
-	binutils-dev gcc-multilib liblzma-dev
+        lsb-release wget software-properties-common gnupg \
+        flex bison \
+        libelf-dev libnewt-dev libdw-dev libaudit-dev libiberty-dev \
+        libunwind-dev libcap-dev libzstd-dev libnuma-dev libssl-dev \
+        binutils-dev gcc-multilib liblzma-dev
 
     # Switch to a temporary directory
     TMP=/dev/shm
@@ -59,10 +59,11 @@ From: ubuntu:22.04
     cd /opt
     git clone https://github.com/andikleen/pmu-tools
 
+
 %environment
-    export PATH=/opt/llvm-project/build/bin:/opt/python/bin:/opt/perf/bin:/opt/pmu-tools:$PATH
-    export PYTHONPATH=/opt/llvm-project/build/tools/mlir/python_packages/mlir_core
-    export LLVM_BUILD_PATH=/opt/llvm-project/build
+    export PATH=/opt/llvm/bin:/opt/python/bin:/opt/perf/bin:/opt/pmu-tools:$PATH
+    export PYTHONPATH=/opt/llvm/python_packages/mlir_core
+    export LLVM_PATH=/opt/llvm
 
 %runscript
     exec /bin/bash "$@"

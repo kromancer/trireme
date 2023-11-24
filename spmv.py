@@ -1,122 +1,167 @@
+import argparse
 import ctypes
+import os
+import platform
+import signal
+import subprocess
+from shutil import rmtree
+from os import chdir, environ, makedirs
+from pathlib import Path
+from time import sleep
 
+from jinja2 import Template
 import numpy as np
 from scipy.sparse import random as sparse_random
+from scipy.sparse import coo_matrix
+from scipy.io import mmwrite
 
-from mlir import ir
 from mlir import runtime as rt
-from mlir.dialects import func
-from mlir.dialects import sparse_tensor as st
-from mlir.dialects.linalg.opdsl import lang as dsl
-
-import sparsifier
+from mlir.execution_engine import *
+from mlir import ir
+from mlir.passmanager import *
 
 
-def boilerplate(attr: st.EncodingAttr, rows: int, cols: int):
-    """Returns boilerplate main method.
+def render_template(rows: int, cols: int, template_path: Path):
 
-    This method sets up a boilerplate main method that takes three tensors
-    (a, b, c), converts the first tensor a into s sparse tensor, and then
-    calls the sparse kernel for matrix multiplication. For convenience,
-    this part is purely done as string input.
-    """
-    return f"""
-func.func @main(%ad: tensor<{rows}x{cols}xf64>, %b: tensor<{rows}xf64>, %c: tensor<{cols}xf64>) -> tensor<{cols}xf64>
-  attributes {{ llvm.emit_c_interface }} {{
-  %a = sparse_tensor.convert %ad : tensor<{rows}x{cols}xf64> to tensor<{rows}x{cols}xf64, {attr}>
-  %0 = call @spmv(%a, %b, %c) : (tensor<{rows}x{cols}xf64, {attr}>,
-                                  tensor<{rows}xf64>,
-                                  tensor<{cols}xf64>) -> tensor<{cols}xf64>
-  return %0 : tensor<{cols}xf64>
-}}
-"""
+    with (open(template_path, "r") as template_f,
+          open("spmv.mlir", "w") as rendered_template_f):
+        rendered_template = Template(template_f.read()).render(rows=rows, cols=cols)
+        rendered_template_f.write(rendered_template)
 
 
-@dsl.linalg_structured_op
-def matvec_dsl(
-        A=dsl.TensorDef(dsl.T, dsl.S.M, dsl.S.K),
-        B=dsl.TensorDef(dsl.T, dsl.S.K),
-        C=dsl.TensorDef(dsl.T, dsl.S.M, output=True),
-):
-    C[dsl.D.m] += A[dsl.D.m, dsl.D.k] * B[dsl.D.k]
+def lower_to_llvm() -> ir.Module:
 
+    passes = ["lower-sparse-ops-to-foreach",
+              "lower-sparse-foreach-to-scf",
+              "sparsification",
+              "sparse-reinterpret-map",
+              "sparse-tensor-conversion",
+              "canonicalize",
+              "tensor-bufferize",
+              "func-bufferize",
+              "bufferization-bufferize",
+              "convert-scf-to-cf",
+              "convert-to-llvm"]
 
-def build_SpMV(attr: st.EncodingAttr, rows: int, cols: int):
-    module = ir.Module.create()
-    f64 = ir.F64Type.get()
-    a = ir.RankedTensorType.get([rows, cols], f64, attr)
-    b = ir.RankedTensorType.get([rows], f64)
-    c = ir.RankedTensorType.get([cols], f64)
-    arguments = [a, b, c]
+    def lower(p: str):
+        lower.call_count += 1
+        try:
+            pm = PassManager.parse(f"builtin.module({p})")
+        except ValueError:
+            pm = PassManager.parse(f"builtin.module(func.func({p}))")
 
-    with ir.InsertionPoint(module.body):
-        @func.FuncOp.from_py_func(*arguments)
-        def spmv(*args):
-            return matvec_dsl(args[0], args[1], outs=[args[2]])
+        pm.run(module.operation)
+        with open(f"spmv.{lower.call_count}.{p}.mlir", "w") as f:
+            f.write(str(module))
+
+    with open("spmv.mlir", "r") as f:
+        src = f.read()
+
+    with ir.Context():
+        module = ir.Module.parse(src)
+
+        lower.call_count = 0
+        for p in passes:
+            lower(p)
+
+    with open("spmv.llvm.mlir", "w") as f:
+        f.write(str(module))
 
     return module
 
 
-def build_compile_and_run_SpMV(attr: st.EncodingAttr, compiler):
+def create_sparse_mtx(rows: int, cols: int) -> np.ndarray:
 
-    # Set up numpy input and buffer for output.
-    rows, cols = 1024, 1024
+    # create and store sparse matrix
     density = 0.05
-    a = sparse_random(rows, cols, density, dtype=np.float64).toarray()
-    b = np.array(rows * [1.0], np.float64)
-    c = np.zeros(cols, np.float64)
+    sparse_mat = sparse_random(rows, cols, density, dtype=np.float64).toarray()
+    sparse_path = Path("sparse_mat.mtx")
+    mmwrite(sparse_path, coo_matrix(sparse_mat))
 
-    # Build.
-    module = build_SpMV(attr, rows, cols)
-    func = str(module.operation.regions[0].blocks[0].operations[0].operation)
-    module = ir.Module.parse(func + boilerplate(attr, rows, cols))
+    return sparse_mat
 
-    # Compile.
-    engine = compiler.compile(module)
 
-    mem_a = ctypes.pointer(ctypes.pointer(rt.get_ranked_memref_descriptor(a)))
-    mem_b = ctypes.pointer(ctypes.pointer(rt.get_ranked_memref_descriptor(b)))
-    mem_c = ctypes.pointer(ctypes.pointer(rt.get_ranked_memref_descriptor(c)))
+@ctypes.CFUNCTYPE(ctypes.c_void_p)
+def start_measurement_callback():
+    print("Start Measurement Callback")
+    spmv_pid = os.getpid()
+    start_measurement_callback.perf_proc = subprocess.Popen(['toplev', '-l4', '--pid', f'{spmv_pid}'],
+                                                            start_new_session=True)
+    sleep(1)
+    
+
+@ctypes.CFUNCTYPE(ctypes.c_void_p)
+def stop_measurement_callback():
+    print("Stop Measurement Callback")
+    os.killpg(start_measurement_callback.perf_proc.pid, signal.SIGINT)
+    start_measurement_callback.perf_proc.wait()
+
+
+def run_spmv(llvm_mlir: ir.Module, rows: int, cols: int):
+
+    llvm_build_path = environ.get("LLVM_PATH", None)
+    if llvm_build_path is None:
+        raise RuntimeError("Env var LLVM_PATH not specified")
+
+    mlir_runtime = "libmlir_c_runner_utils"
+    shared_lib_suffix = ".dylib" if platform.system() == "Darwin" else ".so"
+    mlir_runtime_path = Path(llvm_build_path) / "lib" / (mlir_runtime + shared_lib_suffix)
+
+    mtx = create_sparse_mtx(rows, cols)
+    mtx_mem = ctypes.pointer(ctypes.pointer(rt.get_ranked_memref_descriptor(mtx)))
+
+    dense_vec = np.array(cols * [1.0], np.float64)
+    vec_mem = ctypes.pointer(ctypes.pointer(rt.get_ranked_memref_descriptor(dense_vec)))
+
+    res = np.zeros(rows, np.float64)
+    res_mem = ctypes.pointer(ctypes.pointer(rt.get_ranked_memref_descriptor(res)))
 
     # Allocate a MemRefDescriptor to receive the output tensor.
     # The buffer itself is allocated inside the MLIR code generation.
     ref_out = rt.make_nd_memref_descriptor(1, ctypes.c_double)()
     mem_out = ctypes.pointer(ctypes.pointer(ref_out))
 
-    # Invoke the kernel and get numpy output.
-    # Built-in bufferization uses in-out buffers.
-    engine.invoke("main", mem_out, mem_a, mem_b, mem_c)
+    exec_engine = ExecutionEngine(llvm_mlir, shared_libs=[str(mlir_runtime_path)])
+    exec_engine.register_runtime("start_measurement_callback", start_measurement_callback)
+    exec_engine.register_runtime("stop_measurement_callback", stop_measurement_callback)
+
+
+    exec_engine.invoke("main", mem_out, mtx_mem, vec_mem, res_mem)
 
     # Sanity check on computed result.
-    expected = np.matmul(a, b)
-    actual = rt.ranked_memref_to_numpy(mem_out[0])
-    if np.allclose(actual, expected):
+    expected = np.matmul(mtx, dense_vec)
+    c = rt.ranked_memref_to_numpy(mem_out[0])
+    if np.allclose(c, expected):
         pass
     else:
         quit(f"FAILURE")
 
 
-def main():
+def main(rows: int, cols: int):
 
-    with ir.Context() as ctx, ir.Location.unknown():
+    build_path = Path("./build")
 
-        lvl_types = [st.DimLevelType.dense, st.DimLevelType.compressed]
-        ordering = ir.AffineMap.get_permutation([0, 1])
-        attr = st.EncodingAttr.get(lvl_types=lvl_types,
-                                   dim_to_lvl=ordering,
-                                   lvl_to_dim=ordering,
-                                   pos_width=0,
-                                   crd_width=0,
-                                   context=ctx)
+    if build_path.exists():
+        rmtree(build_path)
+    makedirs(build_path)
 
-        compiler = sparsifier.Sparsifier(
-            options="parallelization-strategy=none",
-            opt_level=0,
-            shared_libs=["/Users/ioanniss/llvm-project/build/lib/libmlir_c_runner_utils.dylib"]
-        )
+    template_path = Path("./spmv.mlir.jinja2").absolute()
+    chdir(build_path)
 
-        build_compile_and_run_SpMV(attr, compiler)
+    render_template(rows, cols, template_path)
+    llvm_mlir = lower_to_llvm()
+
+    run_spmv(llvm_mlir, rows, cols)
+
+
+def get_args():
+    parser = argparse.ArgumentParser(description="Process rows and cols.")
+    parser.add_argument("--rows", type=int, default=1024, help="Number of rows (default=1024)")
+    parser.add_argument("--cols", type=int, default=1024, help="Number of columns (default=1024)")
+    args = parser.parse_args()
+    return args.rows, args.cols
 
 
 if __name__ == "__main__":
-    main()
+    rows, cols = get_args()
+    main(rows, cols)
