@@ -15,7 +15,8 @@ From: ubuntu:22.04
 	binutils-dev gcc-multilib liblzma-dev
 
     # Switch to a temporary directory
-    cd /tmp
+    TMP=/dev/shm
+    cd $TMP
 
     # Build Python from source
     VERSION="3.10.13"
@@ -24,14 +25,29 @@ From: ubuntu:22.04
 
     mkdir -p $PYTHON_DIR
 
-    wget https://www.python.org/ftp/python/$VERSION/Python-$VERSION.tar.xz -P /tmp
+    wget https://www.python.org/ftp/python/$VERSION/Python-$VERSION.tar.xz -P $TMP
     tar -xvf Python-$VERSION.tar.xz
     cd Python-$VERSION/
     ./configure --enable-optimizations --with-lto --prefix=$PYTHON_DIR --with-ensurepip
-    make -j 5 altinstall
+    make -j 16 altinstall
+
+    # Get the llvm-project and build mlir
+    cd $TMP
+    rm -rf llvm-project
+    git clone https://github.com/llvm/llvm-project.git
+    cd llvm-project
+    /opt/python/bin/python$VERSION_MAJOR -m venv venv
+    . ./venv/bin/activate
+    pip install -r mlir/python/requirements.txt
+    mkdir /opt/llvm
+    mkdir build
+    cd build
+    cmake -G Ninja ../llvm -DLLVM_ENABLE_PROJECTS="clang;mlir" -DCMAKE_INSTALL_PREFIX=/opt/llvm -DPython3_EXECUTABLE=python -DMLIR_ENABLE_BINDINGS_PYTHON=ON -DLLVM_BUILD_EXAMPLES=ON -DLLVM_TARGETS_TO_BUILD="Native" -DCMAKE_BUILD_TYPE=Release -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+    ninja -j16 install
 
     # Tetralith specific: Get the linux kernel and build perf
-    cd /tmp
+    cd $TMP
+    rm -rf linux
     git clone https://github.com/torvalds/linux.git
     cd linux
     git checkout v5.14
@@ -42,18 +58,6 @@ From: ubuntu:22.04
     # Get pmu-tools
     cd /opt
     git clone https://github.com/andikleen/pmu-tools
-
-    # Get the llvm-project and build mlir
-    cd /opt
-    git clone https://github.com/llvm/llvm-project.git
-    cd llvm-project
-    /opt/python/bin/python$VERSION_MAJOR -m venv venv
-    . ./venv/bin/activate
-    pip install -r mlir/python/requirements.txt
-    mkdir build
-    cd build
-    cmake -G Ninja ../llvm -DLLVM_ENABLE_PROJECTS="clang;mlir" -DPython3_EXECUTABLE="/opt/llvm-project/venv/bin/python" -DMLIR_ENABLE_BINDINGS_PYTHON=ON -DLLVM_BUILD_EXAMPLES=ON -DLLVM_TARGETS_TO_BUILD="Native" -DCMAKE_BUILD_TYPE=Debug -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
-    ninja -j10
 
 %environment
     export PATH=/opt/llvm-project/build/bin:/opt/python/bin:/opt/perf/bin:/opt/pmu-tools:$PATH
