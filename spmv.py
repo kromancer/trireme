@@ -75,17 +75,20 @@ def create_sparse_mtx(rows: int, cols: int) -> np.ndarray:
     # create and store sparse matrix
     density = 0.05
     sparse_mat = sparse_random(rows, cols, density, dtype=np.float64).toarray()
-    sparse_path = Path("sparse_mat.mtx")
-    mmwrite(sparse_path, coo_matrix(sparse_mat))
-
+    print(f"Sparse Mat val size: {(rows * cols * density * 8) / 1024**2} MB")
     return sparse_mat
 
 
 @ctypes.CFUNCTYPE(ctypes.c_void_p)
 def start_measurement_callback():
     print("Start Measurement Callback")
+
+    # There's no perf on macos
+    if platform.system() == "Darwin":
+        return
+
     spmv_pid = os.getpid()
-    start_measurement_callback.perf_proc = subprocess.Popen(['toplev', '-l4', '--pid', f'{spmv_pid}'],
+    start_measurement_callback.perf_proc = subprocess.Popen(["toplev", "-l4", "--raw", "--pid", f"{spmv_pid}"],
                                                             start_new_session=True)
     sleep(1)
     
@@ -93,19 +96,24 @@ def start_measurement_callback():
 @ctypes.CFUNCTYPE(ctypes.c_void_p)
 def stop_measurement_callback():
     print("Stop Measurement Callback")
+
+    # There's no perf on macos
+    if platform.system() == "Darwin":
+        return
+
     os.killpg(start_measurement_callback.perf_proc.pid, signal.SIGINT)
     start_measurement_callback.perf_proc.wait()
 
 
 def run_spmv(llvm_mlir: ir.Module, rows: int, cols: int):
 
-    llvm_build_path = environ.get("LLVM_PATH", None)
-    if llvm_build_path is None:
+    llvm_path = environ.get("LLVM_PATH", None)
+    if llvm_path is None:
         raise RuntimeError("Env var LLVM_PATH not specified")
 
     mlir_runtime = "libmlir_c_runner_utils"
     shared_lib_suffix = ".dylib" if platform.system() == "Darwin" else ".so"
-    mlir_runtime_path = Path(llvm_build_path) / "lib" / (mlir_runtime + shared_lib_suffix)
+    mlir_runtime_path = Path(llvm_path) / "lib" / (mlir_runtime + shared_lib_suffix)
 
     mtx = create_sparse_mtx(rows, cols)
     mtx_mem = ctypes.pointer(ctypes.pointer(rt.get_ranked_memref_descriptor(mtx)))
@@ -125,8 +133,9 @@ def run_spmv(llvm_mlir: ir.Module, rows: int, cols: int):
     exec_engine.register_runtime("start_measurement_callback", start_measurement_callback)
     exec_engine.register_runtime("stop_measurement_callback", stop_measurement_callback)
 
-
     exec_engine.invoke("main", mem_out, mtx_mem, vec_mem, res_mem)
+
+    exec_engine.dump_to_object_file("spmv.o")
 
     # Sanity check on computed result.
     expected = np.matmul(mtx, dense_vec)
@@ -158,10 +167,14 @@ def get_args():
     parser = argparse.ArgumentParser(description="Process rows and cols.")
     parser.add_argument("--rows", type=int, default=1024, help="Number of rows (default=1024)")
     parser.add_argument("--cols", type=int, default=1024, help="Number of columns (default=1024)")
+
     args = parser.parse_args()
     return args.rows, args.cols
 
 
 if __name__ == "__main__":
     rows, cols = get_args()
+
+    print(f'vec size: {(cols * 8) / 1024} KB')
+
     main(rows, cols)
