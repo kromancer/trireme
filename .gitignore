@@ -8,4 +8,4 @@
 /*.png
 /venv/
 *.o
-/build/
+/build*

@@ -8,12 +8,11 @@ from shutil import rmtree
 from os import chdir, environ, makedirs
 from pathlib import Path
 from time import sleep
+from typing import List
 
 from jinja2 import Template
 import numpy as np
 from scipy.sparse import random as sparse_random
-from scipy.sparse import coo_matrix
-from scipy.io import mmwrite
 
 from mlir import runtime as rt
 from mlir.execution_engine import *
@@ -29,29 +28,17 @@ def render_template(rows: int, cols: int, template_path: Path):
         rendered_template_f.write(rendered_template)
 
 
-def lower_to_llvm() -> ir.Module:
+def apply_passes(passes: List[str]) -> ir.Module:
 
-    passes = ["lower-sparse-ops-to-foreach",
-              "lower-sparse-foreach-to-scf",
-              "sparsification",
-              "sparse-reinterpret-map",
-              "sparse-tensor-conversion",
-              "canonicalize",
-              "tensor-bufferize",
-              "func-bufferize",
-              "bufferization-bufferize",
-              "convert-scf-to-cf",
-              "convert-to-llvm"]
-
-    def lower(p: str):
-        lower.call_count += 1
+    def run_pass(p: str):
+        run_pass.call_count += 1
         try:
             pm = PassManager.parse(f"builtin.module({p})")
         except ValueError:
             pm = PassManager.parse(f"builtin.module(func.func({p}))")
 
         pm.run(module.operation)
-        with open(f"spmv.{lower.call_count}.{p}.mlir", "w") as f:
+        with open(f"spmv.{run_pass.call_count}.{p}.mlir", "w") as f:
             f.write(str(module))
 
     with open("spmv.mlir", "r") as f:
@@ -60,12 +47,9 @@ def lower_to_llvm() -> ir.Module:
     with ir.Context():
         module = ir.Module.parse(src)
 
-        lower.call_count = 0
+        run_pass.call_count = 0
         for p in passes:
-            lower(p)
-
-    with open("spmv.llvm.mlir", "w") as f:
-        f.write(str(module))
+            run_pass(p)
 
     return module
 
@@ -146,19 +130,36 @@ def run_spmv(llvm_mlir: ir.Module, rows: int, cols: int):
         quit(f"FAILURE")
 
 
-def main(rows: int, cols: int):
-
-    build_path = Path("./build")
+def make_build_dir_and_cd_to_it(file_path: str):
+    build_path = Path(f"./build-{Path(file_path).name}")
 
     if build_path.exists():
         rmtree(build_path)
     makedirs(build_path)
 
-    template_path = Path("./spmv.mlir.jinja2").absolute()
     chdir(build_path)
 
+
+def main(rows: int, cols: int):
+    template_path = Path("./spmv.mlir.jinja2").absolute()
+
+    make_build_dir_and_cd_to_it(__file__)
+
     render_template(rows, cols, template_path)
-    llvm_mlir = lower_to_llvm()
+
+    passes = ["lower-sparse-ops-to-foreach",
+              "lower-sparse-foreach-to-scf",
+              "sparsification",
+              "sparse-reinterpret-map",
+              "sparse-tensor-conversion",
+              "canonicalize",
+              "tensor-bufferize",
+              "func-bufferize",
+              "bufferization-bufferize",
+              "convert-scf-to-cf",
+              "convert-to-llvm"]
+
+    llvm_mlir = apply_passes(passes)
 
     run_spmv(llvm_mlir, rows, cols)
 
