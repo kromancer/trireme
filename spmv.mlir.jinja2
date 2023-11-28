@@ -4,12 +4,15 @@ module {
 
   func.func private @start_measurement_callback() -> () attributes { llvm.emit_c_interface }
   func.func private @stop_measurement_callback() -> () attributes { llvm.emit_c_interface }
+  func.func private @nanoTime() -> i64 attributes { llvm.emit_c_interface }
+  func.func private @printI64(%arg: i64) -> ()
 
   func.func @spmv(%sparseT: tensor<{{ rows }}x{{ cols }}xf64, #CSR>,
                   %vec: tensor<{{ cols }}xf64>,
 		          %res: tensor<{{ rows }}xf64>) -> tensor<{{ rows }}xf64> {
 
     call @start_measurement_callback() : () -> ()
+    %time_before = call @nanoTime() : () -> i64
 		  
     %c3 = arith.constant {{ rows }} : index
     %c0 = arith.constant 0 : index
@@ -48,6 +51,9 @@ module {
     
     %5 = bufferization.to_tensor %res_buff restrict : memref<{{ rows }}xf64>
 
+    %time_after = call @nanoTime() : () -> i64
+    %diff = arith.subi %time_after, %time_before : i64
+    call @printI64(%diff) : (i64) -> ()
     call @stop_measurement_callback() : () -> ()
 
     return %5 : tensor<{{ rows }}xf64>

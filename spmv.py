@@ -78,7 +78,7 @@ def start_measurement_callback():
 
 @ctypes.CFUNCTYPE(ctypes.c_void_p)
 def stop_measurement_callback():
-    print("Stop Measurement Callback")
+    print("\nStop Measurement Callback")
 
     # There's no perf on macos
     if platform.system() == "Darwin":
@@ -94,9 +94,9 @@ def run_spmv(llvm_mlir: ir.Module, rows: int, cols: int):
     if llvm_path is None:
         raise RuntimeError("Env var LLVM_PATH not specified")
 
-    mlir_runtime = "libmlir_c_runner_utils"
+    runtimes = ["libmlir_runner_utils", "libmlir_c_runner_utils"]
     shared_lib_suffix = ".dylib" if platform.system() == "Darwin" else ".so"
-    mlir_runtime_path = Path(llvm_path) / "lib" / (mlir_runtime + shared_lib_suffix)
+    runtime_paths = [str(Path(llvm_path) / "lib" / (r + shared_lib_suffix)) for r in runtimes]
 
     mtx = create_sparse_mtx(rows, cols)
     mtx_mem = ctypes.pointer(ctypes.pointer(rt.get_ranked_memref_descriptor(mtx)))
@@ -112,7 +112,7 @@ def run_spmv(llvm_mlir: ir.Module, rows: int, cols: int):
     ref_out = rt.make_nd_memref_descriptor(1, ctypes.c_double)()
     mem_out = ctypes.pointer(ctypes.pointer(ref_out))
 
-    exec_engine = ExecutionEngine(llvm_mlir, shared_libs=[str(mlir_runtime_path)])
+    exec_engine = ExecutionEngine(llvm_mlir, shared_libs=runtime_paths)
     exec_engine.register_runtime("start_measurement_callback", start_measurement_callback)
     exec_engine.register_runtime("stop_measurement_callback", stop_measurement_callback)
 
