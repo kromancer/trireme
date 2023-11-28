@@ -20,15 +20,17 @@ from mlir import ir
 from mlir.passmanager import *
 
 
-def render_template(rows: int, cols: int, template_path: Path):
+def render_template(rows: int, cols: int, template_path: Path) -> str:
 
     with (open(template_path, "r") as template_f,
           open("spmv.mlir", "w") as rendered_template_f):
         rendered_template = Template(template_f.read()).render(rows=rows, cols=cols)
         rendered_template_f.write(rendered_template)
 
+    return rendered_template
 
-def apply_passes(passes: List[str]) -> ir.Module:
+
+def apply_passes(src: str, passes: List[str]) -> ir.Module:
 
     def run_pass(p: str):
         run_pass.call_count += 1
@@ -40,9 +42,6 @@ def apply_passes(passes: List[str]) -> ir.Module:
         pm.run(module.operation)
         with open(f"spmv.{run_pass.call_count}.{p}.mlir", "w") as f:
             f.write(str(module))
-
-    with open("spmv.mlir", "r") as f:
-        src = f.read()
 
     with ir.Context():
         module = ir.Module.parse(src)
@@ -145,7 +144,7 @@ def main(rows: int, cols: int):
 
     make_build_dir_and_cd_to_it(__file__)
 
-    render_template(rows, cols, template_path)
+    src = render_template(rows, cols, template_path)
 
     passes = ["lower-sparse-ops-to-foreach",
               "lower-sparse-foreach-to-scf",
@@ -159,7 +158,7 @@ def main(rows: int, cols: int):
               "convert-scf-to-cf",
               "convert-to-llvm"]
 
-    llvm_mlir = apply_passes(passes)
+    llvm_mlir = apply_passes(src, passes)
 
     run_spmv(llvm_mlir, rows, cols)
 

@@ -1,4 +1,5 @@
-from pathlib import Path
+from os import chdir, getcwd, makedirs
+from contextlib import contextmanager
 
 from spmv import get_args, make_build_dir_and_cd_to_it, apply_passes
 
@@ -6,6 +7,33 @@ from mlir import ir
 from mlir.dialects import func
 from mlir.dialects.linalg.opdsl import lang as dsl
 from mlir.dialects import sparse_tensor as st
+
+no_parallelization = ["sparse-reinterpret-map",
+                      "sparsification{parallelization-strategy=none}",
+                      "sparse-tensor-codegen",
+                      "func-bufferize",
+                      "bufferization-bufferize",
+                      "convert-scf-to-cf",
+                      "convert-to-llvm"]
+
+vectorized = ["sparse-reinterpret-map",
+              "sparsification{parallelization-strategy=none}",
+              "sparse-vectorization{vl=16}",
+              "sparse-tensor-codegen",
+              "func-bufferize",
+              "bufferization-bufferize",
+              "convert-scf-to-cf",
+              "convert-to-llvm"]
+
+omp = ["sparse-reinterpret-map",
+       "sparsification{parallelization-strategy=any-storage-any-loop}",
+       "sparse-tensor-codegen",
+       "func-bufferize",
+       "bufferization-bufferize",
+       "convert-scf-to-openmp",
+       "convert-to-llvm"]
+
+pipelines = {"no_parallelization": no_parallelization, "vectorized": vectorized, "omp": omp}
 
 
 @dsl.linalg_structured_op
@@ -33,6 +61,17 @@ def build_spmv(rows: int, cols: int, attr: st.EncodingAttr):
     return module
 
 
+@contextmanager
+def make_and_switch_dir(dir):
+    current_dir = getcwd()
+    try:
+        makedirs(dir)
+        chdir(dir)
+        yield
+    finally:
+        chdir(current_dir)
+
+
 def main():
     rows, cols = get_args()
     make_build_dir_and_cd_to_it(__file__)
@@ -49,17 +88,11 @@ def main():
         module = ir.Module.parse(func)
 
         with open("spmv.mlir", "w") as f:
-            f.write(str(module))
+            f.write()
 
-        passes = ["sparse-reinterpret-map",
-                  "sparsification{parallelization-strategy=none}",
-                  "sparse-tensor-codegen",
-                  "func-bufferize",
-                  "bufferization-bufferize",
-                  "convert-scf-to-cf",
-                  "convert-to-llvm"]
-
-        apply_passes(passes)
+        for name, passes in pipelines.items():
+            with make_and_switch_dir(name):
+                apply_passes(str(module), passes)
 
 
 if __name__ == "__main__":
