@@ -149,7 +149,6 @@ def main(rows: int, cols: int, pref: bool):
 
     passes = ["lower-sparse-ops-to-foreach",
               "lower-sparse-foreach-to-scf",
-              "sparsification",
               "sparse-reinterpret-map",
               "sparse-tensor-conversion",
               "canonicalize",
@@ -166,9 +165,9 @@ def main(rows: int, cols: int, pref: bool):
 
 def get_args():
     parser = argparse.ArgumentParser(description="Process rows and cols.")
-    parser.add_argument("--rows", type=int, default=1024, help="Number of rows (default=1024)")
-    parser.add_argument("--cols", type=int, default=1024, help="Number of columns (default=1024)")
-    parser.add_argument("-p", "--prefetch", action="store_true", help="Enable prefetching.")
+    parser.add_argument("-r", "--rows", type=int, default=1024, help="Number of rows (default=1024)")
+    parser.add_argument("-c", "--cols", type=int, default=1024, help="Number of columns (default=1024)")
+    parser.add_argument("-p", "--prefetch", action="store_true", help="Enable prefetching")
 
     args = parser.parse_args()
     return args.rows, args.cols, args.prefetch
