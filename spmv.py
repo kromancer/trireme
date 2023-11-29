@@ -3,12 +3,13 @@ import ctypes
 import os
 import platform
 import signal
+import statistics
 import subprocess
 from shutil import rmtree
 from os import chdir, environ, makedirs
 from pathlib import Path
 from time import sleep
-from typing import List
+from typing import List, Tuple
 
 from jinja2 import Template
 import numpy as np
@@ -18,6 +19,10 @@ from mlir import runtime as rt
 from mlir.execution_engine import *
 from mlir import ir
 from mlir.passmanager import *
+
+
+remaining_repetitions = 1
+execution_times = []
 
 
 def render_template(rows: int, cols: int, template_path: Path) -> str:
@@ -53,21 +58,29 @@ def apply_passes(src: str, passes: List[str]) -> ir.Module:
     return module
 
 
-def create_sparse_mtx(rows: int, cols: int) -> np.ndarray:
+def create_sparse_mtx_and_dense_vec(rows: int, cols: int) -> Tuple[np.ndarray, np.ndarray]:
 
-    # create and store sparse matrix
+    print(f'vector: size: {(cols * 8) / 1024} KB')
+    dense_vec = np.array(cols * [1.0], np.float64)
+
     density = 0.05
     sparse_mat = sparse_random(rows, cols, density, dtype=np.float64).toarray()
-    print(f"Sparse Mat val size: {(rows * cols * density * 8) / 1024**2} MB")
-    return sparse_mat
+    print(f"sparse matrix: density: non-zero values size: {(rows * cols * density * 8) / 1024**2} MB, "
+          f"density: {density}%")
+
+    return sparse_mat, dense_vec
 
 
 @ctypes.CFUNCTYPE(ctypes.c_void_p)
 def start_measurement_callback():
-    print("Start Measurement Callback")
+    print("kernel start")
 
     # There's no perf on macos
     if platform.system() == "Darwin":
+        return
+
+    # Run perf only for the last repetition
+    if remaining_repetitions > 1:
         return
 
     spmv_pid = os.getpid()
@@ -78,17 +91,25 @@ def start_measurement_callback():
 
 @ctypes.CFUNCTYPE(ctypes.c_void_p, ctypes.c_uint64)
 def stop_measurement_callback(dur_ns: int):
-    print(f"Stop Measurement Callback: duration {round(dur_ns/1000000, 3)} ms")
+    global remaining_repetitions, execution_times
+
+    dur_ms = round(dur_ns/1000000, 3)
+    print(f"kernel finish: execution time: {dur_ms} ms")
+    execution_times.append(dur_ms)
 
     # There's no perf on macos
     if platform.system() == "Darwin":
+        return
+
+    if remaining_repetitions > 1:
+        remaining_repetitions -= 1
         return
 
     os.killpg(start_measurement_callback.perf_proc.pid, signal.SIGINT)
     start_measurement_callback.perf_proc.wait()
 
 
-def run_spmv(llvm_mlir: ir.Module, rows: int, cols: int):
+def run_spmv(llvm_mlir: ir.Module, rows: int, mtx: np.ndarray, vec: np.ndarray):
 
     llvm_path = environ.get("LLVM_PATH", None)
     if llvm_path is None:
@@ -98,11 +119,8 @@ def run_spmv(llvm_mlir: ir.Module, rows: int, cols: int):
     shared_lib_suffix = ".dylib" if platform.system() == "Darwin" else ".so"
     runtime_paths = [str(Path(llvm_path) / "lib" / (r + shared_lib_suffix)) for r in runtimes]
 
-    mtx = create_sparse_mtx(rows, cols)
     mtx_mem = ctypes.pointer(ctypes.pointer(rt.get_ranked_memref_descriptor(mtx)))
-
-    dense_vec = np.array(cols * [1.0], np.float64)
-    vec_mem = ctypes.pointer(ctypes.pointer(rt.get_ranked_memref_descriptor(dense_vec)))
+    vec_mem = ctypes.pointer(ctypes.pointer(rt.get_ranked_memref_descriptor(vec)))
 
     res = np.zeros(rows, np.float64)
     res_mem = ctypes.pointer(ctypes.pointer(rt.get_ranked_memref_descriptor(res)))
@@ -121,7 +139,7 @@ def run_spmv(llvm_mlir: ir.Module, rows: int, cols: int):
     exec_engine.dump_to_object_file("spmv.o")
 
     # Sanity check on computed result.
-    expected = np.matmul(mtx, dense_vec)
+    expected = np.matmul(mtx, vec)
     c = rt.ranked_memref_to_numpy(mem_out[0])
     if np.allclose(c, expected):
         pass
@@ -139,7 +157,10 @@ def make_build_dir_and_cd_to_it(file_path: str):
     chdir(build_path)
 
 
-def main(rows: int, cols: int, pref: bool):
+def main():
+    global remaining_repetitions
+
+    rows, cols, pref, remaining_repetitions = get_args()
 
     template_path = (Path("./spmv.prefetch.mlir.jinja2") if pref else Path("./spmv.mlir.jinja2")).absolute()
 
@@ -160,7 +181,15 @@ def main(rows: int, cols: int, pref: bool):
 
     llvm_mlir = apply_passes(src, passes)
 
-    run_spmv(llvm_mlir, rows, cols)
+    mtx, vec = create_sparse_mtx_and_dense_vec(rows, cols)
+
+    repetitions = remaining_repetitions
+    for _ in range(0, repetitions):
+        run_spmv(llvm_mlir=llvm_mlir, rows=rows, mtx=mtx, vec=vec)
+
+    if repetitions > 1:
+        print(f"Mean of {repetitions} repetitions: {round(statistics.mean(execution_times), 3)} ms")
+        print(f"Standard Deviation: {round(statistics.stdev(execution_times), 3)} ms")
 
 
 def get_args():
@@ -168,14 +197,13 @@ def get_args():
     parser.add_argument("-r", "--rows", type=int, default=1024, help="Number of rows (default=1024)")
     parser.add_argument("-c", "--cols", type=int, default=1024, help="Number of columns (default=1024)")
     parser.add_argument("-p", "--prefetch", action="store_true", help="Enable prefetching")
+    parser.add_argument("--repetitions", type=int, default=1,
+                        help="Repeat the kernel with the same input. "
+                        "Gather execution times, only run perf for the last run")
 
     args = parser.parse_args()
-    return args.rows, args.cols, args.prefetch
+    return args.rows, args.cols, args.prefetch, args.repetitions
 
 
 if __name__ == "__main__":
-    rows, cols, is_pref = get_args()
-
-    print(f'vec size: {(cols * 8) / 1024} KB')
-
-    main(rows, cols, is_pref)
+    main()

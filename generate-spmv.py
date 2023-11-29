@@ -1,7 +1,8 @@
+import argparse
 from os import chdir, getcwd, makedirs
 from contextlib import contextmanager
 
-from spmv import get_args, make_build_dir_and_cd_to_it, apply_passes
+from spmv import make_build_dir_and_cd_to_it, apply_passes
 
 from mlir import ir
 from mlir.dialects import func
@@ -72,8 +73,17 @@ def make_and_switch_dir(dir):
         chdir(current_dir)
 
 
+def get_args():
+    parser = argparse.ArgumentParser(description="Process rows and cols.")
+    parser.add_argument("-r", "--rows", type=int, default=1024, help="Number of rows (default=1024)")
+    parser.add_argument("-c", "--cols", type=int, default=1024, help="Number of columns (default=1024)")
+
+    args = parser.parse_args()
+    return args.rows, args.cols
+
+
 def main():
-    rows, cols, _ = get_args()
+    rows, cols = get_args()
     make_build_dir_and_cd_to_it(__file__)
 
     with ir.Context() as ctx, ir.Location.unknown():
