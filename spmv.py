@@ -71,14 +71,14 @@ def start_measurement_callback():
         return
 
     spmv_pid = os.getpid()
-    start_measurement_callback.perf_proc = subprocess.Popen(["toplev", "-l4", "--raw", "--pid", f"{spmv_pid}"],
+    start_measurement_callback.perf_proc = subprocess.Popen(["toplev", "-l6", "--pid", f"{spmv_pid}"],
                                                             start_new_session=True)
     sleep(1)
     
 
 @ctypes.CFUNCTYPE(ctypes.c_void_p, ctypes.c_uint64)
 def stop_measurement_callback(dur_ns: int):
-    print(f"Stop Measurement Callback: duration {dur_ns} ns")
+    print(f"Stop Measurement Callback: duration {round(dur_ns/1000000, 3)} ms")
 
     # There's no perf on macos
     if platform.system() == "Darwin":
