@@ -3,9 +3,8 @@
 module {
 
   func.func private @start_measurement_callback() -> () attributes { llvm.emit_c_interface }
-  func.func private @stop_measurement_callback() -> () attributes { llvm.emit_c_interface }
+  func.func private @stop_measurement_callback(%dur_ns: i64) -> () attributes { llvm.emit_c_interface }
   func.func private @nanoTime() -> i64 attributes { llvm.emit_c_interface }
-  func.func private @printI64(%arg: i64) -> ()
 
   func.func @spmv(%sparseT: tensor<{{ rows }}x{{ cols }}xf64, #CSR>,
                   %vec: tensor<{{ cols }}xf64>,
@@ -28,12 +27,12 @@ module {
     scf.for %i = %c0 to %c3 step %c1 {
       %6 = memref.load %res_buff[%i] : memref<{{ rows }}xf64>
       
-      %offset_start = memref.load %positions_buff[%i] : memref<?xindex>
+      %j_start = memref.load %positions_buff[%i] : memref<?xindex>
       
       %i_plus_one = arith.addi %i, %c1 : index
-      %offset_end = memref.load %positions_buff[%i_plus_one] : memref<?xindex>
+      %j_end = memref.load %positions_buff[%i_plus_one] : memref<?xindex>
       
-      %res_i = scf.for %j = %offset_start to %offset_end step %c1 iter_args(%arg5 = %6) -> (f64) {
+      %res_i = scf.for %j = %j_start to %j_end step %c1 iter_args(%arg5 = %6) -> (f64) {
       
         %col_idx = memref.load %coordinates_buff[%j] : memref<?xindex>
         %t_val = memref.load %values_buff[%j] : memref<?xf64>
@@ -53,8 +52,7 @@ module {
 
     %time_after = call @nanoTime() : () -> i64
     %diff = arith.subi %time_after, %time_before : i64
-    call @printI64(%diff) : (i64) -> ()
-    call @stop_measurement_callback() : () -> ()
+    call @stop_measurement_callback(%diff) : (i64) -> ()
 
     return %5 : tensor<{{ rows }}xf64>
   }

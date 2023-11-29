@@ -76,9 +76,9 @@ def start_measurement_callback():
     sleep(1)
     
 
-@ctypes.CFUNCTYPE(ctypes.c_void_p)
-def stop_measurement_callback():
-    print("\nStop Measurement Callback")
+@ctypes.CFUNCTYPE(ctypes.c_void_p, ctypes.c_uint64)
+def stop_measurement_callback(dur_ns: int):
+    print(f"Stop Measurement Callback: duration {dur_ns} ns")
 
     # There's no perf on macos
     if platform.system() == "Darwin":
