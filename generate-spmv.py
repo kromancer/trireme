@@ -73,7 +73,7 @@ def make_and_switch_dir(dir):
 
 
 def main():
-    rows, cols = get_args()
+    rows, cols, _ = get_args()
     make_build_dir_and_cd_to_it(__file__)
 
     with ir.Context() as ctx, ir.Location.unknown():
@@ -88,7 +88,7 @@ def main():
         module = ir.Module.parse(func)
 
         with open("spmv.mlir", "w") as f:
-            f.write()
+            f.write(str(module))
 
         for name, passes in pipelines.items():
             with make_and_switch_dir(name):

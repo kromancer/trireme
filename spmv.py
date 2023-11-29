@@ -139,8 +139,9 @@ def make_build_dir_and_cd_to_it(file_path: str):
     chdir(build_path)
 
 
-def main(rows: int, cols: int):
-    template_path = Path("./spmv.mlir.jinja2").absolute()
+def main(rows: int, cols: int, pref: bool):
+
+    template_path = (Path("./spmv.prefetch.mlir.jinja2") if pref else Path("./spmv.mlir.jinja2")).absolute()
 
     make_build_dir_and_cd_to_it(__file__)
 
@@ -167,14 +168,15 @@ def get_args():
     parser = argparse.ArgumentParser(description="Process rows and cols.")
     parser.add_argument("--rows", type=int, default=1024, help="Number of rows (default=1024)")
     parser.add_argument("--cols", type=int, default=1024, help="Number of columns (default=1024)")
+    parser.add_argument("-p", "--prefetch", action="store_true", help="Enable prefetching.")
 
     args = parser.parse_args()
-    return args.rows, args.cols
+    return args.rows, args.cols, args.prefetch
 
 
 if __name__ == "__main__":
-    rows, cols = get_args()
+    rows, cols, is_pref = get_args()
 
     print(f'vec size: {(cols * 8) / 1024} KB')
 
-    main(rows, cols)
+    main(rows, cols, is_pref)

@@ -1,0 +1,101 @@
+#CSR = #sparse_tensor.encoding<{ map = (d0, d1) -> (d0: dense, d1: compressed) }>
+
+module {
+
+  func.func private @start_measurement_callback() -> () attributes { llvm.emit_c_interface }
+  func.func private @stop_measurement_callback() -> () attributes { llvm.emit_c_interface }
+  func.func private @nanoTime() -> i64 attributes { llvm.emit_c_interface }
+  func.func private @printI64(%arg: i64) -> ()
+
+  func.func @spmv(%sparseT: tensor<{{ rows }}x{{ cols }}xf64, #CSR>,
+                  %vec: tensor<{{ cols }}xf64>,
+		  %res: tensor<{{ rows }}xf64>) -> tensor<{{ rows }}xf64> {
+		  
+    call @start_measurement_callback() : () -> ()
+    %time_before = call @nanoTime() : () -> i64
+		  
+    %c3 = arith.constant {{ rows }} : index
+    %c0 = arith.constant 0 : index
+    %c1 = arith.constant 1 : index
+    
+    %positions_buff = sparse_tensor.positions %sparseT {level = 1 : index} : tensor<{{ rows }}x{{ cols }}xf64, #CSR> to memref<?xindex>
+    %coordinates_buff = sparse_tensor.coordinates %sparseT {level = 1 : index} : tensor<{{ rows }}x{{ cols }}xf64, #CSR> to memref<?xindex>
+    %values_buff = sparse_tensor.values %sparseT : tensor<{{ rows }}x{{ cols }}xf64, #CSR> to memref<?xf64>
+    
+    %vec_buff = bufferization.to_memref %vec : memref<{{ cols }}xf64>
+    %res_buff = bufferization.to_memref %res : memref<{{ rows }}xf64>
+
+    // Fixed lookahead distance
+    %look_ahead = arith.constant 64 : index
+
+    scf.for %i = %c0 to %c3 step %c1 {
+      %6 = memref.load %res_buff[%i] : memref<{{ rows }}xf64>
+
+      // Load j_start
+      %j_start = memref.load %positions_buff[%i] : memref<?xindex>
+
+      // Load j_end, no prefetching
+      %i_plus_one = arith.addi %i, %c1 : index
+      %j_end = memref.load %positions_buff[%i_plus_one] : memref<?xindex>
+
+      // Prefetch the next j_start, use 1 as the lookahead since inner loop takes time
+      %i_plus_2 = arith.addi %i_plus_one, %c1 : index
+      %is_i_within_bounds = index.cmp ult(%i_plus_2, %c3)
+      scf.if %is_i_within_bounds {
+        memref.prefetch %positions_buff[%i_plus_2], read, locality<3>, data : memref<?xindex>
+      }
+      
+      %res_i = scf.for %j = %j_start to %j_end step %c1 iter_args(%arg5 = %6) -> (f64) {
+
+        // Prefetch column indices and values      	
+	%j_plus_lookahead = arith.addi %j, %look_ahead : index
+	%is_j_plus_lookahead_within_bounds = index.cmp ult(%j_plus_lookahead, %j_end)
+	scf.if %is_j_plus_lookahead_within_bounds {
+          memref.prefetch %coordinates_buff[%j_plus_lookahead], read, locality<3>, data : memref<?xindex>
+	  memref.prefetch %values_buff[%j_plus_lookahead], read, locality<3>, data : memref<?xf64>
+        }
+
+        // Load column indices and values for non-zero elements
+        %col_idx = memref.load %coordinates_buff[%j] : memref<?xindex>
+        %t_val = memref.load %values_buff[%j] : memref<?xf64>
+
+	// Prefetch vector values that correspond to the non-zero value col indices
+	%j_plus_2_lookaheads = arith.addi %j_plus_lookahead, %look_ahead : index
+	%is_j_plus_2_lookaheads_within_bounds = index.cmp ult(%j_plus_2_lookaheads, %c3)
+	scf.if %is_j_plus_2_lookaheads_within_bounds {
+	  memref.prefetch %vec_buff[%j_plus_2_lookaheads], read, locality<3>, data : memref<{{ cols }}xf64>
+	}
+
+	// Load vector values 
+        // vec_buff[coordinates_buff[positions_buff[i:i+1]]]
+	// aka C[B[A[i:i+1]]]
+        %v_val = memref.load %vec_buff[%col_idx] : memref<{{ cols }}xf64>
+	
+        %14 = arith.mulf %t_val, %v_val : f64
+        %15 = arith.addf %arg5, %14 : f64
+        scf.yield %15 : f64	
+      }
+      
+      memref.store %res_i, %res_buff[%i] : memref<{{ rows }}xf64>
+    } 
+    
+    %5 = bufferization.to_tensor %res_buff restrict : memref<{{ rows }}xf64>
+
+    %time_after = call @nanoTime() : () -> i64
+    %diff = arith.subi %time_after, %time_before : i64
+    call @printI64(%diff) : (i64) -> ()
+    call @stop_measurement_callback() : () -> ()
+
+    return %5 : tensor<{{ rows }}xf64>
+  }
+
+  func.func @main(%dense_mat: tensor<{{ rows }}x{{ cols }}xf64>,
+                  %dense_vec: tensor<{{ cols }}xf64>,
+                  %c: tensor<{{ rows }}xf64>) -> tensor<{{ rows }}xf64> attributes { llvm.emit_c_interface } {
+
+    %sparse = sparse_tensor.convert %dense_mat : tensor<{{ rows }}x{{ cols }}xf64> to tensor<{{ rows }}x{{ cols }}xf64, #CSR>
+    %0 = call @spmv(%sparse, %dense_vec, %c) : (tensor<{{ rows }}x{{ cols }}xf64, #CSR>, tensor<{{ rows }}xf64>, tensor<{{ cols }}xf64>) -> tensor<{{ cols }}xf64>
+    return %0 : tensor<{{ cols }}xf64>
+  }
+
+}
