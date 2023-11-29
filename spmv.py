@@ -58,12 +58,11 @@ def apply_passes(src: str, passes: List[str]) -> ir.Module:
     return module
 
 
-def create_sparse_mtx_and_dense_vec(rows: int, cols: int) -> Tuple[np.ndarray, np.ndarray]:
+def create_sparse_mtx_and_dense_vec(rows: int, cols: int, density: float) -> Tuple[np.ndarray, np.ndarray]:
 
     print(f'vector: size: {(cols * 8) / 1024} KB')
     dense_vec = np.array(cols * [1.0], np.float64)
 
-    density = 0.05
     sparse_mat = sparse_random(rows, cols, density, dtype=np.float64).toarray()
     print(f"sparse matrix: density: non-zero values size: {(rows * cols * density * 8) / 1024**2} MB, "
           f"density: {density}%")
@@ -95,7 +94,7 @@ def stop_measurement_callback(dur_ns: int):
 
     dur_ms = round(dur_ns/1000000, 3)
     print(f"kernel finish: execution time: {dur_ms} ms")
-    execution_times.append(dur_ms)
+    execution_times.append(dur_ns)
 
     # There's no perf on macos
     if platform.system() == "Darwin":
@@ -160,7 +159,7 @@ def make_build_dir_and_cd_to_it(file_path: str):
 def main():
     global remaining_repetitions
 
-    rows, cols, pref, remaining_repetitions = get_args()
+    rows, cols, density, pref, remaining_repetitions = get_args()
 
     template_path = (Path("./spmv.prefetch.mlir.jinja2") if pref else Path("./spmv.mlir.jinja2")).absolute()
 
@@ -181,15 +180,18 @@ def main():
 
     llvm_mlir = apply_passes(src, passes)
 
-    mtx, vec = create_sparse_mtx_and_dense_vec(rows, cols)
+    mtx, vec = create_sparse_mtx_and_dense_vec(rows, cols, density)
 
     repetitions = remaining_repetitions
     for _ in range(0, repetitions):
         run_spmv(llvm_mlir=llvm_mlir, rows=rows, mtx=mtx, vec=vec)
 
     if repetitions > 1:
-        print(f"Mean of {repetitions} repetitions: {round(statistics.mean(execution_times), 3)} ms")
-        print(f"Standard Deviation: {round(statistics.stdev(execution_times), 3)} ms")
+        mean = round(statistics.mean(execution_times) / 1000000, 3)
+        std_dev = round(statistics.stdev(execution_times) / 1000000, 3)
+        cv = round(std_dev / mean, 3)
+        print(f"mean of {repetitions} repetitions: {mean} ms")
+        print(f"std dev: {std_dev} ms, CV: {cv} %")
 
 
 def get_args():
@@ -197,12 +199,14 @@ def get_args():
     parser.add_argument("-r", "--rows", type=int, default=1024, help="Number of rows (default=1024)")
     parser.add_argument("-c", "--cols", type=int, default=1024, help="Number of columns (default=1024)")
     parser.add_argument("-p", "--prefetch", action="store_true", help="Enable prefetching")
+    parser.add_argument("-d", "--density", type=float, default=0.05,
+                        help="Density of sparse matrix (default=0.05)")
     parser.add_argument("--repetitions", type=int, default=1,
                         help="Repeat the kernel with the same input. "
                         "Gather execution times, only run perf for the last run")
 
     args = parser.parse_args()
-    return args.rows, args.cols, args.prefetch, args.repetitions
+    return args.rows, args.cols, args.density, args.prefetch, args.repetitions
 
 
 if __name__ == "__main__":
