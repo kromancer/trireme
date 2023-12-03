@@ -15,9 +15,11 @@ From: ubuntu:22.04
         binutils-dev gcc-multilib liblzma-dev
 
     # Switch to a temporary directory
-    TMP=/dev/shm
-    cd $TMP
-
+    # Accepts env variable $TMP
+    if [ -z "$TMP" ] || [ ! -d "$TMP" ]; then
+        TMP=/tmp
+    fi	
+    
     # Build Python from source
     VERSION="3.10.13"
     VERSION_MAJOR=${VERSION%.*}
@@ -25,11 +27,12 @@ From: ubuntu:22.04
 
     mkdir -p $PYTHON_DIR
 
-    wget https://www.python.org/ftp/python/$VERSION/Python-$VERSION.tar.xz -P $TMP
+    cd $TMP
+    wget https://www.python.org/ftp/python/$VERSION/Python-$VERSION.tar.xz
     tar -xvf Python-$VERSION.tar.xz
     cd Python-$VERSION/
     ./configure --enable-optimizations --with-lto --prefix=$PYTHON_DIR --with-ensurepip
-    make -j 16 altinstall
+    make altinstall
 
     # Get the llvm-project and build mlir
     cd $TMP
@@ -45,12 +48,14 @@ From: ubuntu:22.04
     cmake -G Ninja ../llvm -DLLVM_ENABLE_PROJECTS="clang;mlir" -DCMAKE_INSTALL_PREFIX=/opt/llvm -DPython3_EXECUTABLE=python -DMLIR_ENABLE_BINDINGS_PYTHON=ON -DLLVM_USE_PERF=ON -DLLVM_BUILD_EXAMPLES=ON -DLLVM_TARGETS_TO_BUILD="Native" -DCMAKE_BUILD_TYPE=Release -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
     ninja -j16 install
 
-    # Tetralith specific: Get the linux kernel and build perf
+    # Get the linux kernel and build perf
+    # Assumes that the machine building the image will run the container:
     cd $TMP
     rm -rf linux
     git clone https://github.com/torvalds/linux.git
     cd linux
-    git checkout v5.14
+    KERNEL_VERSION=$(uname -r | cut -d'.' -f1,2)
+    git checkout v$KERNEL_VERSION
 
     mkdir -p /opt/perf
     PYTHON=/opt/python/bin/python$VERSION_MAJOR make CFLAGS="-Wno-error=maybe-uninitialized" LDFLAGS="-Wno-error=maybe-uninitialized" -C tools/perf prefix=/opt/perf install
