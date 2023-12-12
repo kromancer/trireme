@@ -12,7 +12,8 @@ From: ubuntu:22.04
         flex bison \
         libelf-dev libnewt-dev libdw-dev libaudit-dev libiberty-dev \
         libunwind-dev libcap-dev libzstd-dev libnuma-dev libssl-dev \
-        binutils-dev gcc-multilib liblzma-dev
+        binutils-dev gcc-multilib liblzma-dev \
+	hwloc
 
     # Switch to a temporary directory
     # Accepts env variable $TMP
