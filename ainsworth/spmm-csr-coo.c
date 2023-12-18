@@ -26,11 +26,15 @@ void compute(int B1_dimension,
     // For every row of B
     for (int i = 0; i < B1_dimension; i++) {
 
-        // B: nonzero column indices are in the RANGE [B_pos[i], B_pos[i + 1])
+        // kB from B_pos[i] to pB2_end B_pos[i + 1]
+        // with step 1
+        // Iterates over nonzero elements of B in row i
         int kB = B2_pos[i];
         int pB2_end = B2_pos[i + 1];
 
-        // kC is reset to 0, pC1_end is the number of ALL nonzero elements in C
+        // kC from 0 to pC1_end (# of nonzeroes)
+        // with step C1_segend (# of nonzeroes in each row)
+        // Iterates over the start of each nonzero for every row of C
         int kC = C1_pos[0];
         int pC1_end = C1_pos[1];
 
@@ -53,18 +57,18 @@ void compute(int B1_dimension,
             // If C has nonzero elements in row k
             if (kB0 == k && kC0 == k) {
 
-                // Partial computation of A[i,j] based on element B[i, k] and row C[k, j]
+                // Partial computation of row A[i,j] based on element B[i, kB] and row C[kC0, j]
                 for (int32_t jC = kC; jC < C1_segend; jC++) {
                     int32_t j = C2_crd[jC];
                     int32_t jA = i * A2_dimension + j;
-                    A_vals[jA] = A_vals[jA] + B_vals[kB] * C_vals[jC];
+                    A_vals[jA] += B_vals[kB] * C_vals[jC];
                 }
 
             }
 
             // Non-affine loop
             kB += (int32_t)(kB0 == k);
-            kC += C1_segend;
+            kC  = C1_segend;
         }
     }
 }
