@@ -86,7 +86,7 @@ def start_measurement_callback():
     start_measurement_callback.perf_proc = subprocess.Popen(["toplev", "-l6", "--pid", f"{spmv_pid}"],
                                                             start_new_session=True)
     sleep(1)
-    
+
 
 @ctypes.CFUNCTYPE(ctypes.c_void_p, ctypes.c_uint64)
 def stop_measurement_callback(dur_ns: int):
@@ -159,24 +159,13 @@ def make_build_dir_and_cd_to_it(file_path: str):
 def main():
     global remaining_repetitions
 
-    rows, cols, density, pref, remaining_repetitions = get_args()
+    rows, cols, density, pref, remaining_repetitions, passes = get_args()
 
     template_path = (Path("./spmv.prefetch.mlir.jinja2") if pref else Path("./spmv.mlir.jinja2")).absolute()
 
     make_build_dir_and_cd_to_it(__file__)
 
     src = render_template(rows, cols, template_path)
-
-    passes = ["lower-sparse-ops-to-foreach",
-              "lower-sparse-foreach-to-scf",
-              "sparse-reinterpret-map",
-              "sparse-tensor-conversion",
-              "canonicalize",
-              "tensor-bufferize",
-              "func-bufferize",
-              "bufferization-bufferize",
-              "convert-scf-to-cf",
-              "convert-to-llvm"]
 
     llvm_mlir = apply_passes(src, passes)
 
@@ -198,15 +187,47 @@ def get_args():
     parser = argparse.ArgumentParser(description="Process rows and cols.")
     parser.add_argument("-r", "--rows", type=int, default=1024, help="Number of rows (default=1024)")
     parser.add_argument("-c", "--cols", type=int, default=1024, help="Number of columns (default=1024)")
-    parser.add_argument("-p", "--prefetch", action="store_true", help="Enable prefetching")
     parser.add_argument("-d", "--density", type=float, default=0.05,
                         help="Density of sparse matrix (default=0.05)")
+
+    parser.add_argument("-v", "--vectorized", action="store_true",
+                        help="Use vectorized version of spmv with vl=4 doubles")
+    parser.add_argument("-p", "--prefetch", action="store_true", help="Enable prefetching")
+
     parser.add_argument("--repetitions", type=int, default=1,
                         help="Repeat the kernel with the same input. "
                         "Gather execution times, only run perf for the last run")
 
     args = parser.parse_args()
-    return args.rows, args.cols, args.density, args.prefetch, args.repetitions
+
+    if not args.vectorized:
+        passes = ["lower-sparse-ops-to-foreach",
+                  "lower-sparse-foreach-to-scf",
+                  "sparse-reinterpret-map",
+                  "sparse-tensor-conversion",
+                  "canonicalize",
+                  "tensor-bufferize",
+                  "func-bufferize",
+                  "bufferization-bufferize",
+                  "convert-scf-to-cf",
+                  "convert-to-llvm"]
+    else:
+        passes = ["lower-sparse-ops-to-foreach",
+                  "lower-sparse-foreach-to-scf",
+                  "sparse-reinterpret-map",
+                  "sparse-vectorization{vl=4}",
+                  "sparse-tensor-conversion",
+                  "tensor-bufferize",
+                  "func-bufferize",
+                  "bufferization-bufferize",
+                  "convert-scf-to-cf",
+                  f"convert-vector-to-llvm{{{'enable-x86vector' if platform.machine() == 'x86_64' else 'enable-arm-neon'}}}",
+                  "lower-affine",
+                  "convert-arith-to-llvm",
+                  "convert-to-llvm",
+                  "reconcile-unrealized-casts"]
+
+    return args.rows, args.cols, args.density, args.prefetch, args.repetitions, passes
 
 
 if __name__ == "__main__":

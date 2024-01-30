@@ -22,7 +22,7 @@ func.func @spmv(%sparseT: tensor<{{ rows }}x{{ cols }}xf64, #CSR>,
     %mat_vals = sparse_tensor.values %sparseT : tensor<{{ rows }}x{{ cols }}xf64, #CSR> to memref<?xf64>
 
     %vec_vals = bufferization.to_memref %vec : memref<{{ cols }}xf64>
-    %res_buff = bufferization.to_memref %res : memref<{{ cols }}xf64>
+    %res_buff = bufferization.to_memref %res : memref<{{ rows }}xf64>
 
     // Fixed lookahead distance
     %dist_double = arith.constant 64 : index

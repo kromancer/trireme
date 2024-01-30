@@ -1,4 +1,5 @@
 import argparse
+import platform
 from os import chdir, getcwd, makedirs
 from contextlib import contextmanager
 
@@ -19,12 +20,16 @@ no_parallelization = ["sparse-reinterpret-map",
 
 vectorized = ["sparse-reinterpret-map",
               "sparsification{parallelization-strategy=none}",
-              "sparse-vectorization{vl=16}",
+              "sparse-vectorization{vl=4}",
               "sparse-tensor-codegen",
               "func-bufferize",
               "bufferization-bufferize",
               "convert-scf-to-cf",
-              "convert-to-llvm"]
+              f"convert-vector-to-llvm{{{'enable-x86vector' if platform.machine() == 'x86_64' else 'enable-arm-neon'}}}",
+              "lower-affine",
+              "convert-arith-to-llvm",
+              "convert-to-llvm",
+              "reconcile-unrealized-casts"]
 
 omp = ["sparse-reinterpret-map",
        "sparsification{parallelization-strategy=any-storage-any-loop}",
