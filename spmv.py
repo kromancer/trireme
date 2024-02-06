@@ -60,8 +60,8 @@ def apply_passes(src: str, passes: List[str]) -> ir.Module:
 
 def create_sparse_mtx_and_dense_vec(rows: int, cols: int, density: float) -> Tuple[np.ndarray, np.ndarray]:
 
-    print(f'vector: size: {(cols * 8) / 1024} KB')
     dense_vec = np.array(cols * [1.0], np.float64)
+    print(f'vector: size: {(cols * 8) / (1024 * 1024)} MB')
 
     rng = np.random.default_rng(5)
     sparse_mat = sp.random_array((rows, cols), density=density, dtype=np.float64, random_state=rng).toarray()
@@ -154,6 +154,19 @@ def make_build_dir_and_cd_to_it(file_path: str):
     chdir(build_path)
 
 
+def filtered_by_median(data) -> List[int]:
+    r""" Temporary hack until we can guarantee that there is no context switching to the core running the kernel"""
+    median_value = np.median(data)
+
+    filtered = [x for x in data if x <= 1.5 * median_value]
+    outliers = [x for x in data if x not in filtered]
+
+    if outliers:
+        print("Outliers:", outliers)
+
+    return filtered
+
+
 def main():
     global remaining_repetitions
 
@@ -172,10 +185,11 @@ def main():
         run_spmv(llvm_mlir=llvm_mlir, rows=rows, mtx=mtx, vec=vec)
 
     if repetitions > 1:
-        mean = round(statistics.mean(execution_times) / 1000000, 3)
-        std_dev = round(statistics.stdev(execution_times) / 1000000, 3)
+        filtered = filtered_by_median(execution_times)
+        mean = round(statistics.mean(filtered) / 1000000, 3)
+        std_dev = round(statistics.stdev(filtered) / 1000000, 3)
         cv = round(std_dev / mean, 3)
-        print(f"mean of {repetitions} repetitions: {mean} ms")
+        print(f"mean execution time: {mean} ms")
         print(f"std dev: {std_dev} ms, CV: {cv} %")
 
 
