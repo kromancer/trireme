@@ -13,7 +13,7 @@ from typing import List, Optional, Tuple
 
 from jinja2 import Template
 import numpy as np
-from scipy.sparse import random as sparse_random
+import scipy.sparse as sp
 
 from mlir import runtime as rt
 from mlir.execution_engine import *
@@ -63,7 +63,8 @@ def create_sparse_mtx_and_dense_vec(rows: int, cols: int, density: float) -> Tup
     print(f'vector: size: {(cols * 8) / 1024} KB')
     dense_vec = np.array(cols * [1.0], np.float64)
 
-    sparse_mat = sparse_random(rows, cols, density, dtype=np.float64).toarray()
+    rng = np.random.default_rng(5)
+    sparse_mat = sp.random_array((rows, cols), density=density, dtype=np.float64, random_state=rng).toarray()
     print(f"sparse matrix: density: non-zero values size: {(rows * cols * density * 8) / 1024**2} MB, "
           f"density: {density}%")
 
