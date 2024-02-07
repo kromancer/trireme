@@ -16,7 +16,7 @@ module {
     %rows = arith.constant {{ rows }} : index
     %c0 = arith.constant 0 : index
     %c1 = arith.constant 1 : index
-    %pd = arith.constant 128 : index
+    %pd = arith.constant {{ pd }} : index
 
     %positions_buff = sparse_tensor.positions %sparseT {level = 1 : index} : tensor<{{ rows }}x{{ cols }}xf64, #CSR> to memref<?xindex>
     %coordinates_buff = sparse_tensor.coordinates %sparseT {level = 1 : index} : tensor<{{ rows }}x{{ cols }}xf64, #CSR> to memref<?xindex>

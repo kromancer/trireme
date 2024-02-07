@@ -25,11 +25,55 @@ remaining_repetitions = 1
 execution_times = []
 
 
-def render_template(rows: int, cols: int, template_path: Path) -> str:
+def get_template_path(opt: Optional[str]) -> Path:
+    return Path({
+        "pref-ains": "./spmv.prefetch.mlir.jinja2",
+        "pref-spe": "./spmv.spe.mlir.jinja2"
+    }.get(opt, "./spmv.mlir.jinja2")).absolute()
+
+
+def get_mlir_opt_passes(opt: Optional[str]) -> List[str]:
+    if opt == "vect-vl4":
+        return ["lower-sparse-ops-to-foreach",
+                "lower-sparse-foreach-to-scf",
+                "sparse-reinterpret-map",
+                "sparse-vectorization{vl=4}",
+                "sparse-tensor-conversion",
+                "tensor-bufferize",
+                "func-bufferize",
+                "bufferization-bufferize",
+                "convert-scf-to-cf",
+                f"convert-vector-to-llvm{{{'enable-x86vector' if platform.machine() == 'x86_64' else 'enable-arm-neon'}}}",
+                "lower-affine",
+                "convert-arith-to-llvm",
+                "convert-to-llvm",
+                "reconcile-unrealized-casts"]
+    else:
+        return ["lower-sparse-ops-to-foreach",
+                "lower-sparse-foreach-to-scf",
+                "sparse-reinterpret-map",
+                "sparse-tensor-conversion",
+                "canonicalize",
+                "tensor-bufferize",
+                "func-bufferize",
+                "bufferization-bufferize",
+                "convert-scf-to-cf",
+                "convert-to-llvm"]
+
+
+def render_template(rows: int, cols: int, opt: Optional[str], pd: int) -> str:
+
+    template_path = get_template_path(opt)
 
     with (open(template_path, "r") as template_f,
           open("spmv.mlir", "w") as rendered_template_f):
-        rendered_template = Template(template_f.read()).render(rows=rows, cols=cols)
+        template = Template(template_f.read())
+
+        if opt == "pref-ains" or opt == "pref-spe":
+            rendered_template = template.render(rows=rows, cols=cols, pd=pd)
+        else:
+            rendered_template = template.render(rows=rows, cols=cols)
+
         rendered_template_f.write(rendered_template)
 
     return rendered_template
@@ -170,11 +214,9 @@ def filtered_by_median(data) -> List[int]:
 def main():
     global remaining_repetitions
 
-    rows, cols, density, template_path, remaining_repetitions, passes = get_args()
+    rows, cols, density, src, remaining_repetitions, passes = get_args()
 
     make_build_dir_and_cd_to_it(__file__)
-
-    src = render_template(rows, cols, template_path)
 
     llvm_mlir = apply_passes(src, passes)
 
@@ -193,42 +235,6 @@ def main():
         print(f"std dev: {std_dev} ms, CV: {cv} %")
 
 
-def get_template_path(opt: Optional[str]) -> Path:
-    return Path({
-        "pref-ains": "./spmv.prefetch.mlir.jinja2",
-        "pref-spe": "./spmv.spe.mlir.jinja2"
-    }.get(opt, "./spmv.mlir.jinja2")).absolute()
-
-
-def get_mlir_opt_passes(opt: Optional[str]) -> List[str]:
-    if opt == "vect-vl4":
-        return ["lower-sparse-ops-to-foreach",
-                "lower-sparse-foreach-to-scf",
-                "sparse-reinterpret-map",
-                "sparse-vectorization{vl=4}",
-                "sparse-tensor-conversion",
-                "tensor-bufferize",
-                "func-bufferize",
-                "bufferization-bufferize",
-                "convert-scf-to-cf",
-                f"convert-vector-to-llvm{{{'enable-x86vector' if platform.machine() == 'x86_64' else 'enable-arm-neon'}}}",
-                "lower-affine",
-                "convert-arith-to-llvm",
-                "convert-to-llvm",
-                "reconcile-unrealized-casts"]
-    else:
-        return ["lower-sparse-ops-to-foreach",
-                "lower-sparse-foreach-to-scf",
-                "sparse-reinterpret-map",
-                "sparse-tensor-conversion",
-                "canonicalize",
-                "tensor-bufferize",
-                "func-bufferize",
-                "bufferization-bufferize",
-                "convert-scf-to-cf",
-                "convert-to-llvm"]
-
-
 def get_args():
     parser = argparse.ArgumentParser(description="Process rows and cols.")
     parser.add_argument("-r", "--rows", type=int, default=1024,
@@ -239,13 +245,17 @@ def get_args():
                         help="Density of sparse matrix (default=0.05)")
     parser.add_argument("-o", "--optimization", choices=["vect-vl4", "pref-ains", "pref-spe"],
                         help="Use an optimized version of the kernel")
+    parser.add_argument("-pd", "--prefetch-distance", type=int, default=32,
+                        help="Prefetch distance")
     parser.add_argument("--repetitions", type=int, default=1,
                         help="Repeat the kernel with the same input. "
                         "Gather execution times, only run perf for the last run")
 
     args = parser.parse_args()
-    return (args.rows, args.cols, args.density, get_template_path(args.optimization), args.repetitions,
-            get_mlir_opt_passes(args.optimization))
+
+    src = render_template(args.rows, args.cols, args.optimization, args.prefetch_distance)
+
+    return args.rows, args.cols, args.density, src, args.repetitions, get_mlir_opt_passes(args.optimization)
 
 
 if __name__ == "__main__":

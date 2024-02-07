@@ -16,6 +16,7 @@ func.func @spmv(%sparseT: tensor<{{ rows }}x{{ cols }}xf64, #CSR>,
     %c3 = arith.constant {{ rows }} : index
     %c0 = arith.constant 0 : index
     %c1 = arith.constant 1 : index
+    %c2 = arith.constant 2 : index
 
     %pos = sparse_tensor.positions %sparseT {level = 1 : index} : tensor<{{ rows }}x{{ cols }}xf64, #CSR> to memref<?xindex>
     %crd = sparse_tensor.coordinates %sparseT {level = 1 : index} : tensor<{{ rows }}x{{ cols }}xf64, #CSR> to memref<?xindex>
@@ -25,8 +26,8 @@ func.func @spmv(%sparseT: tensor<{{ rows }}x{{ cols }}xf64, #CSR>,
     %res_buff = bufferization.to_memref %res : memref<{{ rows }}xf64>
 
     // Fixed lookahead distance
-    %dist_double = arith.constant 64 : index
-    %dist = arith.constant 32 : index
+    %dist = arith.constant {{ pd }} : index
+    %dist_double = arith.muli %dist, %c2 : index
 
     scf.for %i = %c0 to %c3 step %c1 {
         %6 = memref.load %res_buff[%i] : memref<{{ rows }}xf64>
