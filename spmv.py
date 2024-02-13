@@ -1,13 +1,14 @@
 import argparse
 import ctypes
-import os
+import json
+from os import chdir, getpid, environ, killpg, makedirs
+from pathlib import Path
 import platform
+from shutil import rmtree
 import signal
 import statistics
 import subprocess
-from shutil import rmtree
-from os import chdir, environ, makedirs
-from pathlib import Path
+import sys
 from time import sleep
 from typing import List, Optional, Tuple
 
@@ -61,7 +62,7 @@ def get_mlir_opt_passes(opt: Optional[str]) -> List[str]:
                 "convert-to-llvm"]
 
 
-def render_template(rows: int, cols: int, opt: Optional[str], pd: int) -> str:
+def render_template(rows: int, cols: int, opt: Optional[str], pd: int, loc_hint: int) -> str:
 
     template_path = get_template_path(opt)
 
@@ -70,7 +71,7 @@ def render_template(rows: int, cols: int, opt: Optional[str], pd: int) -> str:
         template = Template(template_f.read())
 
         if opt == "pref-ains" or opt == "pref-spe":
-            rendered_template = template.render(rows=rows, cols=cols, pd=pd)
+            rendered_template = template.render(rows=rows, cols=cols, pd=pd, loc_hint=loc_hint)
         else:
             rendered_template = template.render(rows=rows, cols=cols)
 
@@ -127,7 +128,7 @@ def start_measurement_callback():
     if remaining_repetitions > 1:
         return
 
-    spmv_pid = os.getpid()
+    spmv_pid = getpid()
     start_measurement_callback.perf_proc = subprocess.Popen(["toplev", "-l6", "--pid", f"{spmv_pid}"],
                                                             start_new_session=True)
     sleep(1)
@@ -149,7 +150,7 @@ def stop_measurement_callback(dur_ns: int):
         remaining_repetitions -= 1
         return
 
-    os.killpg(start_measurement_callback.perf_proc.pid, signal.SIGINT)
+    killpg(start_measurement_callback.perf_proc.pid, signal.SIGINT)
     start_measurement_callback.perf_proc.wait()
 
 
@@ -199,7 +200,7 @@ def make_build_dir_and_cd_to_it(file_path: str):
 
 
 def filtered_by_median(data) -> List[int]:
-    r""" Temporary hack until we can guarantee that there is no context switching to the core running the kernel"""
+    r""" Temporary hack until we can guarantee that there is no context switching in the core running the kernel"""
     median_value = np.median(data)
 
     filtered = [x for x in data if x <= 1.5 * median_value]
@@ -209,6 +210,36 @@ def filtered_by_median(data) -> List[int]:
         print("Outliers:", outliers)
 
     return filtered
+
+
+def append_entry_to_json(new_entry, file_path=None):
+    if file_path is None:
+        # Set default file_path to 'logs.json' in the current script's directory
+        file_path = Path(__file__).resolve().parent / 'logs.json'
+    else:
+        file_path = Path(file_path)
+
+    # Get the absolute path of the file
+    abs_file_path = file_path.resolve()
+
+    # Attempt to open the file, create a new one if it does not exist
+    try:
+        with open(file_path, 'r') as file:
+            data = json.load(file)
+    except FileNotFoundError:
+        data = []
+        print(f"No existing file found. A new file will be created at: {abs_file_path}")
+
+    # Check if data is a list, if not, initialize as a list
+    if not isinstance(data, list):
+        data = []
+
+    # Append the new entry
+    data.append(new_entry)
+
+    # Write the updated list back to the JSON file
+    with open(file_path, 'w') as file:
+        json.dump(data, file, indent=4)
 
 
 def main():
@@ -226,13 +257,19 @@ def main():
     for _ in range(0, repetitions):
         run_spmv(llvm_mlir=llvm_mlir, rows=rows, mtx=mtx, vec=vec)
 
-    if repetitions > 1:
+    if repetitions > 2:
         filtered = filtered_by_median(execution_times)
         mean = round(statistics.mean(filtered) / 1000000, 3)
         std_dev = round(statistics.stdev(filtered) / 1000000, 3)
         cv = round(std_dev / mean, 3)
         print(f"mean execution time: {mean} ms")
         print(f"std dev: {std_dev} ms, CV: {cv} %")
+        append_entry_to_json({'args': ' '.join(sys.argv),
+                              'exec_times_ns': execution_times,
+                              'filtered': filtered,
+                              'mean_ms': mean,
+                              'std_dev': std_dev,
+                              'cv': cv})
 
 
 def get_args():
@@ -247,13 +284,17 @@ def get_args():
                         help="Use an optimized version of the kernel")
     parser.add_argument("-pd", "--prefetch-distance", type=int, default=32,
                         help="Prefetch distance")
+    parser.add_argument("-l", "--locality-hint", type=int, choices=[0, 1, 2, 3], default=3,
+                        help="Temporal locality hint for prefetch instructions, "
+                             "3 for maximum temporal locality, 0 for no temporal locality. "
+                             "On x86, value 3 will produce PREFETCHT0, while value 0 will produce PREFETCHNTA")
     parser.add_argument("--repetitions", type=int, default=1,
                         help="Repeat the kernel with the same input. "
                         "Gather execution times, only run perf for the last run")
 
     args = parser.parse_args()
 
-    src = render_template(args.rows, args.cols, args.optimization, args.prefetch_distance)
+    src = render_template(args.rows, args.cols, args.optimization, args.prefetch_distance, args.locality_hint)
 
     return args.rows, args.cols, args.density, src, args.repetitions, get_mlir_opt_passes(args.optimization)
 

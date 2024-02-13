@@ -47,9 +47,8 @@ func.func @spmv(%sparseT: tensor<{{ rows }}x{{ cols }}xf64, #CSR>,
             %vec_val = memref.load %vec_vals[%col_idx] : memref<{{ cols }}xf64>
 
             // Prefetch crd[j + 2 * dist],
-            // NO BOUNDS checking
             %j_dist_double = arith.addi %j, %dist_double : index
-            memref.prefetch %crd[%j_dist_double], read, locality<3>, data : memref<?xindex>
+            memref.prefetch %crd[%j_dist_double], read, locality<{{ loc_hint }}>, data : memref<?xindex>
 
             // Load crd[min(j + dist, j_end)]
             %j_dist = arith.addi %j, %dist : index
@@ -57,7 +56,7 @@ func.func @spmv(%sparseT: tensor<{{ rows }}x{{ cols }}xf64, #CSR>,
             %crd_dist = memref.load %crd[%j_dist_or_bound] : memref<?xindex>
 
             // Prefetch vec_vals[crd[%crd_dist]]
-            memref.prefetch %vec_vals[%crd_dist], read, locality<3>, data : memref<{{ cols }}xf64>
+            memref.prefetch %vec_vals[%crd_dist], read, locality<{{ loc_hint }}>, data : memref<{{ cols }}xf64>
 
             %14 = arith.mulf %mat_j, %vec_val : f64
             %15 = arith.addf %arg5, %14 : f64
