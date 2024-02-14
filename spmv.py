@@ -1,14 +1,11 @@
 import argparse
 import ctypes
-import json
 from os import chdir, getpid, environ, killpg, makedirs
 from pathlib import Path
 import platform
 from shutil import rmtree
 import signal
-import statistics
 import subprocess
-import sys
 from time import sleep
 from typing import List, Optional, Tuple
 
@@ -20,6 +17,8 @@ from mlir import runtime as rt
 from mlir.execution_engine import *
 from mlir import ir
 from mlir.passmanager import *
+
+from logging_and_graphing import log_execution_times
 
 
 remaining_repetitions = 1
@@ -199,49 +198,6 @@ def make_build_dir_and_cd_to_it(file_path: str):
     chdir(build_path)
 
 
-def filtered_by_median(data) -> List[int]:
-    r""" Temporary hack until we can guarantee that there is no context switching in the core running the kernel"""
-    median_value = np.median(data)
-
-    filtered = [x for x in data if x <= 1.5 * median_value]
-    outliers = [x for x in data if x not in filtered]
-
-    if outliers:
-        print("Outliers:", outliers)
-
-    return filtered
-
-
-def append_entry_to_json(new_entry, file_path=None):
-    if file_path is None:
-        # Set default file_path to 'logs.json' in the current script's directory
-        file_path = Path(__file__).resolve().parent / 'logs.json'
-    else:
-        file_path = Path(file_path)
-
-    # Get the absolute path of the file
-    abs_file_path = file_path.resolve()
-
-    # Attempt to open the file, create a new one if it does not exist
-    try:
-        with open(file_path, 'r') as file:
-            data = json.load(file)
-    except FileNotFoundError:
-        data = []
-        print(f"No existing file found. A new file will be created at: {abs_file_path}")
-
-    # Check if data is a list, if not, initialize as a list
-    if not isinstance(data, list):
-        data = []
-
-    # Append the new entry
-    data.append(new_entry)
-
-    # Write the updated list back to the JSON file
-    with open(file_path, 'w') as file:
-        json.dump(data, file, indent=4)
-
-
 def main():
     global remaining_repetitions
 
@@ -257,19 +213,7 @@ def main():
     for _ in range(0, repetitions):
         run_spmv(llvm_mlir=llvm_mlir, rows=rows, mtx=mtx, vec=vec)
 
-    if repetitions > 2:
-        filtered = filtered_by_median(execution_times)
-        mean = round(statistics.mean(filtered) / 1000000, 3)
-        std_dev = round(statistics.stdev(filtered) / 1000000, 3)
-        cv = round(std_dev / mean, 3)
-        print(f"mean execution time: {mean} ms")
-        print(f"std dev: {std_dev} ms, CV: {cv} %")
-        append_entry_to_json({'args': ' '.join(sys.argv),
-                              'exec_times_ns': execution_times,
-                              'filtered': filtered,
-                              'mean_ms': mean,
-                              'std_dev': std_dev,
-                              'cv': cv})
+    log_execution_times(execution_times)
 
 
 def get_args():
