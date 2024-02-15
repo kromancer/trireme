@@ -1,6 +1,7 @@
 from datetime import datetime
 import json
 from pathlib import Path
+import re
 from socket import gethostname
 from statistics import mean, median, stdev
 import sys
@@ -107,26 +108,33 @@ def parse_logs(file_path: str) -> Tuple[List, List, List]:
     return l0, l2, l3
 
 
+def filter_logs(log: Path, args_re: str) -> List[int]:
+    with open(log, 'r') as f:
+        logs = json.load(f)
+    filtered_means = [log['mean_ms'] for log in logs if re.match(args_re, log['args'])]
+    return filtered_means
+
+
 if __name__ == "__main__":
-    nta, t2, t0 = parse_logs('logs.json')
+    config_file = './graph-config.json'
+    with open(config_file, 'r') as file:
+        config = json.load(file)
 
-    # Generate the sequence for the x-axis
-    assert len(nta) == len(t2) == len(t0)
-    x_vals = list(range(5, len(nta) + 5))
+    base_path = Path(config_file).resolve().parent
 
-    # Plotting
-    plt.figure(figsize=(10, 6))  # Optional: Adjust figure size
+    x_start = 5
+    for series in config['series']:
+        log_path = base_path / Path(series['file']).relative_to('.')
+        means = filter_logs(log_path, series['args_re'])
+        x_values = list(range(x_start, x_start + len(means)))
+        plt.plot(x_values, means, label=series['label'])
 
     # Plot a horizontal line for the Baseline section
     plt.axhline(y=7.283, color='r', linestyle='-', label='Baseline')
 
-    plt.plot(x_vals, t0, marker='o', label='SPE-PREFETCHNT0')
-    plt.plot(x_vals, t2, marker='o', label='SPE-PREFETCHNT2')
-    plt.plot(x_vals, nta, marker='o', label='SPE-PREFETCHNTA')
-
-    plt.xlabel('Prefetch Distance in num of inner loop iterations, starting from 10, step 5')
-    plt.ylabel('Execution Time ms (mean of 10runs, CV always < 0.01%)')
-    plt.title('SpMV rows: 1, cols: 2,048,000,000, dens: 0.0005%, dtype: f64, i9-12900K')
+    plt.xlabel(config['xlabel'])
+    plt.ylabel(config['ylabel'])
+    plt.title(config['title'])
     plt.legend()
     plt.grid(True)
     plt.show()
