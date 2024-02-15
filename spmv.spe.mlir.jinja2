@@ -16,7 +16,6 @@ module {
     %rows = arith.constant {{ rows }} : index
     %c0 = arith.constant 0 : index
     %c1 = arith.constant 1 : index
-    %c8 = arith.constant 8 : index
     %pd = arith.constant {{ pd }} : index
 
     %positions_buff = sparse_tensor.positions %sparseT {level = 1 : index} : tensor<{{ rows }}x{{ cols }}xf64, #CSR> to memref<?xindex>
@@ -40,7 +39,7 @@ module {
         %j_plus_pd_or_j_end = arith.minui %j_plus_pd, %j_end : index
 
         // SPE loop
-        scf.for %pre = %j to %j_plus_pd_or_j_end step %c8 {
+        scf.for %pre = %j to %j_plus_pd_or_j_end step %c1 {
           %col_idx = memref.load %coordinates_buff[%pre] : memref<?xindex>
           memref.prefetch %vec_buff[%col_idx], read, locality<{{ loc_hint }}>, data : memref<{{ cols }}xf64>
         }
