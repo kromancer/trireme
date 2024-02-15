@@ -28,8 +28,7 @@ vectorized = ["sparse-reinterpret-map",
               f"convert-vector-to-llvm{{{'enable-x86vector' if platform.machine() == 'x86_64' else 'enable-arm-neon'}}}",
               "lower-affine",
               "convert-arith-to-llvm",
-              "convert-to-llvm",
-              "reconcile-unrealized-casts"]
+              "convert-to-llvm"]
 
 omp = ["sparse-reinterpret-map",
        "sparsification{parallelization-strategy=any-storage-any-loop}",
