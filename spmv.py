@@ -1,17 +1,15 @@
 import argparse
 import ctypes
-from os import chdir, getpid, environ, killpg, makedirs
+from os import getpid, environ, killpg
 from pathlib import Path
 import platform
-from shutil import rmtree
 import signal
 import subprocess
 from time import sleep
-from typing import List, Optional, Tuple
+from typing import List, Optional
 
 from jinja2 import Template
 import numpy as np
-import scipy.sparse as sp
 
 from mlir import runtime as rt
 from mlir.execution_engine import *
@@ -19,7 +17,7 @@ from mlir import ir
 from mlir.passmanager import *
 
 from logging_and_graphing import log_execution_times
-
+from utils import make_work_dir_and_cd_to_it, create_sparse_mat_and_dense_vec
 
 remaining_repetitions = 1
 execution_times = []
@@ -102,19 +100,6 @@ def apply_passes(src: str, passes: List[str]) -> ir.Module:
     return module
 
 
-def create_sparse_mtx_and_dense_vec(rows: int, cols: int, density: float) -> Tuple[np.ndarray, np.ndarray]:
-
-    dense_vec = np.array(cols * [1.0], np.float64)
-    print(f'vector: size: {(cols * 8) / (1024 * 1024)} MB')
-
-    rng = np.random.default_rng(5)
-    sparse_mat = sp.random_array((rows, cols), density=density, dtype=np.float64, random_state=rng).toarray()
-    print(f"sparse matrix: density: non-zero values size: {(rows * cols * density * 8) / 1024**2} MB, "
-          f"density: {density}%")
-
-    return sparse_mat, dense_vec
-
-
 @ctypes.CFUNCTYPE(ctypes.c_void_p)
 def start_measurement_callback():
     print("kernel start")
@@ -188,36 +173,26 @@ def run_spmv(llvm_mlir: ir.Module, rows: int, mtx: np.ndarray, vec: np.ndarray):
     assert np.allclose(c, expected), "Wrong output!"
 
 
-def make_build_dir_and_cd_to_it(file_path: str):
-    build_path = Path(f"./build-{Path(file_path).name}")
-
-    if build_path.exists():
-        rmtree(build_path)
-    makedirs(build_path)
-
-    chdir(build_path)
-
-
 def main():
     global remaining_repetitions
 
     rows, cols, density, src, remaining_repetitions, passes = get_args()
 
-    make_build_dir_and_cd_to_it(__file__)
+    make_work_dir_and_cd_to_it(__file__)
 
     llvm_mlir = apply_passes(src, passes)
 
-    mtx, vec = create_sparse_mtx_and_dense_vec(rows, cols, density)
+    mtx, vec = create_sparse_mat_and_dense_vec(rows, cols, density)
 
     repetitions = remaining_repetitions
     for _ in range(0, repetitions):
-        run_spmv(llvm_mlir=llvm_mlir, rows=rows, mtx=mtx, vec=vec)
+        run_spmv(llvm_mlir=llvm_mlir, rows=rows, mtx=mtx.toarray(), vec=vec)
 
     log_execution_times(execution_times)
 
 
 def get_args():
-    parser = argparse.ArgumentParser(description="Process rows and cols.")
+    parser = argparse.ArgumentParser(description="(Sparse Matrix)x(Dense Vector) Multiplication (SpMV)")
     parser.add_argument("-r", "--rows", type=int, default=1024,
                         help="Number of rows (default=1024)")
     parser.add_argument("-c", "--cols", type=int, default=1024,

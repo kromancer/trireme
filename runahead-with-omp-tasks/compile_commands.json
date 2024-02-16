@@ -1,0 +1,20 @@
+[
+{
+  "directory": "/Users/ioanniss/trireme/runahead-with-omp-tasks/build",
+  "command": "/Users/ioanniss/llvm-project/build/bin/clang  -I/Users/ioanniss/llvm-project/build/projects/openmp/runtime/src -std=c23 -Weverything -Wno-declaration-after-statement -fopenmp -Wno-float-equal -Wno-unsafe-buffer-usage -Wno-gnu-folding-constant -Wl,-rpath,/Users/ioanniss/llvm-project/build/lib -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.2.sdk -std=c23 -fopenmp -o CMakeFiles/test-spmv-runahead.dir/spmv-runahead-with-omp-tasks.c.o -c /Users/ioanniss/trireme/runahead-with-omp-tasks/spmv-runahead-with-omp-tasks.c",
+  "file": "/Users/ioanniss/trireme/runahead-with-omp-tasks/spmv-runahead-with-omp-tasks.c",
+  "output": "CMakeFiles/test-spmv-runahead.dir/spmv-runahead-with-omp-tasks.c.o"
+},
+{
+  "directory": "/Users/ioanniss/trireme/runahead-with-omp-tasks/build",
+  "command": "/Users/ioanniss/llvm-project/build/bin/clang  -I/Users/ioanniss/llvm-project/build/projects/openmp/runtime/src -std=c23 -Weverything -Wno-declaration-after-statement -fopenmp -Wno-float-equal -Wno-unsafe-buffer-usage -Wno-gnu-folding-constant -Wl,-rpath,/Users/ioanniss/llvm-project/build/lib -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.2.sdk -std=c23 -fopenmp -o CMakeFiles/test-spmv-runahead.dir/main.c.o -c /Users/ioanniss/trireme/runahead-with-omp-tasks/main.c",
+  "file": "/Users/ioanniss/trireme/runahead-with-omp-tasks/main.c",
+  "output": "CMakeFiles/test-spmv-runahead.dir/main.c.o"
+},
+{
+  "directory": "/Users/ioanniss/trireme/runahead-with-omp-tasks/build",
+  "command": "/Users/ioanniss/llvm-project/build/bin/clang -Dspmv_runahead_EXPORTS -I/Users/ioanniss/llvm-project/build/projects/openmp/runtime/src -std=c23 -Weverything -Wno-declaration-after-statement -fopenmp -Wno-float-equal -Wno-unsafe-buffer-usage -Wno-gnu-folding-constant -Wl,-rpath,/Users/ioanniss/llvm-project/build/lib -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.2.sdk -fPIC -std=c23 -fopenmp -o CMakeFiles/spmv-runahead.dir/spmv-runahead-with-omp-tasks.c.o -c /Users/ioanniss/trireme/runahead-with-omp-tasks/spmv-runahead-with-omp-tasks.c",
+  "file": "/Users/ioanniss/trireme/runahead-with-omp-tasks/spmv-runahead-with-omp-tasks.c",
+  "output": "CMakeFiles/spmv-runahead.dir/spmv-runahead-with-omp-tasks.c.o"
+}
+]

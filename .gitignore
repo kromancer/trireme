@@ -8,5 +8,10 @@
 /*.png
 /venv/
 *.o
-/build*
+**/cmake-build*/
+**/workdir*/
+**/build*
 /log-archive/
+**/.cache/
+**/build/
+**/.idea/

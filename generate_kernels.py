@@ -3,12 +3,13 @@ import platform
 from os import chdir, getcwd, makedirs
 from contextlib import contextmanager
 
-from spmv import make_build_dir_and_cd_to_it, apply_passes
-
 from mlir import ir
 from mlir.dialects import func
 from mlir.dialects.linalg.opdsl import lang as dsl
 from mlir.dialects import sparse_tensor as st
+
+from spmv import apply_passes
+from utils import make_work_dir_and_cd_to_it
 
 no_parallelization = ["sparse-reinterpret-map",
                       "sparsification{parallelization-strategy=none}",
@@ -156,7 +157,7 @@ def generate_spmm(rows: int, cols: int):
 
 if __name__ == "__main__":
     rows, cols = get_args()
-    make_build_dir_and_cd_to_it(__file__)
+    make_work_dir_and_cd_to_it(__file__)
 
     generate_spmv(rows, cols)
     generate_spmm(rows, cols)
