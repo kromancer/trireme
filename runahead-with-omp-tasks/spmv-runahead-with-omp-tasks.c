@@ -1,4 +1,4 @@
-#include <mach/mach_time.h>
+#include <time.h>
 #include <omp.h>
 #include <stdio.h>
 
@@ -12,8 +12,6 @@ static double* a_vals;
 static const int64_t* crd;
 static const double* B_vals;
 static const double* c_vals;
-
-static mach_timebase_info_data_t timebase_info;
 
 typedef void (*pref_or_comp_task_t)(int start, int end, int row);
 
@@ -39,9 +37,11 @@ static void log_decorator(pref_or_comp_task_t task, int index_start, int index_e
     if (index_start > index_end)
         return;
 
-    uint64_t start = mach_absolute_time();
+    struct timespec start, end;
+
+    clock_gettime(CLOCK_REALTIME, &start);
     task(index_start, index_end, row);
-    uint64_t end = mach_absolute_time();
+    clock_gettime(CLOCK_REALTIME, &end);
 
     static int pref_task_id = 0;
     static int comp_task_id = 0;
@@ -58,12 +58,12 @@ static void log_decorator(pref_or_comp_task_t task, int index_start, int index_e
     }
 
 #pragma omp critical
-    printf("Thread %d %s(%d) start %llu ns end %llu ns row %d cols %d - %d\n",
+    printf("Thread %d %s(%d) start %lu ns end %lu ns row %d cols %d - %d\n",
            omp_get_thread_num(),
            task == pref_task ? "pref" : "comp",
            id,
-           start * timebase_info.numer / timebase_info.denom,
-           end * timebase_info.numer / timebase_info.denom,
+           start.tv_sec * 1000000000 + start.tv_nsec,
+           end.tv_sec * 1000000000 + end.tv_nsec,
            row, index_start, index_end
            );
     fflush(stdout);
@@ -77,8 +77,6 @@ void compute(double* a_vals_, int num_of_rows, const int64_t* pos, const int64_t
     crd = crd_;
     B_vals = B_vals_;
     c_vals = c_vals_;
-
-    mach_timebase_info(&timebase_info);
 
     #pragma omp parallel num_threads(3)
     {
