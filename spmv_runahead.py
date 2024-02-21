@@ -77,11 +77,13 @@ def check_pref_i_depends_on_comp_i_minus_2(pref_tasks: List, comp_tasks: List):
             f"pref task {i} breaks dependency on comp task {i - 2}"
 
 
-def build_spmv(src: Path, pd: int) -> Path:
+def build_spmv(src: Path, pd: int, enable_logs: bool) -> Path:
     clang = Path(environ['LLVM_PATH']) / "bin/clang"
     assert clang.exists()
 
     generate = ["cmake", f"-DCMAKE_C_COMPILER={clang}", f"-DPREFETCH_DISTANCE={pd}", "-Bbuild", f"-S{src}"]
+    if enable_logs:
+        generate.append("-DENABLE_LOGS=y")
     run(generate, check=True)
 
     build = ["cmake", "--build", "build"]
@@ -94,7 +96,7 @@ def build_spmv(src: Path, pd: int) -> Path:
     return lib_path
 
 
-def parse_args() -> Tuple[int, int, int, float]:
+def parse_args() -> Tuple[int, int, int, float, bool]:
     parser = argparse.ArgumentParser(description="(Sparse Matrix)x(Dense Vector) Multiplication (SpMV) "
                                                  "with runahead prefetching using OpenMP")
     parser.add_argument("-r", "--rows", type=int, default=1024,
@@ -105,27 +107,15 @@ def parse_args() -> Tuple[int, int, int, float]:
                         help="Prefetch distance")
     parser.add_argument("-d", "--density", type=float, default=0.05,
                         help="Density of sparse matrix (default=0.05)")
+    parser.add_argument("-l", "--enable-logs", action="store_true", default=False,
+                        help="Enable logs")
 
     args = parser.parse_args()
 
-    return args.rows, args.cols, args.prefetch_distance, args.density
+    return args.rows, args.cols, args.prefetch_distance, args.density, args.enable_logs
 
 
-def main():
-    src_path = Path(__file__).parent.resolve() / "runahead-with-omp-tasks"
-    assert src_path.exists()
-
-    rows, cols, pd, dens = parse_args()
-
-    make_work_dir_and_cd_to_it(__file__)
-    shared_lib = build_spmv(src_path, pd)
-
-    mat, vec = create_sparse_mat_and_dense_vec(rows=rows, cols=cols, density=dens, format="csr")
-    result, log = run_spmv(shared_lib, mat, vec)
-
-    with open("log.txt", "w") as f:
-        f.write(log)
-
+def check_logs(log: str):
     tasks = parse_logs(log=log.splitlines())
 
     prefs = [t for t in tasks if t["type"] == "pref"]
@@ -133,10 +123,6 @@ def main():
 
     comps = [t for t in tasks if t["type"] == "comp"]
     comps.sort(key=lambda x: x["id"])
-
-    # Checks
-    expected = mat.dot(vec)
-    assert np.allclose(result, expected), "Wrong result!"
 
     assert len(prefs) == len(comps)
 
@@ -146,6 +132,29 @@ def main():
         check_pref_i_depends_on_comp_i_minus_2(prefs, comps)
     except AssertionError as e:
         print(f"Non critical check failed:\n {e}")
+
+
+def main():
+    src_path = Path(__file__).parent.resolve() / "runahead-with-omp-tasks"
+    assert src_path.exists()
+
+    rows, cols, pd, dens, enable_logs = parse_args()
+
+    make_work_dir_and_cd_to_it(__file__)
+    shared_lib = build_spmv(src_path, pd, enable_logs)
+
+    mat, vec = create_sparse_mat_and_dense_vec(rows=rows, cols=cols, density=dens, format="csr")
+    result, log = run_spmv(shared_lib, mat, vec)
+
+    with open("log.txt", "w") as f:
+        f.write(log)
+
+    # Checks
+    if enable_logs:
+        check_logs(log)
+
+    expected = mat.dot(vec)
+    assert np.allclose(result, expected), "Wrong result!"
 
 
 if __name__ == "__main__":

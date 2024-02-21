@@ -37,10 +37,14 @@ static void log_decorator(pref_or_comp_task_t task, int index_start, int index_e
     if (index_start > index_end)
         return;
 
+#ifdef ENABLE_LOGS
     struct timespec start, end;
-
     clock_gettime(CLOCK_REALTIME, &start);
+#endif
+
     task(index_start, index_end, row);
+
+#ifdef ENABLE_LOGS
     clock_gettime(CLOCK_REALTIME, &end);
 
     static int pref_task_id = 0;
@@ -58,12 +62,12 @@ static void log_decorator(pref_or_comp_task_t task, int index_start, int index_e
     }
 
 #pragma omp critical
-    printf("Thread %d %s(%d) start %lu ns end %lu ns row %d cols %d - %d\n",
+    printf("Thread %d %s(%d) start %llu ns end %llu ns row %d cols %d - %d\n",
            omp_get_thread_num(),
            task == pref_task ? "pref" : "comp",
            id,
-           start.tv_sec * 1000000000 + start.tv_nsec,
-           end.tv_sec * 1000000000 + end.tv_nsec,
+           (uint64_t)(start.tv_sec * 1000000000 + start.tv_nsec),
+           (uint64_t)(end.tv_sec * 1000000000 + end.tv_nsec),
            row, index_start, index_end
            );
     fflush(stdout);
@@ -72,6 +76,9 @@ static void log_decorator(pref_or_comp_task_t task, int index_start, int index_e
 
 void compute(double* a_vals_, int num_of_rows, const int64_t* pos, const int64_t* crd_,
                     const double* B_vals_, const double* c_vals_) {
+
+    struct timespec start, end;
+    clock_gettime(CLOCK_REALTIME, &start);
 
     a_vals = a_vals_;
     crd = crd_;
@@ -133,9 +140,14 @@ void compute(double* a_vals_, int num_of_rows, const int64_t* pos, const int64_t
                               COMP);
             }
 
+#ifdef ENABLE_LOGS
             printf("Thread %d: Done making tasks for row %d\n", omp_get_thread_num(), i);
             fflush(stdout);
 #endif
         }
     }
+
+    clock_gettime(CLOCK_REALTIME, &end);
+    uint64_t elapsed = (end.tv_sec - start.tv_sec) * 1000000000 + (end.tv_nsec - start.tv_nsec);
+    printf("Exec time: %llu", elapsed);
 }
