@@ -20,7 +20,9 @@ typedef enum {
     COMP
 } task_type_t;
 
-static void pref_task(int start, int end, int) {
+static void pref_task(int start, int end, int unused) {
+    (void) unused;
+
     for (int j = start; j < end; j++) {
         __builtin_prefetch(&c_vals[crd[j]], 0, 0);
     }
@@ -149,5 +151,5 @@ void compute(double* a_vals_, int num_of_rows, const int64_t* pos, const int64_t
 
     clock_gettime(CLOCK_REALTIME, &end);
     uint64_t elapsed = (end.tv_sec - start.tv_sec) * 1000000000 + (end.tv_nsec - start.tv_nsec);
-    printf("Exec time: %llu", elapsed);
+    printf("Exec time: %llu ns\n", elapsed);
 }

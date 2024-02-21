@@ -89,9 +89,9 @@ def build_spmv(src: Path, pd: int, enable_logs: bool) -> Path:
     build = ["cmake", "--build", "build"]
     run(build, check=True)
 
-    lib_name = "libspmv-runahead" + ".dylib" if system() == "Darwin" else ".so"
+    lib_name = "libspmv-runahead" + (".dylib" if system() == "Darwin" else ".so")
     lib_path = Path("./build").resolve() / lib_name
-    assert lib_path.exists()
+    assert lib_path.exists(), f"Could not find {lib_name}"
 
     return lib_path
 
