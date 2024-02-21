@@ -20,7 +20,7 @@ endif()
 message(STATUS "prefetch distance (PD) is set to ${PREFETCH_DISTANCE}")
 
 set(COMMON_INCLUDE_DIRS "${LLVM_PATH}/projects/openmp/runtime/src")
-set(COMMON_COMPILE_OPTIONS "-std=c23" "-fopenmp")
+set(COMMON_COMPILE_OPTIONS "-std=c23" "-fopenmp" "-O2")
 set(COMMON_COMPILE_DEFS PD=${PREFETCH_DISTANCE})
 set(COMMON_LINK_OPTIONS "-L${LLVM_PATH}/lib" "-lomp" "-Wl,-rpath,${LLVM_PATH}/lib")
 
