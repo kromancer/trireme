@@ -149,7 +149,6 @@ def main():
     with open("log.txt", "w") as f:
         f.write(log)
 
-    # Checks
     if enable_logs:
         check_logs(log)
 

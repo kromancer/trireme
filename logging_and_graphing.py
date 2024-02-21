@@ -6,7 +6,6 @@ from socket import gethostname
 from statistics import mean, median, stdev
 import sys
 from typing import Tuple, List
-
 from git import Repo
 import matplotlib.pyplot as plt
 
@@ -122,11 +121,10 @@ if __name__ == "__main__":
 
     base_path = Path(config_file).resolve().parent
 
-    x_start = 5
     for series in config['series']:
         log_path = base_path / Path(series['file']).relative_to('.')
         means = filter_logs(log_path, series['args_re'])
-        x_values = list(range(x_start, x_start + len(means)))
+        x_values = list(range(series['x_start'], series['x_start'] + len(means)))
         plt.plot(x_values, means, label=series['label'])
 
     # Plot a horizontal line for the Baseline section
