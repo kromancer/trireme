@@ -126,8 +126,9 @@ def generate(module: ir.Module, kernel_name: str):
 def generate_spmv(rows: int, cols: int):
 
     with ir.Context() as ctx, ir.Location.unknown():
-
-        level = [st.LevelType.dense, st.LevelType.compressed]
+        builder = st.EncodingAttr.build_level_type
+        fmt = st.LevelFormat
+        level = [builder(fmt.dense), builder(fmt.compressed)]
         ordering = ir.AffineMap.get_permutation([0, 1])
         bitwidth = 0
 
@@ -140,9 +141,11 @@ def generate_spmv(rows: int, cols: int):
 def generate_spmm(rows: int, cols: int):
 
     with ir.Context() as ctx, ir.Location.unknown():
-
-        csr = [st.LevelType.dense, st.LevelType.compressed]
-        coo = [st.LevelType.compressed, st.LevelType.singleton]
+        builder = st.EncodingAttr.build_level_type
+        fmt = st.LevelFormat
+        prop = st.LevelProperty
+        csr = [builder(fmt.dense), builder(fmt.compressed)]
+        coo = [builder(fmt.compressed, [prop.non_unique]), builder(fmt.singleton)]
 
         ordering = ir.AffineMap.get_permutation([0, 1])
         bitwidth = 0
