@@ -12,6 +12,9 @@ static const int64_t* crd;
 static const double* B_vals;
 static const double* c_vals;
 
+static int pref_task_id;
+static int comp_task_id;
+
 typedef void (*pref_or_comp_task_t)(int start, int end, int row);
 
 typedef enum {
@@ -46,9 +49,6 @@ static void log_decorator(pref_or_comp_task_t task, int index_start, int index_e
 
 #ifdef ENABLE_LOGS
     double end =  omp_get_wtime();
-
-    static int pref_task_id = 0;
-    static int comp_task_id = 0;
 
     int id = -1;
     if (task_type == PREF) {
@@ -85,7 +85,10 @@ double compute(double* a_vals_, int num_of_rows, const int64_t* pos, const int64
     B_vals = B_vals_;
     c_vals = c_vals_;
 
-    #pragma omp parallel num_threads(3)
+    pref_task_id = 0;
+    comp_task_id = 0;
+
+#pragma omp parallel num_threads(3)
     {
         #pragma omp single
         for (int i = 0; i < num_of_rows; i++) {
