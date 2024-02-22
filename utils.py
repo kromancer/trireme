@@ -32,7 +32,7 @@ def make_work_dir_and_cd_to_it(file_path: str):
     chdir(build_path)
 
 
-def run_func_and_capture_stdout(func: Callable, *args, **kwargs) -> str:
+def run_func_and_capture_stdout(func: Callable, *args, **kwargs) -> Tuple[str, Any]:
     # Backup the original stdout file descriptor
     stdout_fd = sys.stdout.fileno()
     original_stdout_fd = dup(stdout_fd)
@@ -57,4 +57,4 @@ def run_func_and_capture_stdout(func: Callable, *args, **kwargs) -> str:
             dup2(original_stdout_fd, stdout_fd)
             close(original_stdout_fd)
 
-    return captured
+    return captured, res

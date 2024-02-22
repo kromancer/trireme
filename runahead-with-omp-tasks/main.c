@@ -16,7 +16,8 @@ int main() {
 
     double c_vals[NUM_OF_COLS] = {2, 5, 0.5, 4, 2};
 
-    compute(a_vals, NUM_OF_ROWS, pos, crd, B_vals, c_vals);
+    double elapsed_wtime = compute(a_vals, NUM_OF_ROWS, pos, crd, B_vals, c_vals);
+    printf("Elapsed wtime: %f s\n", elapsed_wtime);
 
     const double expected_a_vals[NUM_OF_ROWS] = { 39 };
     for (int i = 0; i < NUM_OF_ROWS; i++) {

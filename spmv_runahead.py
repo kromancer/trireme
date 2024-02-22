@@ -13,7 +13,7 @@ from typing import Dict, List, Tuple
 from utils import create_sparse_mat_and_dense_vec, make_work_dir_and_cd_to_it, run_func_and_capture_stdout
 
 
-def run_spmv(lib_path: Path, mat: sp.csr_array, vec: np.ndarray) -> Tuple[np.ndarray, str]:
+def run_spmv(lib_path: Path, mat: sp.csr_array, vec: np.ndarray) -> Tuple[np.ndarray, str, float]:
     lib = ctypes.CDLL(str(lib_path))
 
     lib.compute.argtypes = [
@@ -25,13 +25,15 @@ def run_spmv(lib_path: Path, mat: sp.csr_array, vec: np.ndarray) -> Tuple[np.nda
         np.ctypeslib.ndpointer(dtype=np.float64, ndim=1, flags="C_CONTIGUOUS"),  # const double* c_vals_
     ]
 
+    lib.compute.restype = ctypes.c_double
+
     num_of_rows = mat.shape[0]
-    result = np.array([0] * num_of_rows, dtype=np.float64)
+    result_buff = np.array([0] * num_of_rows, dtype=np.float64)
 
-    stdout = run_func_and_capture_stdout(lib.compute, result, num_of_rows,
-                                         mat.indptr, mat.indices, mat.data, vec)
+    stdout, elapsed_wtime = run_func_and_capture_stdout(lib.compute, result_buff, num_of_rows,
+                                                        mat.indptr, mat.indices, mat.data, vec)
 
-    return result, stdout
+    return result_buff, stdout, elapsed_wtime
 
 
 def parse_logs(log) -> List[Dict]:
@@ -39,11 +41,11 @@ def parse_logs(log) -> List[Dict]:
     all_start_times = []
 
     for line in log:
-        match = re.match(r"Thread (\d+) (\w+)\((\d+)\) start (\d+) ns end (\d+) ns", line)
+        match = re.match(r"Thread (\d+) (\w+)\((\d+)\) start ([\d\.]+) s end ([\d\.]+) s", line)
         if match:
-            thread_id, task_type, task_id, start_ns, end_ns = match.groups()
-            start_time = int(start_ns)
-            end_time = int(end_ns)
+            thread_id, task_type, task_id, start_s, end_s = match.groups()
+            start_time = float(start_s)
+            end_time = float(end_s)
             all_start_times.append(start_time)
             tasks.append({"type": task_type,
                           "id": int(task_id),
@@ -144,7 +146,9 @@ def main():
     shared_lib = build_spmv(src_path, pd, enable_logs)
 
     mat, vec = create_sparse_mat_and_dense_vec(rows=rows, cols=cols, density=dens, format="csr")
-    result, log = run_spmv(shared_lib, mat, vec)
+    result, log, elapsed_wtime = run_spmv(shared_lib, mat, vec)
+
+    print(f"elapsed_wtime: {elapsed_wtime} s")
 
     with open("log.txt", "w") as f:
         f.write(log)

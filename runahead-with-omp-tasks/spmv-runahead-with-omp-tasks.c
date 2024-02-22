@@ -1,4 +1,3 @@
-#include <time.h>
 #include <omp.h>
 #include <stdio.h>
 
@@ -40,14 +39,13 @@ static void log_decorator(pref_or_comp_task_t task, int index_start, int index_e
         return;
 
 #ifdef ENABLE_LOGS
-    struct timespec start, end;
-    clock_gettime(CLOCK_REALTIME, &start);
-#endif
+    double start = omp_get_wtime();
+#endif // ENABLE_LOGS
 
     task(index_start, index_end, row);
 
 #ifdef ENABLE_LOGS
-    clock_gettime(CLOCK_REALTIME, &end);
+    double end =  omp_get_wtime();
 
     static int pref_task_id = 0;
     static int comp_task_id = 0;
@@ -64,23 +62,23 @@ static void log_decorator(pref_or_comp_task_t task, int index_start, int index_e
     }
 
 #pragma omp critical
-    printf("Thread %d %s(%d) start %llu ns end %llu ns row %d cols %d - %d\n",
+    printf("Thread %d %s(%d) start %f s end %f s row %d cols %d - %d\n",
            omp_get_thread_num(),
            task == pref_task ? "pref" : "comp",
            id,
-           (uint64_t)(start.tv_sec * 1000000000 + start.tv_nsec),
-           (uint64_t)(end.tv_sec * 1000000000 + end.tv_nsec),
+           start,
+           end,
            row, index_start, index_end
            );
     fflush(stdout);
 #endif // ENABLE_LOGS
 }
 
-void compute(double* a_vals_, int num_of_rows, const int64_t* pos, const int64_t* crd_,
-                    const double* B_vals_, const double* c_vals_) {
+double compute(double* a_vals_, int num_of_rows, const int64_t* pos, const int64_t* crd_,
+               const double* B_vals_, const double* c_vals_) {
 
-    struct timespec start, end;
-    clock_gettime(CLOCK_REALTIME, &start);
+    printf("omp_get_wtick(): %f s (number of seconds between successive ticks)\n", omp_get_wtick());
+    double start = omp_get_wtime();
 
     a_vals = a_vals_;
     crd = crd_;
@@ -149,7 +147,5 @@ void compute(double* a_vals_, int num_of_rows, const int64_t* pos, const int64_t
         }
     }
 
-    clock_gettime(CLOCK_REALTIME, &end);
-    uint64_t elapsed = (end.tv_sec - start.tv_sec) * 1000000000 + (end.tv_nsec - start.tv_nsec);
-    printf("Exec time: %llu ns\n", elapsed);
+    return omp_get_wtime() - start;
 }

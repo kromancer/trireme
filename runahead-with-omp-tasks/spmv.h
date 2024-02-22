@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 
-void compute(double* A_vals, int num_of_rows, const int64_t* pos, const int64_t* crd,
-             const double* B_vals, const double* c_vals);
+double compute(double* A_vals, int num_of_rows, const int64_t* pos, const int64_t* crd,
+               const double* B_vals, const double* c_vals);
 
 #endif //SPMV_RUNAHEAD_WITH_OMP_TASKS_H
