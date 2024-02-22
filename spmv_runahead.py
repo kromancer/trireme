@@ -10,6 +10,7 @@ import scipy.sparse as sp
 from subprocess import run
 from typing import Dict, List, Tuple
 
+from logging_and_graphing import log_execution_times_secs
 from utils import create_sparse_mat_and_dense_vec, make_work_dir_and_cd_to_it, run_func_and_capture_stdout
 
 
@@ -98,7 +99,7 @@ def build_spmv(src: Path, pd: int, enable_logs: bool) -> Path:
     return lib_path
 
 
-def parse_args() -> Tuple[int, int, int, float, bool]:
+def parse_args() -> Tuple[int, int, int, float, bool, int]:
     parser = argparse.ArgumentParser(description="(Sparse Matrix)x(Dense Vector) Multiplication (SpMV) "
                                                  "with runahead prefetching using OpenMP")
     parser.add_argument("-r", "--rows", type=int, default=1024,
@@ -111,10 +112,13 @@ def parse_args() -> Tuple[int, int, int, float, bool]:
                         help="Density of sparse matrix (default=0.05)")
     parser.add_argument("-l", "--enable-logs", action="store_true", default=False,
                         help="Enable logs")
+    parser.add_argument("--repetitions", type=int, default=5,
+                        help="Repeat the kernel with the same input. "
+                        "Gather execution times, only run perf for the last run")
 
     args = parser.parse_args()
 
-    return args.rows, args.cols, args.prefetch_distance, args.density, args.enable_logs
+    return args.rows, args.cols, args.prefetch_distance, args.density, args.enable_logs, args.repetitions
 
 
 def check_logs(log: str):
@@ -140,24 +144,28 @@ def main():
     src_path = Path(__file__).parent.resolve() / "runahead-with-omp-tasks"
     assert src_path.exists()
 
-    rows, cols, pd, dens, enable_logs = parse_args()
+    rows, cols, pd, dens, enable_logs, repetitions = parse_args()
 
     make_work_dir_and_cd_to_it(__file__)
     shared_lib = build_spmv(src_path, pd, enable_logs)
 
     mat, vec = create_sparse_mat_and_dense_vec(rows=rows, cols=cols, density=dens, format="csr")
-    result, log, elapsed_wtime = run_spmv(shared_lib, mat, vec)
 
-    print(f"elapsed_wtime: {elapsed_wtime} s")
+    wtimes = []
+    for i in range(repetitions):
+        result, stdout, elapsed_wtime = run_spmv(shared_lib, mat, vec)
+        wtimes.append(elapsed_wtime)
 
-    with open("log.txt", "w") as f:
-        f.write(log)
+        with open("stdout.txt", "a") as f:
+            f.write(stdout)
 
-    if enable_logs:
-        check_logs(log)
+        if enable_logs:
+            check_logs(stdout)
 
-    expected = mat.dot(vec)
-    assert np.allclose(result, expected), "Wrong result!"
+        expected = mat.dot(vec)
+        assert np.allclose(result, expected), "Wrong result!"
+
+    log_execution_times_secs(wtimes)
 
 
 if __name__ == "__main__":

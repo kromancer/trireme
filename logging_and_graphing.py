@@ -5,7 +5,7 @@ import re
 from socket import gethostname
 from statistics import mean, median, stdev
 import sys
-from typing import Tuple, List
+from typing import List, Tuple, Union
 from git import Repo
 import matplotlib.pyplot as plt
 
@@ -66,11 +66,19 @@ def filtered_by_median(data) -> List[int]:
     return filtered
 
 
-def log_execution_times(etimes_ns: List[int]):
-    if len(etimes_ns) <= 2:
-        return
+def log_execution_times_secs(etimes_s: List[float]):
+    log_execution_times_ns([int(t * 1e9) for t in etimes_s])
+
+
+def log_execution_times_ns(etimes_ns: List[int]):
 
     filtered = filtered_by_median(etimes_ns)
+
+    if len(filtered) <= 2:
+        print(f"Number of measurements, after filtering is < 2, skipping logging")
+        print(f"All entries: {etimes_ns}")
+        return
+
     m = round(mean(filtered) / 1000000, 3)
     std_dev = round(stdev(filtered) / 1000000, 3)
     cv = round(std_dev / m, 3)

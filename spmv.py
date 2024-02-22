@@ -16,7 +16,7 @@ from mlir.execution_engine import *
 from mlir import ir
 from mlir.passmanager import *
 
-from logging_and_graphing import log_execution_times
+from logging_and_graphing import log_execution_times_ns
 from utils import make_work_dir_and_cd_to_it, create_sparse_mat_and_dense_vec
 
 remaining_repetitions = 1
@@ -188,7 +188,7 @@ def main():
     for _ in range(0, repetitions):
         run_spmv(llvm_mlir=llvm_mlir, rows=rows, mtx=mtx.toarray(), vec=vec)
 
-    log_execution_times(execution_times)
+    log_execution_times_ns(execution_times)
 
 
 def get_args():
