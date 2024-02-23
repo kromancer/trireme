@@ -137,8 +137,8 @@ double compute(double* a_vals_, int num_of_rows, const int64_t* pos, const int64
                 // compute task
 #pragma omp task default(firstprivate) \
                 depend (out: B_vals[j:PD]) \
-                depend (in: crd[j:PD]) \
-                depend (in: crd[j-PD:PD])
+                depend (in: B_vals[j-PD:PD]) \
+                depend (in: crd[j:PD])
                 log_decorator(comp_task, j, min(j + PD, j_end), i,
                               COMP);
             }
