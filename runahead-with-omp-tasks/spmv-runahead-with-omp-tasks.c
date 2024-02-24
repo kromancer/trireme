@@ -48,30 +48,29 @@ static void log_decorator(pref_or_comp_task_t task, int index_start, int index_e
     task(index_start, index_end, row);
 
 #ifdef ENABLE_LOGS
-    double end =  omp_get_wtime();
-
-    int id = -1;
-    if (task_type == PREF) {
-        id = pref_task_id;
-#pragma omp atomic
-        pref_task_id++;
-    } else {
-        id = comp_task_id;
-#pragma omp atomic
-        comp_task_id++;
-    }
-
+    double end = omp_get_wtime();
 #pragma omp critical
-    printf("Thread %d on core %d %s(%d) start %f s end %f s row %d cols %d - %d\n",
-           omp_get_thread_num(),
-           omp_get_place_num(),
-           task == pref_task ? "pref" : "comp",
-           id,
-           start,
-           end,
-           row, index_start, index_end
-           );
-    fflush(stdout);
+    {
+        int id = -1;
+        if (task_type == PREF) {
+            id = pref_task_id;
+            pref_task_id++;
+        } else {
+            id = comp_task_id;
+            comp_task_id++;
+        }
+
+        printf("Thread %d on core %d %s(%d) start %f s end %f s row %d cols %d - %d\n",
+               omp_get_thread_num(),
+               omp_get_place_num(),
+               task == pref_task ? "pref" : "comp",
+               id,
+               start,
+               end,
+               row, index_start, index_end
+        );
+        fflush(stdout);
+    }
 #endif // ENABLE_LOGS
 }
 
