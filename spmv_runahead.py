@@ -42,9 +42,9 @@ def parse_logs(log) -> List[Dict]:
     all_start_times = []
 
     for line in log:
-        match = re.match(r"Thread (\d+) (\w+)\((\d+)\) start ([\d\.]+) s end ([\d\.]+) s", line)
+        match = re.match(r"Thread (\d+) on core (-?\d+) (\w+)\((\d+)\) start ([\d\.]+) s end ([\d\.]+) s", line)
         if match:
-            thread_id, task_type, task_id, start_s, end_s = match.groups()
+            thread_id, core_id, task_type, task_id, start_s, end_s = match.groups()
             start_time = float(start_s)
             end_time = float(end_s)
             all_start_times.append(start_time)

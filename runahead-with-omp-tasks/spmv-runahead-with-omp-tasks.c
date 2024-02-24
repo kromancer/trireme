@@ -62,8 +62,9 @@ static void log_decorator(pref_or_comp_task_t task, int index_start, int index_e
     }
 
 #pragma omp critical
-    printf("Thread %d %s(%d) start %f s end %f s row %d cols %d - %d\n",
+    printf("Thread %d on core %d %s(%d) start %f s end %f s row %d cols %d - %d\n",
            omp_get_thread_num(),
+           omp_get_place_num(),
            task == pref_task ? "pref" : "comp",
            id,
            start,
