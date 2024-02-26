@@ -98,29 +98,29 @@ double compute(double* a_vals_, int num_of_rows, const int64_t* pos, const int64
             const int j_end = pos[i + 1];
 
             // create pref(0) - no dependencies
-#pragma omp task default(firstprivate) depend (out: crd[j_start:PD])
+#pragma omp task default(firstprivate) depend (out: crd[j_start])
             log_decorator(pref_task, j_start, min(j_start + PD, j_end), 0,
                           PREF);
 
             // create compute(0) - depends only on pref(0)
 #pragma omp task default(firstprivate) \
-            depend (out: B_vals[j_start:PD]) \
-            depend (in: crd[j_start:PD])
+            depend (out: B_vals[j_start]) \
+            depend (in: crd[j_start])
             log_decorator(comp_task, j_start, min(j_start + PD, j_end), i,
                           COMP);
 
             // create pref(1) - depends only on pref(0)
 #pragma omp task default(firstprivate) \
-            depend (out: crd[j_start + PD:PD]) \
-            depend (in: crd[j_start:PD])
+            depend (out: crd[j_start + PD]) \
+            depend (in: crd[j_start])
             log_decorator(pref_task, j_start + PD, min(j_start + 2 * PD, j_end), 0,
                           PREF);
 
             // create compute(1) - depends on compute(0) and pref(1)
 #pragma omp task default(firstprivate) \
-            depend (out: B_vals[j_start + PD:PD]) \
-            depend (in: B_vals[j_start:PD]) \
-            depend (in: crd[j_start + PD:PD])
+            depend (out: B_vals[j_start + PD]) \
+            depend (in: B_vals[j_start]) \
+            depend (in: crd[j_start + PD])
             log_decorator(comp_task, j_start + PD, min(j_start + 2 * PD, j_end), i,
                           COMP);
 
@@ -128,17 +128,17 @@ double compute(double* a_vals_, int num_of_rows, const int64_t* pos, const int64
 
                 // prefetching task
 #pragma omp task default(firstprivate) \
-                depend (out: crd[j:PD]) \
-                depend (in: crd[j-PD:PD])  \
-                depend (in: B_vals[j-2*PD:PD])
+                depend (out: crd[j]) \
+                depend (in: crd[j-PD])  \
+                depend (in: B_vals[j-2*PD])
                 log_decorator(pref_task, j, min(j + PD, j_end), i,
                               PREF);
 
                 // compute task
 #pragma omp task default(firstprivate) \
-                depend (out: B_vals[j:PD]) \
-                depend (in: B_vals[j-PD:PD]) \
-                depend (in: crd[j:PD])
+                depend (out: B_vals[j]) \
+                depend (in: B_vals[j-PD]) \
+                depend (in: crd[j])
                 log_decorator(comp_task, j, min(j + PD, j_end), i,
                               COMP);
             }
