@@ -52,7 +52,8 @@ def parse_logs(log) -> List[Dict]:
                           "id": int(task_id),
                           "start": start_time,
                           "end": end_time,
-                          "thread": int(thread_id)})
+                          "thread": int(thread_id),
+                          "core": int(core_id)})
 
     # Time 0 is relative the start of the first event
     ref = min(all_start_times)
@@ -121,8 +122,25 @@ def parse_args() -> Tuple[int, int, int, float, bool, int]:
     return args.rows, args.cols, args.prefetch_distance, args.density, args.enable_logs, args.repetitions
 
 
-def check_logs(log: str):
-    tasks = parse_logs(log=log.splitlines())
+def check_task_affinity(prefs: List[Dict], comps: List[Dict]):
+    for i in range(0, len(prefs)):
+        assert prefs[i]["core"] == comps[i]["core"], f"Task affinity mismatch for pref/comp ({i})"
+
+
+def check_thread_affinity_and_spread(tasks: List[Dict]):
+    thread_ids = {t["thread"] for t in tasks}
+
+    used_cores = []
+    for thread_id in thread_ids:
+        thread_execution_cores = {t["core"] for t in tasks if t["thread"] == thread_id}
+        assert len(thread_execution_cores) == 1, (f"Thread affinity has been violated, thread {thread_id} "
+                                                  f"executed on cores {thread_execution_cores}")
+        thread_core = thread_execution_cores.pop()
+        assert thread_core not in used_cores, f"Thread {thread_id} was bound to a core used by another thread"
+        used_cores.append(thread_core)
+
+
+def check_task_dependencies_and_affinity(tasks: List[Dict]):
 
     prefs = [t for t in tasks if t["type"] == "pref"]
     prefs.sort(key=lambda x: x["id"])
@@ -132,12 +150,10 @@ def check_logs(log: str):
 
     assert len(prefs) == len(comps)
 
-    try:
-        check_sequential(prefs)
-        check_sequential(comps)
-        check_pref_i_depends_on_comp_i_minus_2(prefs, comps)
-    except AssertionError as e:
-        print(f"Non critical check failed:\n {e}")
+    check_sequential(prefs)
+    check_sequential(comps)
+    check_pref_i_depends_on_comp_i_minus_2(prefs, comps)
+    check_task_affinity(prefs, comps)
 
 
 def main():
@@ -160,7 +176,12 @@ def main():
             f.write(stdout)
 
         if enable_logs:
-            check_logs(stdout)
+            try:
+                tasks = parse_logs(log=stdout.splitlines())
+                check_thread_affinity_and_spread(tasks)
+                check_task_dependencies_and_affinity(tasks)
+            except AssertionError as e:
+                print(f"Non critical check failed:\n {e}")
 
         expected = mat.dot(vec)
         assert np.allclose(result, expected), "Wrong result!"
