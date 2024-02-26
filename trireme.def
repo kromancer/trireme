@@ -70,6 +70,7 @@ From: ubuntu:22.04
     export PATH=/opt/llvm/bin:/opt/python/bin:/opt/perf/bin:/opt/pmu-tools:$PATH
     export PYTHONPATH=/opt/llvm/python_packages/mlir_core
     export LLVM_PATH=/opt/llvm
+    export OMP_DISPLAY_ENV=true
 
 %runscript
     exec /bin/bash "$@"
