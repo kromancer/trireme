@@ -1,5 +1,6 @@
 #include <omp.h>
 #include <stdio.h>
+#include <stdbool.h>
 
 #define min(a, b) ((a) < (b) ? (a) : (b))
 
@@ -12,23 +13,10 @@ static const int64_t* crd;
 static const double* B_vals;
 static const double* c_vals;
 
-typedef void (*pref_or_comp_task_t)(int start, int end, int row);
+typedef void (*pref_or_comp_task_t)(int start, int end, int row, int task_pair_counter);
 
-static void pref_task(int start, int end, int unused) {
-    (void) unused;
-
-    for (int j = start; j < end; j++) {
-        __builtin_prefetch(&c_vals[crd[j]], 0, 0);
-    }
-}
-
-static void comp_task(int start, int end, int row) {
-    for (int j = start; j < end; j++) {
-        a_vals[row] += B_vals[j] * c_vals[crd[j]];
-    }
-}
-
-static void log_decorator(pref_or_comp_task_t task, int task_counter, int index_start, int index_end, int row) {
+static void log_decorator(pref_or_comp_task_t task, int task_counter, int index_start, int index_end, int row,
+                          bool is_pref_task) {
 
     if (index_start > index_end)
         return;
@@ -37,7 +25,7 @@ static void log_decorator(pref_or_comp_task_t task, int task_counter, int index_
     double start = omp_get_wtime();
 #endif // ENABLE_LOGS
 
-    task(index_start, index_end, row);
+    task(index_start, index_end, row, task_counter);
 
 #ifdef ENABLE_LOGS
     double end = omp_get_wtime();
@@ -46,7 +34,7 @@ static void log_decorator(pref_or_comp_task_t task, int task_counter, int index_
         printf("Thread %d on core %d %s(%d) start %f s end %f s row %d B_vals/crd[%d:%d]\n",
                omp_get_thread_num(),
                omp_get_place_num(),
-               task == pref_task ? "pref" : "comp",
+               is_pref_task ? "pref" : "comp",
                task_counter,
                start,
                end,
@@ -55,6 +43,25 @@ static void log_decorator(pref_or_comp_task_t task, int task_counter, int index_
         fflush(stdout);
     }
 #endif // ENABLE_LOGS
+}
+
+static void comp_task(int start, int end, int row, int unused) {
+    for (int j = start; j < end; j++) {
+        a_vals[row] += B_vals[j] * c_vals[crd[j]];
+    }
+}
+
+static void pref_task(int start, int end, int row, int task_pair_counter) {
+
+    for (int j = start; j < end; j++) {
+        __builtin_prefetch(&c_vals[crd[j]], 0, 0);
+    }
+
+    // compute task
+#pragma omp task default(firstprivate) \
+                depend (out: B_vals[task_pair_counter]) \
+                depend (in: B_vals[task_pair_counter - 1]) if (0)
+    log_decorator(comp_task, task_pair_counter, start, end, row, false);
 }
 
 double compute(double* a_vals_, int num_of_rows, const int64_t* pos, const int64_t* crd_,
@@ -95,14 +102,7 @@ double compute(double* a_vals_, int num_of_rows, const int64_t* pos, const int64
                 depend (out: crd[task_pair_counter]) \
                 depend (in:  crd[task_pair_counter - 1])  \
                 depend (in: B_vals[task_pair_counter - 2])
-                    log_decorator(pref_task, task_pair_counter, j, min(j + PD, j_end), i);
-
-                    // compute task
-#pragma omp task default(firstprivate) \
-                depend (out: B_vals[task_pair_counter]) \
-                depend (in: B_vals[task_pair_counter - 1]) \
-                depend (in: crd[task_pair_counter])
-                    log_decorator(comp_task, task_pair_counter, j, min(j + PD, j_end), i);
+                    log_decorator(pref_task, task_pair_counter, j, min(j + PD, j_end), i, true);
 
                     task_pair_counter++;
                 }
