@@ -142,6 +142,13 @@ def check_thread_affinity_and_spread(tasks: List[Dict]):
         used_cores.append(thread_core)
 
 
+def check_same_iteration_range(pref: List[Dict], comp: List[Dict]):
+
+    for i in range(len(pref)):
+        assert pref[i]["j_start"] == comp[i]["j_start"] and pref[i]["j_end"] == comp[i]["j_end"], \
+            f"pref task {i} and comp task {i} have different iteration ranges"
+
+
 def check_task_dependencies_and_affinity(tasks: List[Dict]):
 
     prefs = [t for t in tasks if t["type"] == "pref"]
@@ -155,6 +162,7 @@ def check_task_dependencies_and_affinity(tasks: List[Dict]):
     check_sequential(prefs)
     check_sequential(comps)
     check_pref_i_depends_on_comp_i_minus_2(prefs, comps)
+    check_same_iteration_range(prefs, comps)
     check_task_affinity(prefs, comps)
 
 
@@ -180,8 +188,8 @@ def main():
         if enable_logs:
             try:
                 tasks = parse_logs(log=stdout.splitlines())
-                check_thread_affinity_and_spread(tasks)
                 check_task_dependencies_and_affinity(tasks)
+                check_thread_affinity_and_spread(tasks)
             except AssertionError as e:
                 print(f"Non critical check failed:\n {e}")
 
