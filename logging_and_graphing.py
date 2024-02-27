@@ -83,7 +83,7 @@ def log_execution_times_ns(etimes_ns: List[int]):
     std_dev = round(stdev(filtered) / 1000000, 3)
     cv = round(std_dev / m, 3)
     print(f"mean execution time: {m} ms")
-    print(f"std dev: {std_dev} ms, CV: {cv} %")
+    print(f"std dev: {std_dev} ms, CV: {cv * 100} %")
     append_entry_to_json({'args': ' '.join(sys.argv),
                           'time': str(datetime.now()),
                           'host': gethostname(),
@@ -93,26 +93,6 @@ def log_execution_times_ns(etimes_ns: List[int]):
                           'mean_ms': m,
                           'std_dev': std_dev,
                           'cv': cv})
-
-
-def parse_logs(file_path: str) -> Tuple[List, List, List]:
-    with open(file_path, 'r') as file:
-        logs = json.load(file)
-
-    l0, l2, l3 = [], [], []
-    for log in logs:
-        args = log['args']
-        mean_ms = log['mean_ms']
-
-        # Check the -l value and append mean_ms to the respective list
-        if '-l 0' in args:
-            l0.append(mean_ms)
-        elif '-l 2' in args:
-            l2.append(mean_ms)
-        elif '-l 3' in args:
-            l3.append(mean_ms)
-
-    return l0, l2, l3
 
 
 def filter_logs(log: Path, args_re: str) -> List[int]:
