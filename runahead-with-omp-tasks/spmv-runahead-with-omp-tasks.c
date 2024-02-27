@@ -12,15 +12,7 @@ static const int64_t* crd;
 static const double* B_vals;
 static const double* c_vals;
 
-static int pref_task_id;
-static int comp_task_id;
-
 typedef void (*pref_or_comp_task_t)(int start, int end, int row);
-
-typedef enum {
-    PREF,
-    COMP
-} task_type_t;
 
 static void pref_task(int start, int end, int unused) {
     (void) unused;
@@ -36,7 +28,7 @@ static void comp_task(int start, int end, int row) {
     }
 }
 
-static void log_decorator(pref_or_comp_task_t task, int index_start, int index_end, int row, task_type_t task_type) {
+static void log_decorator(pref_or_comp_task_t task, int task_counter, int index_start, int index_end, int row) {
 
     if (index_start > index_end)
         return;
@@ -51,20 +43,11 @@ static void log_decorator(pref_or_comp_task_t task, int index_start, int index_e
     double end = omp_get_wtime();
 #pragma omp critical
     {
-        int id = -1;
-        if (task_type == PREF) {
-            id = pref_task_id;
-            pref_task_id++;
-        } else {
-            id = comp_task_id;
-            comp_task_id++;
-        }
-
         printf("Thread %d on core %d %s(%d) start %f s end %f s row %d B_vals/crd[%d:%d]\n",
                omp_get_thread_num(),
                omp_get_place_num(),
                task == pref_task ? "pref" : "comp",
-               id,
+               task_counter,
                start,
                end,
                row, index_start, index_end
@@ -85,68 +68,50 @@ double compute(double* a_vals_, int num_of_rows, const int64_t* pos, const int64
     B_vals = B_vals_;
     c_vals = c_vals_;
 
-    pref_task_id = 0;
-    comp_task_id = 0;
-
 #pragma omp parallel num_threads(3)
     {
         #pragma omp single
-        for (int i = 0; i < num_of_rows; i++) {
+        {
 
-            a_vals[i] = 0.0;
-            const int j_start = pos[i];
-            const int j_end = pos[i + 1];
-
-            // create pref(0) - no dependencies
-#pragma omp task default(firstprivate) depend (out: crd[j_start])
-            log_decorator(pref_task, j_start, min(j_start + PD, j_end), i,
-                          PREF);
-
-            // create compute(0) - depends only on pref(0)
+            // prime dependencies
 #pragma omp task default(firstprivate) \
-            depend (out: B_vals[j_start]) \
-            depend (in: crd[j_start])
-            log_decorator(comp_task, j_start, min(j_start + PD, j_end), i,
-                          COMP);
+                depend (out: crd[0]) \
+                depend (out: B_vals[1]) \
+                depend (out: B_vals[2]) if (0)
+            { /* do nothing */ }
 
-            // create pref(1) - depends only on pref(0)
+            int task_pair_counter = 2;
+
+            for (int i = 0; i < num_of_rows; i++) {
+
+                a_vals[i] = 0.0;
+                const int j_start = pos[i];
+                const int j_end = pos[i + 1];
+
+                for (int j = j_start; j < j_end; j += PD) {
+
+                    // prefetching task
 #pragma omp task default(firstprivate) \
-            depend (out: crd[j_start + PD]) \
-            depend (in: crd[j_start])
-            log_decorator(pref_task, j_start + PD, min(j_start + 2 * PD, j_end), i,
-                          PREF);
+                depend (out: crd[task_pair_counter]) \
+                depend (in:  crd[task_pair_counter - 1])  \
+                depend (in: B_vals[task_pair_counter - 2])
+                    log_decorator(pref_task, task_pair_counter, j, min(j + PD, j_end), i);
 
-            // create compute(1) - depends on compute(0) and pref(1)
+                    // compute task
 #pragma omp task default(firstprivate) \
-            depend (out: B_vals[j_start + PD]) \
-            depend (in: B_vals[j_start]) \
-            depend (in: crd[j_start + PD])
-            log_decorator(comp_task, j_start + PD, min(j_start + 2 * PD, j_end), i,
-                          COMP);
+                depend (out: B_vals[task_pair_counter]) \
+                depend (in: B_vals[task_pair_counter - 1]) \
+                depend (in: crd[task_pair_counter])
+                    log_decorator(comp_task, task_pair_counter, j, min(j + PD, j_end), i);
 
-            for (int j = j_start + 2 * PD; j < j_end; j += PD) {
-
-                // prefetching task
-#pragma omp task default(firstprivate) \
-                depend (out: crd[j]) \
-                depend (in: crd[j-PD])  \
-                depend (in: B_vals[j-2*PD])
-                log_decorator(pref_task, j, min(j + PD, j_end), i,
-                              PREF);
-
-                // compute task
-#pragma omp task default(firstprivate) \
-                depend (out: B_vals[j]) \
-                depend (in: B_vals[j-PD]) \
-                depend (in: crd[j])
-                log_decorator(comp_task, j, min(j + PD, j_end), i,
-                              COMP);
-            }
+                    task_pair_counter++;
+                }
 
 #ifdef ENABLE_LOGS
-            printf("Thread %d: Done making tasks for row %d\n", omp_get_thread_num(), i);
-            fflush(stdout);
+                printf("Thread %d: Done making tasks for row %d\n", omp_get_thread_num(), i);
+                fflush(stdout);
 #endif
+            }
         }
     }
 

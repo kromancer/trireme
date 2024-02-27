@@ -124,7 +124,7 @@ def parse_args() -> Tuple[int, int, int, float, bool, int]:
 
 def check_task_affinity(prefs: List[Dict], comps: List[Dict]):
     for i in range(0, len(prefs)):
-        assert prefs[i]["core"] == comps[i]["core"], f"Task affinity mismatch for pref/comp ({i})"
+        assert prefs[i]["core"] == comps[i]["core"], f"Task affinity mismatch for pref/comp ({comps[i]['id']})"
 
 
 def check_thread_affinity_and_spread(tasks: List[Dict]):
