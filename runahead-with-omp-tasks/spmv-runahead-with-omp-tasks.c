@@ -60,7 +60,7 @@ static void log_decorator(pref_or_comp_task_t task, int index_start, int index_e
             comp_task_id++;
         }
 
-        printf("Thread %d on core %d %s(%d) start %f s end %f s row %d cols %d - %d\n",
+        printf("Thread %d on core %d %s(%d) start %f s end %f s row %d B_vals/crd[%d:%d]\n",
                omp_get_thread_num(),
                omp_get_place_num(),
                task == pref_task ? "pref" : "comp",
@@ -99,7 +99,7 @@ double compute(double* a_vals_, int num_of_rows, const int64_t* pos, const int64
 
             // create pref(0) - no dependencies
 #pragma omp task default(firstprivate) depend (out: crd[j_start])
-            log_decorator(pref_task, j_start, min(j_start + PD, j_end), 0,
+            log_decorator(pref_task, j_start, min(j_start + PD, j_end), i,
                           PREF);
 
             // create compute(0) - depends only on pref(0)
@@ -113,7 +113,7 @@ double compute(double* a_vals_, int num_of_rows, const int64_t* pos, const int64
 #pragma omp task default(firstprivate) \
             depend (out: crd[j_start + PD]) \
             depend (in: crd[j_start])
-            log_decorator(pref_task, j_start + PD, min(j_start + 2 * PD, j_end), 0,
+            log_decorator(pref_task, j_start + PD, min(j_start + 2 * PD, j_end), i,
                           PREF);
 
             // create compute(1) - depends on compute(0) and pref(1)
