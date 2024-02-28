@@ -83,11 +83,11 @@ def check_pref_i_depends_on_comp_i_minus_2(pref_tasks: List, comp_tasks: List):
             f"pref task {i} breaks dependency on comp task {i - 2}"
 
 
-def build_spmv(src: Path, pd: int, enable_logs: bool) -> Path:
+def build_spmv(src: Path, pd: int, loc_hint: int, enable_logs: bool) -> Path:
     clang = Path(environ['LLVM_PATH']) / "bin/clang"
     assert clang.exists()
 
-    generate = ["cmake", f"-DCMAKE_C_COMPILER={clang}", f"-DPREFETCH_DISTANCE={pd}", "-Bbuild", f"-S{src}"]
+    generate = ["cmake", f"-DCMAKE_C_COMPILER={clang}", f"-DPREFETCH_DISTANCE={pd}", f"-DLOCALITY_HINT={loc_hint}", "-Bbuild", f"-S{src}"]
     if enable_logs:
         generate.append("-DENABLE_LOGS=y")
     run(generate, check=True)
@@ -102,7 +102,7 @@ def build_spmv(src: Path, pd: int, enable_logs: bool) -> Path:
     return lib_path
 
 
-def parse_args() -> Tuple[int, int, int, float, bool, int]:
+def parse_args() -> Tuple[int, int, int, int, float, bool, int]:
     parser = argparse.ArgumentParser(description="(Sparse Matrix)x(Dense Vector) Multiplication (SpMV) "
                                                  "with runahead prefetching using OpenMP")
     parser.add_argument("-r", "--rows", type=int, default=1024,
@@ -111,6 +111,8 @@ def parse_args() -> Tuple[int, int, int, float, bool, int]:
                         help="Number of columns (default=1024)")
     parser.add_argument("-pd", "--prefetch-distance", type=int, default=16,
                         help="Prefetch distance")
+    parser.add_argument("-t", "--locality-hint", type=int, default=3,
+                        help="Prefetch instruction temp locality hint")
     parser.add_argument("-d", "--density", type=float, default=0.05,
                         help="Density of sparse matrix (default=0.05)")
     parser.add_argument("-l", "--enable-logs", action="store_true", default=False,
@@ -121,7 +123,7 @@ def parse_args() -> Tuple[int, int, int, float, bool, int]:
 
     args = parser.parse_args()
 
-    return args.rows, args.cols, args.prefetch_distance, args.density, args.enable_logs, args.repetitions
+    return args.rows, args.cols, args.prefetch_distance, args.locality_hint, args.density, args.enable_logs, args.repetitions
 
 
 def check_task_affinity(prefs: List[Dict], comps: List[Dict]):
@@ -170,10 +172,10 @@ def main():
     src_path = Path(__file__).parent.resolve() / "runahead-with-omp-tasks"
     assert src_path.exists()
 
-    rows, cols, pd, dens, enable_logs, repetitions = parse_args()
+    rows, cols, pd, loc_hint, dens, enable_logs, repetitions = parse_args()
 
     make_work_dir_and_cd_to_it(__file__)
-    shared_lib = build_spmv(src_path, pd, enable_logs)
+    shared_lib = build_spmv(src_path, pd, loc_hint, enable_logs)
 
     mat, vec = create_sparse_mat_and_dense_vec(rows=rows, cols=cols, density=dens, format="csr")
 

@@ -6,6 +6,11 @@ if(NOT DEFINED PREFETCH_DISTANCE)
     set(PREFETCH_DISTANCE 32)
 endif()
 
+if(NOT DEFINED LOCALITY_HINT)
+    set(LOCALITY_HINT 3)
+endif()
+
+
 set(LLVM_PATH $ENV{LLVM_PATH})
 message(STATUS "LLVM_PATH: ${LLVM_PATH}")
 
@@ -18,10 +23,11 @@ else()
 endif()
 
 message(STATUS "prefetch distance (PD) is set to ${PREFETCH_DISTANCE}")
+message(STATUS "the locality hint (LOCALITY_HINT) is set to ${LOCALITY_HINT}")
 
 set(COMMON_INCLUDE_DIRS "${LLVM_PATH}/projects/openmp/runtime/src")
 set(COMMON_COMPILE_OPTIONS "-fopenmp" "-O2")
-set(COMMON_COMPILE_DEFS PD=${PREFETCH_DISTANCE})
+set(COMMON_COMPILE_DEFS PD=${PREFETCH_DISTANCE} LOCALITY_HINT=${LOCALITY_HINT})
 set(COMMON_LINK_OPTIONS "-L${LLVM_PATH}/lib" "-lomp" "-Wl,-rpath,${LLVM_PATH}/lib")
 
 option(ENABLE_LOGS "Enable logging to stdout with printfs" OFF)

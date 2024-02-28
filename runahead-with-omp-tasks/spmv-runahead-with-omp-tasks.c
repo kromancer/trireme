@@ -8,6 +8,10 @@
 #error "prefetch distance not defined!"
 #endif
 
+#ifndef LOCALITY_HINT
+#error "locality hint (0,1,2 or 3) is not defined"
+#endif
+
 static double* a_vals;
 static const int64_t* crd;
 static const double* B_vals;
@@ -54,7 +58,7 @@ static void comp_task(int start, int end, int row, int unused) {
 static void pref_task(int start, int end, int row, int task_pair_counter) {
 
     for (int j = start; j < end; j++) {
-        __builtin_prefetch(&c_vals[crd[j]], 0, 0);
+        __builtin_prefetch(&c_vals[crd[j]], 0, LOCALITY_HINT);
     }
 
     // compute task
