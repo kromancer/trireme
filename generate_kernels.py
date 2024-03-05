@@ -13,6 +13,7 @@ from utils import make_work_dir_and_cd_to_it
 
 no_parallelization = ["sparse-reinterpret-map",
                       "sparsification{parallelization-strategy=none}",
+                      "sparse-tensor-conversion",
                       "sparse-tensor-codegen",
                       "func-bufferize",
                       "bufferization-bufferize",
@@ -22,6 +23,7 @@ no_parallelization = ["sparse-reinterpret-map",
 vectorized = ["sparse-reinterpret-map",
               "sparsification{parallelization-strategy=none}",
               "sparse-vectorization{vl=4}",
+              "sparse-tensor-conversion",
               "sparse-tensor-codegen",
               "func-bufferize",
               "bufferization-bufferize",
@@ -33,6 +35,7 @@ vectorized = ["sparse-reinterpret-map",
 
 omp = ["sparse-reinterpret-map",
        "sparsification{parallelization-strategy=any-storage-any-loop}",
+       "sparse-tensor-conversion",
        "sparse-tensor-codegen",
        "func-bufferize",
        "bufferization-bufferize",
@@ -46,7 +49,7 @@ pipelines = {"no_parallelization": no_parallelization, "vectorized": vectorized,
 def mat_vec_dsl(
     A=dsl.TensorDef(dsl.T, dsl.S.I, dsl.S.J),
     B=dsl.TensorDef(dsl.T, dsl.S.J),
-    C=dsl.TensorDef(dsl.T, dsl.S.I, output=True),
+    C=dsl.TensorDef(dsl.T, dsl.S.I, output=True)
 ):
     C[dsl.D.i] += A[dsl.D.i, dsl.D.j] * B[dsl.D.j]
 
