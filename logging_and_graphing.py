@@ -5,7 +5,7 @@ import re
 from socket import gethostname
 from statistics import mean, median, stdev
 import sys
-from typing import List, Tuple, Union
+from typing import List
 from git import Repo
 import matplotlib.pyplot as plt
 
@@ -123,4 +123,6 @@ if __name__ == "__main__":
     plt.title(config['title'])
     plt.legend()
     plt.grid(True)
+    plt.savefig("fig.pdf")
+
     plt.show()
