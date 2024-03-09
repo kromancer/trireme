@@ -1,3 +1,5 @@
+import argparse
+
 import numpy as np
 from os import chdir, close, dup, dup2, fsync, makedirs
 from pathlib import Path
@@ -6,6 +8,25 @@ from shutil import rmtree
 import sys
 from tempfile import TemporaryFile
 from typing import Any, Callable, Tuple, Union
+
+
+def get_spmv_arg_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(add_help=False)
+
+    parser.add_argument("-r", "--rows", type=int, default=1024,
+                               help="Number of rows (default=1024)")
+    parser.add_argument("-c", "--cols", type=int, default=1024,
+                               help="Number of columns (default=1024)")
+    parser.add_argument("-pd", "--prefetch-distance", type=int, default=16,
+                               help="Prefetch distance")
+    parser.add_argument("-l", "--locality-hint", type=int, choices=[0, 1, 2, 3], default=3,
+                        help="Temporal locality hint for prefetch instructions, "
+                             "3 for maximum temporal locality, 0 for no temporal locality. "
+                             "On x86, value 3 will produce PREFETCHT0, while value 0 will produce PREFETCHNTA")
+    parser.add_argument("-d", "--density", type=float, default=0.05,
+                        help="Density of sparse matrix (default=0.05)")
+
+    return parser
 
 
 def create_sparse_mat_and_dense_vec(rows: int, cols: int, density: float,

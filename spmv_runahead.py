@@ -8,10 +8,11 @@ import re
 from platform import system
 import scipy.sparse as sp
 from subprocess import run
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, Union
 
 from logging_and_graphing import log_execution_times_secs
-from utils import create_sparse_mat_and_dense_vec, make_work_dir_and_cd_to_it, run_func_and_capture_stdout
+from utils import (create_sparse_mat_and_dense_vec, get_spmv_arg_parser,
+                   make_work_dir_and_cd_to_it, run_func_and_capture_stdout)
 
 
 def run_spmv(lib_path: Path, mat: sp.csr_array, vec: np.ndarray) -> Tuple[np.ndarray, str, float]:
@@ -92,7 +93,7 @@ def build_spmv(src: Path, pd: int, loc_hint: int, enable_logs: bool) -> Path:
         generate.append("-DENABLE_LOGS=y")
     run(generate, check=True)
 
-    build = ["cmake", "--build", "build"]
+    build = ["cmake", "--build", "build", "--target", "spmv-runahead"]
     run(build, check=True)
 
     lib_name = "libspmv-runahead" + (".dylib" if system() == "Darwin" else ".so")
@@ -102,28 +103,30 @@ def build_spmv(src: Path, pd: int, loc_hint: int, enable_logs: bool) -> Path:
     return lib_path
 
 
-def parse_args() -> Tuple[int, int, int, int, float, bool, int]:
+def parse_args() -> argparse.Namespace:
+    common_arg_parser = get_spmv_arg_parser()
+
     parser = argparse.ArgumentParser(description="(Sparse Matrix)x(Dense Vector) Multiplication (SpMV) "
                                                  "with runahead prefetching using OpenMP")
-    parser.add_argument("-r", "--rows", type=int, default=1024,
-                        help="Number of rows (default=1024)")
-    parser.add_argument("-c", "--cols", type=int, default=1024,
-                        help="Number of columns (default=1024)")
-    parser.add_argument("-pd", "--prefetch-distance", type=int, default=16,
-                        help="Prefetch distance")
-    parser.add_argument("-t", "--locality-hint", type=int, default=3,
-                        help="Prefetch instruction temp locality hint")
-    parser.add_argument("-d", "--density", type=float, default=0.05,
-                        help="Density of sparse matrix (default=0.05)")
-    parser.add_argument("-l", "--enable-logs", action="store_true", default=False,
-                        help="Enable logs")
-    parser.add_argument("--repetitions", type=int, default=5,
-                        help="Repeat the kernel with the same input. "
-                        "Gather execution times, only run perf for the last run")
 
-    args = parser.parse_args()
+    subparsers = parser.add_subparsers(dest="command", help="Subcommands")
 
-    return args.rows, args.cols, args.prefetch_distance, args.locality_hint, args.density, args.enable_logs, args.repetitions
+    # profile
+    profile_parser = subparsers.add_parser("profile", parents=[common_arg_parser],
+                                           help="Profile the application.")
+
+    # benchmark
+    benchmark_parser = subparsers.add_parser("benchmark", parents=[common_arg_parser],
+                                             help="Benchmark the application.")
+    benchmark_parser.add_argument("--repetitions", type=int, default=5,
+                                  help="Repeat the kernel with the same input. Gather execution times stats")
+
+    # test
+    test_parser = subparsers.add_parser("test", parents=[common_arg_parser],
+                                        help="Generate logs and perform various tests based on the logs")
+    test_parser.add_argument("--enable-logs", action="store_true", help="Enable logs")
+
+    return parser.parse_args()
 
 
 def check_task_affinity(prefs: List[Dict], comps: List[Dict]):
@@ -168,37 +171,54 @@ def check_task_dependencies_and_affinity(tasks: List[Dict]):
     check_task_affinity(prefs, comps)
 
 
-def main():
-    src_path = Path(__file__).parent.resolve() / "runahead-with-omp-tasks"
-    assert src_path.exists()
+def benchmark(args: argparse.Namespace, shared_lib: Path, mat: Union[sp.coo_array, sp.csr_array], vec: np.ndarray):
 
-    rows, cols, pd, loc_hint, dens, enable_logs, repetitions = parse_args()
-
-    make_work_dir_and_cd_to_it(__file__)
-    shared_lib = build_spmv(src_path, pd, loc_hint, enable_logs)
-
-    mat, vec = create_sparse_mat_and_dense_vec(rows=rows, cols=cols, density=dens, format="csr")
-
-    wtimes = []
-    for i in range(repetitions):
-        result, stdout, elapsed_wtime = run_spmv(shared_lib, mat, vec)
-        wtimes.append(elapsed_wtime)
-
-        with open("stdout.txt", "a") as f:
-            f.write(stdout)
-
-        if enable_logs:
-            try:
-                tasks = parse_logs(log=stdout.splitlines())
-                check_task_dependencies_and_affinity(tasks)
-                check_thread_affinity_and_spread(tasks)
-            except AssertionError as e:
-                print(f"Non critical check failed:\n {e}")
+    exec_times = []
+    for i in range(args.epetitions):
+        result, _, elapsed_wtime = run_spmv(shared_lib, mat, vec)
+        exec_times.append(elapsed_wtime)
 
         expected = mat.dot(vec)
         assert np.allclose(result, expected), "Wrong result!"
 
-    log_execution_times_secs(wtimes)
+        log_execution_times_secs(exec_times)
+
+
+def test(args: argparse.Namespace, shared_lib: Path, mat: Union[sp.coo_array, sp.csr_array], vec: np.ndarray):
+    result, stdout, elapsed_wtime = run_spmv(shared_lib, mat, vec)
+
+    with open("stdout.txt", "a") as f:
+        f.write(stdout)
+
+    try:
+        tasks = parse_logs(log=stdout.splitlines())
+        check_task_dependencies_and_affinity(tasks)
+        check_thread_affinity_and_spread(tasks)
+    except AssertionError as e:
+        print(f"Non critical check failed:\n {e}")
+
+    expected = mat.dot(vec)
+    assert np.allclose(result, expected), "Wrong result!"
+
+
+def main():
+    src_path = Path(__file__).parent.resolve() / "runahead-with-omp-tasks"
+    assert src_path.exists()
+
+    args = parse_args()
+
+    mat, vec = create_sparse_mat_and_dense_vec(rows=args.rows, cols=args.cols, density=args.density, format="csr")
+
+    make_work_dir_and_cd_to_it(__file__)
+
+    if args.command == "test":
+        shared_lib = build_spmv(src_path, args.prefetch_distance, args.locality_hint, enable_logs=True)
+        test(args, shared_lib, mat, vec)
+    elif args.command == "benchmark":
+        shared_lib = build_spmv(src_path, args.prefetch_distance, args.locality_hint, enable_logs=False)
+        benchmark(args, shared_lib, mat, vec)
+    elif args.command == "profile":
+        pass
 
 
 if __name__ == "__main__":
