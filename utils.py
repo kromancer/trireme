@@ -1,5 +1,4 @@
 import argparse
-
 import numpy as np
 from os import chdir, close, dup, dup2, fsync, makedirs
 from pathlib import Path
