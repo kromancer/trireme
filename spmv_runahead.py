@@ -106,9 +106,9 @@ def build_lib(args: argparse.Namespace, src: Path, enable_logs: bool) -> Path:
     if enable_logs:
         gen_args.append("-DENABLE_LOGS=y")
 
-    build_spmv(args, src, gen_args, "lib-spmv-runahead")
+    build_spmv(args, src, gen_args, "benchmark-spmv-runahead")
 
-    lib_name = "libspmv-runahead" + (".dylib" if system() == "Darwin" else ".so")
+    lib_name = "libbenchmark-spmv-runahead" + (".dylib" if system() == "Darwin" else ".so")
     lib_path = Path("./build").resolve() / lib_name
     assert lib_path.exists(), f"Could not find {lib_name}"
 
@@ -197,7 +197,7 @@ def check_task_dependencies_and_affinity(tasks: List[Dict]):
 def benchmark(args: argparse.Namespace, shared_lib: Path, mat: sp.csr_array, vec: np.ndarray):
 
     exec_times = []
-    for i in range(args.epetitions):
+    for i in range(args.repetitions):
         result, _, elapsed_wtime = run_spmv_as_foreign_fun(shared_lib, mat, vec)
         exec_times.append(elapsed_wtime)
 
@@ -260,7 +260,6 @@ def profile(args: argparse.Namespace, exe: Path, mat: sp.csr_array, vec: np.ndar
             vtune_cmd = ["vtune",
                          "-collect", "uarch-exploration",
                          "-knob", "collect-memory-bandwidth=true",
-                         "-knob", "analyze-openmp=true",
                          "-knob", "pmu-collection-mode=detailed",
                          "--"]
         else:

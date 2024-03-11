@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.25)
+cmake_minimum_required(VERSION 3.22)
 
 project(runahead-with-omp-tasks LANGUAGES C)
 
@@ -6,29 +6,17 @@ if(NOT DEFINED PREFETCH_DISTANCE)
     set(PREFETCH_DISTANCE 32)
 endif()
 
+message(STATUS "prefetch distance (PD) is set to ${PREFETCH_DISTANCE}")
+
 if(NOT DEFINED LOCALITY_HINT)
     set(LOCALITY_HINT 3)
 endif()
 
-
-set(LLVM_PATH $ENV{LLVM_PATH})
-message(STATUS "LLVM_PATH: ${LLVM_PATH}")
-
-# assert that LLVM_PATH points to llvm's build directory
-set(OMP_HEADER "${LLVM_PATH}/projects/openmp/runtime/src/omp.h")
-if (EXISTS "${OMP_HEADER}")
-    message(STATUS "Found OpenMP header: ${OMP_HEADER}")
-else()
-    message(FATAL_ERROR "Could not locate OpenMP header, is LLVM_PATH set correctly? Was llvm's OpenMP built?")
-endif()
-
-message(STATUS "prefetch distance (PD) is set to ${PREFETCH_DISTANCE}")
 message(STATUS "the locality hint (LOCALITY_HINT) is set to ${LOCALITY_HINT}")
 
-set(COMMON_INCLUDE_DIRS "${LLVM_PATH}/projects/openmp/runtime/src")
-set(COMMON_COMPILE_OPTIONS "-fopenmp" "-g" "-O2")
-set(COMMON_COMPILE_DEFS PD=${PREFETCH_DISTANCE} LOCALITY_HINT=${LOCALITY_HINT})
-set(COMMON_LINK_OPTIONS "-L${LLVM_PATH}/lib" "-lomp" "-Wl,-rpath,${LLVM_PATH}/lib")
+# LLVM_PATH can refer to the llvm installation OR build directory
+set(LLVM_PATH $ENV{LLVM_PATH})
+message(STATUS "LLVM_PATH: ${LLVM_PATH}")
 
 option(ENABLE_LOGS "Enable logging to stdout with printfs" OFF)
 if(ENABLE_LOGS)
@@ -36,17 +24,49 @@ if(ENABLE_LOGS)
     message(STATUS "logging is enabled")
 endif()
 
+# Use OpenMP from llvm
+#
+# Search for the OpenMP header in the LLVM_PATH
+find_path(OMP_HEADER_PATH
+        NAMES "omp.h"
+        PATHS ${LLVM_PATH}/projects/openmp/runtime/src ${LLVM_PATH}/lib/clang/19/include
+        NO_DEFAULT_PATH)
+
+if (NOT OMP_HEADER_PATH)
+    message(FATAL_ERROR "Could not locate OpenMP header, is LLVM_PATH pointing to either installation or build dir?")
+else()
+    message(STATUS "Found OpenMP header in: ${OMP_HEADER_PATH}")
+endif()
+
+# Search for the OpenMP library
+find_library(OMP_LIBRARY
+        NAMES "omp" "libomp"
+        PATHS "${LLVM_PATH}/lib" "${LLVM_PATH}/lib/x86_64-unknown-linux-gnu/"
+        NO_DEFAULT_PATH)
+
+if(OMP_LIBRARY)
+    get_filename_component(OMP_LIB_PATH "${OMP_LIBRARY}" DIRECTORY)
+    message(STATUS "Found OpenMP library in: ${OMP_LIB_PATH}")
+else()
+    message(FATAL_ERROR "OpenMP library not found")
+endif()
+
+set(COMMON_INCLUDE_DIRS "${OMP_HEADER_PATH}")
+set(COMMON_COMPILE_OPTIONS "-fopenmp" "-g" "-O2")
+set(COMMON_COMPILE_DEFS PD=${PREFETCH_DISTANCE} LOCALITY_HINT=${LOCALITY_HINT})
+set(COMMON_LINK_OPTIONS "-L${OMP_LIB_PATH}" "-lomp" "-Wl,-rpath,${OMP_LIB_PATH}")
+
 add_executable(test-spmv-runahead spmv-runahead-with-omp-tasks.c test.c)
 target_include_directories(test-spmv-runahead PRIVATE ${COMMON_INCLUDE_DIRS})
 target_compile_options(test-spmv-runahead PRIVATE ${COMMON_COMPILE_OPTIONS})
 target_compile_definitions(test-spmv-runahead PRIVATE ${COMMON_COMPILE_DEFS})
 target_link_options(test-spmv-runahead PRIVATE ${COMMON_LINK_OPTIONS})
 
-add_library(lib-spmv-runahead SHARED spmv-runahead-with-omp-tasks.c)
-target_include_directories(lib-spmv-runahead PRIVATE ${COMMON_INCLUDE_DIRS})
-target_compile_options(lib-spmv-runahead PRIVATE ${COMMON_COMPILE_OPTIONS})
-target_compile_definitions(lib-spmv-runahead PRIVATE ${COMMON_COMPILE_DEFS})
-target_link_options(lib-spmv-runahead PRIVATE ${COMMON_LINK_OPTIONS})
+add_library(benchmark-spmv-runahead SHARED spmv-runahead-with-omp-tasks.c)
+target_include_directories(benchmark-spmv-runahead PRIVATE ${COMMON_INCLUDE_DIRS})
+target_compile_options(benchmark-spmv-runahead PRIVATE ${COMMON_COMPILE_OPTIONS})
+target_compile_definitions(benchmark-spmv-runahead PRIVATE ${COMMON_COMPILE_DEFS})
+target_link_options(benchmark-spmv-runahead PRIVATE ${COMMON_LINK_OPTIONS})
 
 add_executable(spmv-runahead spmv-runahead-with-omp-tasks.c main.c)
 target_include_directories(spmv-runahead PRIVATE ${COMMON_INCLUDE_DIRS})

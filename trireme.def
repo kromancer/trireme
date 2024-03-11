@@ -12,14 +12,18 @@ From: ubuntu:22.04
         flex bison \
         libelf-dev libnewt-dev libdw-dev libaudit-dev libiberty-dev \
         libunwind-dev libcap-dev libzstd-dev libnuma-dev libssl-dev \
-        binutils-dev gcc-multilib liblzma-dev \
-	hwloc
+        binutils-dev gcc-multilib liblzma-dev hwloc
 
     # Switch to a temporary directory
     # Accepts env variable $TMP
     if [ -z "$TMP" ] || [ ! -d "$TMP" ]; then
         TMP=/tmp
     fi
+
+    # Get intel's vtune
+    wget https://registrationcenter-download.intel.com/akdlm/IRC_NAS/56d0db2b-1ff1-4abe-857a-72ca9be22bd3/l_oneapi_vtune_p_2024.0.1.14_offline.sh
+    chmod +x l_oneapi_vtune_p_2024.0.1.14_offline.sh
+    ./l_oneapi_vtune_p_2024.0.1.14_offline.sh -a -s --eula accept --install-dir /opt/vtune
 
     # Build Python from source
     VERSION="3.10.13"
@@ -35,7 +39,7 @@ From: ubuntu:22.04
     ./configure --enable-optimizations --with-lto --prefix=$PYTHON_DIR --with-ensurepip
     make altinstall
 
-    # Get the llvm-project and build mlir
+    # Get & build the llvm-project
     cd $TMP
     rm -rf llvm-project
     git clone https://github.com/llvm/llvm-project.git
@@ -47,7 +51,7 @@ From: ubuntu:22.04
     mkdir build
     cd build
     cmake -G Ninja ../llvm -DLLVM_ENABLE_PROJECTS="clang;mlir;polly;openmp" -DCMAKE_INSTALL_PREFIX=/opt/llvm -DPython3_EXECUTABLE=python -DMLIR_ENABLE_BINDINGS_PYTHON=ON -DLLVM_USE_PERF=ON -DLLVM_BUILD_EXAMPLES=ON -DLLVM_TARGETS_TO_BUILD="Native" -DCMAKE_BUILD_TYPE=Release -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
-    ninja -j16 install
+    ninja -j12 install
 
     # Get the linux kernel and build perf
     # Assumes that the machine building the image will run the container:
@@ -67,7 +71,7 @@ From: ubuntu:22.04
 
 
 %environment
-    export PATH=/opt/llvm/bin:/opt/python/bin:/opt/perf/bin:/opt/pmu-tools:$PATH
+    export PATH=/opt/llvm/bin:/opt/python/bin:/opt/perf/bin:/opt/pmu-tools:/opt/vtune/vtune/latest/bin64:$PATH
     export PYTHONPATH=/opt/llvm/python_packages/mlir_core
     export LLVM_PATH=/opt/llvm
     export OMP_DISPLAY_ENV=true
