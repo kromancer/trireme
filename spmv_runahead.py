@@ -129,14 +129,16 @@ def build_exec(args: argparse.Namespace, src: Path) -> Path:
 def parse_args() -> argparse.Namespace:
     common_arg_parser = get_spmv_arg_parser()
 
-    parser = argparse.ArgumentParser(description="(Sparse Matrix)x(Dense Vector) Multiplication (SpMV) "
-                                                 "with runahead prefetching using OpenMP")
+    parser = argparse.ArgumentParser(description='(Sparse Matrix)x(Dense Vector) Multiplication (SpMV) '
+                                                 'with runahead prefetching using OpenMP')
 
     subparsers = parser.add_subparsers(dest="command", help="Subcommands")
 
     # profile
     profile_parser = subparsers.add_parser("profile", parents=[common_arg_parser],
-                                           help="Profile the application.")
+                                           help="Profile the application using vtune")
+    profile_parser.add_argument("analysis", choices=["uarch", "prefetches"],
+                                help="Choose an analysis type")
 
     # benchmark
     benchmark_parser = subparsers.add_parser("benchmark", parents=[common_arg_parser],
@@ -224,6 +226,25 @@ def check(args: argparse.Namespace, shared_lib: Path, mat: sp.csr_array, vec: np
     assert np.allclose(result, expected), "Wrong result!"
 
 
+def get_vtune_args_from_cfg_file(analysis: str) -> List[str]:
+    script_dir = Path(__file__).parent.resolve()
+    vtune_cfg = script_dir / "vtune-config.json"
+
+    cfg = []
+    try:
+        with open(vtune_cfg, "r") as f:
+            print(f"Reading vtune args from {vtune_cfg}")
+            cfg = json.load(f)[analysis]
+    except FileNotFoundError:
+        print(f"No vtune-config.json file in {script_dir}")
+    except json.decoder.JSONDecodeError as e:
+        print(f"{vtune_cfg} could not be decoded {e}")
+    except KeyError:
+        print(f"{vtune_cfg} does not have a field for {analysis}")
+    finally:
+        return cfg
+
+
 def profile(args: argparse.Namespace, exe: Path, mat: sp.csr_array, vec: np.ndarray):
 
     # copy vec to a shared mem block
@@ -257,11 +278,7 @@ def profile(args: argparse.Namespace, exe: Path, mat: sp.csr_array, vec: np.ndar
         vtune_path = which("vtune")
 
         if vtune_path is not None:
-            vtune_cmd = ["vtune",
-                         "-collect", "uarch-exploration",
-                         "-knob", "collect-memory-bandwidth=true",
-                         "-knob", "pmu-collection-mode=detailed",
-                         "--"]
+            vtune_cmd = ["vtune"] + get_vtune_args_from_cfg_file(args.analysis) + ["--"]
         else:
             vtune_cmd = []
             print("vtune not in PATH")
