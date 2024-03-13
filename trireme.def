@@ -51,7 +51,9 @@ From: ubuntu:22.04
     mkdir /opt/llvm
     mkdir build
     cd build
-    cmake -G Ninja ../llvm -DLLVM_ENABLE_PROJECTS="clang;mlir;polly;openmp;lldb" -DCMAKE_INSTALL_PREFIX=/opt/llvm -DPython3_EXECUTABLE=python -DMLIR_ENABLE_BINDINGS_PYTHON=ON -DLLVM_USE_PERF=ON -DLLVM_BUILD_EXAMPLES=ON -DLLVM_TARGETS_TO_BUILD="Native" -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+    cmake -G Ninja ../llvm -DLLVM_ENABLE_PROJECTS="clang;openmp;polly;lldb" -DCMAKE_INSTALL_PREFIX=/opt/llvm -DLLVM_TARGETS_TO_BUILD="Native" -DCMAKE_BUILD_TYPE=RelWithDebInfo
+    ninja -j12 install
+    cmake -G Ninja ../llvm -DLLVM_ENABLE_PROJECTS="mlir" -DCMAKE_INSTALL_PREFIX=/opt/llvm -DPython3_EXECUTABLE=python -DMLIR_ENABLE_BINDINGS_PYTHON=ON -DLLVM_USE_PERF=ON -DLLVM_TARGETS_TO_BUILD="Native" -DCMAKE_BUILD_TYPE=Release
     ninja -j12 install
 
     # Get the linux kernel and build perf
