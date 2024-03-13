@@ -3,10 +3,11 @@ import ctypes
 from os import getpid, environ, killpg
 from pathlib import Path
 import platform
+from shutil import which
 import signal
 import subprocess
 from time import sleep
-from typing import List, Optional
+from typing import Callable, List, Optional
 
 from jinja2 import Template
 import numpy as np
@@ -19,15 +20,11 @@ from mlir.passmanager import *
 from logging_and_graphing import log_execution_times_ns
 from utils import create_sparse_mat_and_dense_vec, get_spmv_arg_parser, make_work_dir_and_cd_to_it
 
-remaining_repetitions = 1
-execution_times = []
-
 
 def get_template_path(opt: Optional[str]) -> Path:
-    return Path({
-        "pref-ains": "./spmv.prefetch.mlir.jinja2",
-        "pref-spe": "./spmv.spe.mlir.jinja2"
-    }.get(opt, "./spmv.mlir.jinja2")).absolute()
+    script_dir = Path(__file__).parent.resolve()
+    return script_dir / Path({"pref-ains": "./baselines/spmv.ainsworth.mlir.jinja2",
+                              "pref-spe": "./baselines/spmv.spe.mlir.jinja2"}.get(opt, "./baselines/spmv.mlir.jinja2"))
 
 
 def get_mlir_opt_passes(opt: Optional[str]) -> List[str]:
@@ -77,7 +74,7 @@ def render_template(rows: int, cols: int, opt: Optional[str], pd: int, loc_hint:
     return rendered_template
 
 
-def apply_passes(src: str, passes: List[str]) -> ir.Module:
+def apply_passes(src: str, opt: str) -> ir.Module:
 
     def run_pass(p: str):
         run_pass.call_count += 1
@@ -94,51 +91,13 @@ def apply_passes(src: str, passes: List[str]) -> ir.Module:
         module = ir.Module.parse(src)
 
         run_pass.call_count = 0
-        for p in passes:
+        for p in get_mlir_opt_passes(opt):
             run_pass(p)
 
     return module
 
 
-@ctypes.CFUNCTYPE(ctypes.c_void_p)
-def start_measurement_callback():
-    print("kernel start")
-
-    # There's no perf on macos
-    if platform.system() == "Darwin":
-        return
-
-    # Run perf only for the last repetition
-    if remaining_repetitions > 1:
-        return
-
-    spmv_pid = getpid()
-    start_measurement_callback.perf_proc = subprocess.Popen(["toplev", "-l6", "--pid", f"{spmv_pid}"],
-                                                            start_new_session=True)
-    sleep(1)
-
-
-@ctypes.CFUNCTYPE(ctypes.c_void_p, ctypes.c_uint64)
-def stop_measurement_callback(dur_ns: int):
-    global remaining_repetitions, execution_times
-
-    dur_ms = round(dur_ns/1000000, 3)
-    print(f"kernel finish: execution time: {dur_ms} ms")
-    execution_times.append(dur_ns)
-
-    # There's no perf on macos
-    if platform.system() == "Darwin":
-        return
-
-    if remaining_repetitions > 1:
-        remaining_repetitions -= 1
-        return
-
-    killpg(start_measurement_callback.perf_proc.pid, signal.SIGINT)
-    start_measurement_callback.perf_proc.wait()
-
-
-def run_spmv(llvm_mlir: ir.Module, rows: int, mtx: np.ndarray, vec: np.ndarray):
+def run_spmv(llvm_mlir: ir.Module, rows: int, mat: np.ndarray, vec: np.ndarray, start_cb: Callable, stop_cb: Callable):
 
     llvm_path = environ.get("LLVM_PATH", None)
     if llvm_path is None:
@@ -148,7 +107,7 @@ def run_spmv(llvm_mlir: ir.Module, rows: int, mtx: np.ndarray, vec: np.ndarray):
     shared_lib_suffix = ".dylib" if platform.system() == "Darwin" else ".so"
     runtime_paths = [str(Path(llvm_path) / "lib" / (r + shared_lib_suffix)) for r in runtimes]
 
-    mtx_mem = ctypes.pointer(ctypes.pointer(rt.get_ranked_memref_descriptor(mtx)))
+    mtx_mem = ctypes.pointer(ctypes.pointer(rt.get_ranked_memref_descriptor(mat)))
     vec_mem = ctypes.pointer(ctypes.pointer(rt.get_ranked_memref_descriptor(vec)))
 
     res = np.zeros(rows, np.float64)
@@ -160,50 +119,121 @@ def run_spmv(llvm_mlir: ir.Module, rows: int, mtx: np.ndarray, vec: np.ndarray):
     mem_out = ctypes.pointer(ctypes.pointer(ref_out))
 
     exec_engine = ExecutionEngine(llvm_mlir, shared_libs=runtime_paths)
-    exec_engine.register_runtime("start_measurement_callback", start_measurement_callback)
-    exec_engine.register_runtime("stop_measurement_callback", stop_measurement_callback)
+    exec_engine.register_runtime("start_measurement_callback", start_cb)
+    exec_engine.register_runtime("stop_measurement_callback", stop_cb)
 
     exec_engine.invoke("main", mem_out, mtx_mem, vec_mem, res_mem)
 
     exec_engine.dump_to_object_file("spmv.o")
 
     # Sanity check on computed result.
-    expected = np.matmul(mtx, vec)
+    expected = np.matmul(mat, vec)
     c = rt.ranked_memref_to_numpy(mem_out[0])
     assert np.allclose(c, expected), "Wrong output!"
 
 
-def main():
-    global remaining_repetitions
+def benchmark(args: argparse.Namespace, llvm_mlir: ir.Module, mat: np.ndarray, vec: np.ndarray):
+    execution_times = []
 
-    rows, cols, density, src, remaining_repetitions, passes = get_args()
+    @ctypes.CFUNCTYPE(ctypes.c_void_p)
+    def start_cb_for_benchmark():
+        print("kernel start")
 
-    make_work_dir_and_cd_to_it(__file__)
+    @ctypes.CFUNCTYPE(ctypes.c_void_p, ctypes.c_uint64)
+    def stop_cb_for_benchmark(dur_ns: int):
+        nonlocal execution_times
 
-    llvm_mlir = apply_passes(src, passes)
+        dur_ms = round(dur_ns / 1000000, 3)
+        print(f"kernel finish: execution time: {dur_ms} ms")
+        execution_times.append(dur_ns)
 
-    mtx, vec = create_sparse_mat_and_dense_vec(rows, cols, density)
-
-    repetitions = remaining_repetitions
-    for _ in range(0, repetitions):
-        run_spmv(llvm_mlir=llvm_mlir, rows=rows, mtx=mtx.toarray(), vec=vec)
+    for _ in range(0, args.repetitions):
+        run_spmv(llvm_mlir, args.rows, mat, vec, start_cb_for_benchmark, stop_cb_for_benchmark)
 
     log_execution_times_ns(execution_times)
 
 
-def get_args():
-    parser = get_spmv_arg_parser()
-    parser.description = "(Sparse Matrix)x(Dense Vector) Multiplication (SpMV)"
-    parser.add_argument("-o", "--optimization", choices=["vect-vl4", "pref-ains", "pref-spe"],
-                        help="Use an optimized version of the kernel")
-    parser.add_argument("--repetitions", type=int, default=5,
-                        help="Repeat the kernel with the same input. Gather execution times stats")
+def profile(args: argparse.Namespace, llvm_mlir: ir.Module, mat: np.ndarray, vec: np.ndarray):
+    perf_proc: subprocess.Popen
 
-    args = parser.parse_args()
+    profile_cmd = []
+    if args.analysis == "toplev":
+        profile_cmd = ["toplev", "-l6"]
+
+    @ctypes.CFUNCTYPE(ctypes.c_void_p)
+    def start_cb_for_profile():
+        nonlocal perf_proc, profile_cmd
+
+        print("kernel start")
+
+        spmv_pid = getpid()
+        perf_proc = subprocess.Popen(profile_cmd + ["--pid", f"{spmv_pid}"],
+                                     start_new_session=True)
+        sleep(1)
+
+    @ctypes.CFUNCTYPE(ctypes.c_void_p, ctypes.c_uint64)
+    def stop_cb_for_profile(dur_ns: int):
+        nonlocal perf_proc
+
+        dur_ms = round(dur_ns / 1000000, 3)
+        print(f"kernel finish: execution time: {dur_ms} ms")
+
+        killpg(perf_proc.pid, signal.SIGINT)
+        perf_proc.wait()
+
+    perf_path = which("perf")
+
+    if perf_path is None:
+        print("perf not in PATH")
+        return
+
+    run_spmv(llvm_mlir, args.rows, mat, vec, start_cb_for_profile, stop_cb_for_profile)
+
+
+def main():
+
+    args = parse_args()
 
     src = render_template(args.rows, args.cols, args.optimization, args.prefetch_distance, args.locality_hint)
 
-    return args.rows, args.cols, args.density, src, args.repetitions, get_mlir_opt_passes(args.optimization)
+    make_work_dir_and_cd_to_it(__file__)
+
+    llvm_mlir = apply_passes(src, args.optimization)
+
+    mat, vec = create_sparse_mat_and_dense_vec(args.rows, args.cols, args.density)
+
+    if args.command == "benchmark":
+        benchmark(args, llvm_mlir, mat.toarray(), vec)
+
+    elif args.command == "profile":
+        profile(args, llvm_mlir, mat.toarray(), vec)
+
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="(Sparse Matrix)x(Dense Vector) Multiplication (SpMV), "
+                                                 "baseline and state-of-the-art sw prefetching, "
+                                                 "from manually generated MLIR templates")
+
+    subparsers = parser.add_subparsers(dest="command", help="Subcommands")
+
+    # common args to all subcommands
+    common_arg_parser = get_spmv_arg_parser()
+    common_arg_parser.add_argument("-o", "--optimization", choices=["vect-vl4", "pref-ains", "pref-spe"],
+                                   help="Use an optimized version of the kernel")
+
+    # profile
+    profile_parser = subparsers.add_parser("profile", parents=[common_arg_parser],
+                                           help="Profile the application using vtune")
+    profile_parser.add_argument("analysis", choices=["toplev", "collect-events"],
+                                help="Choose an analysis type")
+
+    # benchmark
+    benchmark_parser = subparsers.add_parser("benchmark", parents=[common_arg_parser],
+                                             help="Benchmark the application.")
+    benchmark_parser.add_argument("--repetitions", type=int, default=5,
+                                  help="Repeat the kernel with the same input. Gather execution times stats")
+
+    return parser.parse_args()
 
 
 if __name__ == "__main__":
