@@ -1,0 +1,33 @@
+{
+    "prefetches": [
+        "mem_inst_retired.all_loads",
+        "offcore_requests.data_rd",
+        "offcore_requests.demand_data_rd",
+        "mem_load_retired.l1_hit",
+        "mem_load_retired.l1_miss",
+        "mem_load_retired.fb_hit",
+        "mem_load_retired.l2_hit",
+        "mem_load_retired.l2_miss",
+        "mem_load_retired.l3_hit",
+        "mem_load_retired.l3_miss",
+        "longest_lat_cache.miss",
+        "mem_bound_stalls.load",
+        "mem_bound_stalls.load_dram_hit",
+        "mem_bound_stalls.load_l2_hit",
+        "mem_bound_stalls.load_llc_hit",
+        "l1d.hwpf_miss",
+        "l2_lines_out.useless_hwpf",
+        "sw_prefetch_access.nta",
+        "sw_prefetch_access.prefetchw",
+        "sw_prefetch_access.t0",
+        "sw_prefetch_access.t1_t2",
+        "load_hit_prefetch.swpf",
+        "l2_rqsts.swpf_hit",
+        "l2_rqsts.swpf_miss",
+        "cycle_activity.stalls_total",
+        "cycle_activity.cycles_mem_any",
+        "cycle_activity.stalls_l3_miss",
+        "cycle_activity.stalls_l2_miss",
+        "cycle_activity.stalls_l1d_miss"
+    ]
+}

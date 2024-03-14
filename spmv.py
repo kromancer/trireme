@@ -18,7 +18,7 @@ from mlir import ir
 from mlir.passmanager import *
 
 from logging_and_graphing import log_execution_times_ns
-from utils import create_sparse_mat_and_dense_vec, get_spmv_arg_parser, make_work_dir_and_cd_to_it
+from utils import create_sparse_mat_and_dense_vec, get_spmv_arg_parser, make_work_dir_and_cd_to_it, read_config
 
 
 def get_template_path(opt: Optional[str]) -> Path:
@@ -159,6 +159,9 @@ def profile(args: argparse.Namespace, llvm_mlir: ir.Module, mat: np.ndarray, vec
     profile_cmd = []
     if args.analysis == "toplev":
         profile_cmd = ["toplev", "-l6"]
+    elif args.analysis == "prefetches":
+        events = read_config("perf-events.json", "prefetches")
+        profile_cmd = ["perf", "record", "-e", ",".join(events)]
 
     @ctypes.CFUNCTYPE(ctypes.c_void_p)
     def start_cb_for_profile():
@@ -167,8 +170,7 @@ def profile(args: argparse.Namespace, llvm_mlir: ir.Module, mat: np.ndarray, vec
         print("kernel start")
 
         spmv_pid = getpid()
-        perf_proc = subprocess.Popen(profile_cmd + ["--pid", f"{spmv_pid}"],
-                                     start_new_session=True)
+        perf_proc = subprocess.Popen(profile_cmd + ["--pid", f"{spmv_pid}"], start_new_session=True)
         sleep(1)
 
     @ctypes.CFUNCTYPE(ctypes.c_void_p, ctypes.c_uint64)
@@ -224,7 +226,7 @@ def parse_args() -> argparse.Namespace:
     # profile
     profile_parser = subparsers.add_parser("profile", parents=[common_arg_parser],
                                            help="Profile the application using vtune")
-    profile_parser.add_argument("analysis", choices=["toplev", "collect-events"],
+    profile_parser.add_argument("analysis", choices=["toplev", "prefetches"],
                                 help="Choose an analysis type")
 
     # benchmark
