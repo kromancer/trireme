@@ -14,7 +14,7 @@ from typing import Dict, List, Tuple
 
 from logging_and_graphing import log_execution_times_secs
 from utils import (create_sparse_mat_and_dense_vec, get_spmv_arg_parser,
-                   make_work_dir_and_cd_to_it, run_func_and_capture_stdout)
+                   make_work_dir_and_cd_to_it, read_config, run_func_and_capture_stdout)
 
 
 def run_spmv_as_foreign_fun(lib_path: Path, mat: sp.csr_array, vec: np.ndarray) -> Tuple[np.ndarray, str, float]:
@@ -226,25 +226,6 @@ def check(args: argparse.Namespace, shared_lib: Path, mat: sp.csr_array, vec: np
     assert np.allclose(result, expected), "Wrong result!"
 
 
-def get_vtune_args_from_cfg_file(analysis: str) -> List[str]:
-    script_dir = Path(__file__).parent.resolve()
-    vtune_cfg = script_dir / "vtune-config.json"
-
-    cfg = []
-    try:
-        with open(vtune_cfg, "r") as f:
-            print(f"Reading vtune args from {vtune_cfg}")
-            cfg = json.load(f)[analysis]
-    except FileNotFoundError:
-        print(f"No vtune-config.json file in {script_dir}")
-    except json.decoder.JSONDecodeError as e:
-        print(f"{vtune_cfg} could not be decoded {e}")
-    except KeyError:
-        print(f"{vtune_cfg} does not have a field for {analysis}")
-    finally:
-        return cfg
-
-
 def profile(args: argparse.Namespace, exe: Path, mat: sp.csr_array, vec: np.ndarray):
 
     # copy vec to a shared mem block
@@ -278,7 +259,7 @@ def profile(args: argparse.Namespace, exe: Path, mat: sp.csr_array, vec: np.ndar
         vtune_path = which("vtune")
 
         if vtune_path is not None:
-            vtune_cmd = ["vtune"] + get_vtune_args_from_cfg_file(args.analysis) + ["--"]
+            vtune_cmd = ["vtune"] + read_config("vtune-config.json", args.analysis) + ["--"]
         else:
             vtune_cmd = []
             print("vtune not in PATH")

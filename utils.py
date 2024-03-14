@@ -1,4 +1,5 @@
 import argparse
+import json
 import numpy as np
 from os import chdir, close, dup, dup2, fsync, makedirs
 from pathlib import Path
@@ -6,7 +7,26 @@ import scipy.sparse as sp
 from shutil import rmtree
 import sys
 from tempfile import TemporaryFile
-from typing import Any, Callable, Tuple, Union
+from typing import Any, Callable, List, Tuple, Union
+
+
+def read_config(file: str, key: str) -> List[str]:
+    script_dir = Path(__file__).parent.resolve()
+    cfg_file = script_dir / file
+
+    cfg = []
+    try:
+        with open(cfg_file, "r") as f:
+            print(f"Reading config {cfg_file}")
+            cfg = json.load(f)[key]
+    except FileNotFoundError:
+        print(f"No {file} in {script_dir}")
+    except json.decoder.JSONDecodeError as e:
+        print(f"{cfg_file} could not be decoded {e}")
+    except KeyError:
+        print(f"{cfg_file} does not have a field for {key}")
+    finally:
+        return cfg
 
 
 def get_spmv_arg_parser() -> argparse.ArgumentParser:
