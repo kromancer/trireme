@@ -21,12 +21,12 @@ def run_spmv_as_foreign_fun(lib_path: Path, mat: sp.csr_array, vec: np.ndarray) 
     lib = ctypes.CDLL(str(lib_path))
 
     lib.compute.argtypes = [
-        np.ctypeslib.ndpointer(dtype=np.float64, ndim=1, flags="C_CONTIGUOUS"),  # double* a_vals_
-        ctypes.c_int,  # int num_of_rows
-        np.ctypeslib.ndpointer(dtype=np.int64, ndim=1, flags="C_CONTIGUOUS"),  # const int* pos
-        np.ctypeslib.ndpointer(dtype=np.int64, ndim=1, flags="C_CONTIGUOUS"),  # const int* crd_
-        np.ctypeslib.ndpointer(dtype=np.float64, ndim=1, flags="C_CONTIGUOUS"),  # const double* B_vals_
-        np.ctypeslib.ndpointer(dtype=np.float64, ndim=1, flags="C_CONTIGUOUS"),  # const double* c_vals_
+        ctypes.c_uint64, # num_of_rows
+        np.ctypeslib.ndpointer(dtype=np.float64, ndim=1, flags="C_CONTIGUOUS"),  # const double* vec_
+        np.ctypeslib.ndpointer(dtype=np.float64, ndim=1, flags="C_CONTIGUOUS"),  # const double* mat_vals_
+        np.ctypeslib.ndpointer(dtype=np.int64, ndim=1, flags="C_CONTIGUOUS"),    # const int64_t* pos
+        np.ctypeslib.ndpointer(dtype=np.int64, ndim=1, flags="C_CONTIGUOUS"),    # const int64_t* crd_
+        np.ctypeslib.ndpointer(dtype=np.float64, ndim=1, flags="C_CONTIGUOUS"),  # double *res_
     ]
 
     lib.compute.restype = ctypes.c_double
@@ -34,8 +34,10 @@ def run_spmv_as_foreign_fun(lib_path: Path, mat: sp.csr_array, vec: np.ndarray) 
     num_of_rows = mat.shape[0]
     result_buff = np.array([0] * num_of_rows, dtype=np.float64)
 
-    stdout, elapsed_wtime = run_func_and_capture_stdout(lib.compute, result_buff, num_of_rows,
-                                                        mat.indptr, mat.indices, mat.data, vec)
+
+
+    stdout, elapsed_wtime = run_func_and_capture_stdout(lib.compute, num_of_rows, vec, mat.data,
+                                                        mat.indptr, mat.indices, result_buff)
 
     return result_buff, stdout, elapsed_wtime
 
