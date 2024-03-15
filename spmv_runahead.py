@@ -208,7 +208,7 @@ def benchmark(args: argparse.Namespace, shared_lib: Path, mat: sp.csr_array, vec
         expected = mat.dot(vec)
         assert np.allclose(result, expected), "Wrong result!"
 
-        log_execution_times_secs(exec_times)
+    log_execution_times_secs(exec_times)
 
 
 def check(args: argparse.Namespace, shared_lib: Path, mat: sp.csr_array, vec: np.ndarray):
