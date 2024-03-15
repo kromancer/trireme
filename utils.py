@@ -52,11 +52,11 @@ def create_sparse_mat_and_dense_vec(rows: int, cols: int, density: float,
                                     format: str = "coo") -> Tuple[Union[sp.coo_array, sp.csr_array], np.ndarray]:
 
     dense_vec = np.array(cols * [1.0], np.float64)
-    print(f'vector: size: {(cols * 8) / (1024 * 1024)} MB')
+    print(f"vector: size: {print_size(cols * np.float64().itemsize)}")
 
     rng = np.random.default_rng(5)
     sparse_mat = sp.random_array((rows, cols), density=density, dtype=np.float64, format=format, random_state=rng)
-    print(f"sparse matrix: density: non-zero values size: {(rows * cols * density * 8) / 1024**2} MB, "
+    print(f"sparse matrix: non-zero values size: {print_size(rows * cols * density * np.float64().itemsize)}, "
           f"density: {density}%")
 
     return sparse_mat, dense_vec
@@ -98,3 +98,18 @@ def run_func_and_capture_stdout(func: Callable, *args, **kwargs) -> Tuple[str, A
             close(original_stdout_fd)
 
     return captured, res
+
+
+def print_size(size):
+    KB = 1024
+    MB = KB ** 2
+    GB = KB ** 3
+
+    if size >= GB:
+        return f"{size / GB:.2f} GB"
+    elif size >= MB:
+        return f"{size / MB:.2f} MB"
+    elif size >= KB:
+        return f"{size / KB:.2f} KB"
+    else:
+        return f"{size} Bytes"
