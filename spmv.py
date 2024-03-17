@@ -9,8 +9,9 @@ import subprocess
 from time import sleep
 from typing import Callable, List, Optional
 
-from jinja2 import Template
+from jinja2 import Environment, FileSystemLoader
 import numpy as np
+import scipy.sparse as sp
 
 from mlir import runtime as rt
 from mlir.execution_engine import *
@@ -20,12 +21,6 @@ from mlir.passmanager import *
 from create_sparse_mats import create_sparse_mat_and_dense_vec
 from logging_and_graphing import log_execution_times_ns
 from utils import get_spmv_arg_parser, make_work_dir_and_cd_to_it, read_config
-
-
-def get_template_path(opt: Optional[str]) -> Path:
-    script_dir = Path(__file__).parent.resolve()
-    return script_dir / Path({"pref-ains": "./baselines/spmv.ainsworth.mlir.jinja2",
-                              "pref-spe": "./baselines/spmv.spe.mlir.jinja2"}.get(opt, "./baselines/spmv.mlir.jinja2"))
 
 
 def get_mlir_opt_passes(opt: Optional[str]) -> List[str]:
@@ -45,12 +40,10 @@ def get_mlir_opt_passes(opt: Optional[str]) -> List[str]:
                 "convert-to-llvm",
                 "reconcile-unrealized-casts"]
     else:
-        return ["lower-sparse-ops-to-foreach",
-                "lower-sparse-foreach-to-scf",
-                "sparse-reinterpret-map",
-                "sparse-tensor-conversion",
-                "canonicalize",
-                "tensor-bufferize",
+        return ["sparse-reinterpret-map",
+                "sparsification{parallelization-strategy=none}",
+                "sparse-tensor-codegen",
+                "sparse-storage-specifier-to-llvm",
                 "func-bufferize",
                 "bufferization-bufferize",
                 "convert-scf-to-cf",
@@ -59,11 +52,16 @@ def get_mlir_opt_passes(opt: Optional[str]) -> List[str]:
 
 def render_template(rows: int, cols: int, opt: Optional[str], pd: int, loc_hint: int) -> str:
 
-    template_path = get_template_path(opt)
+    template_dir = Path(__file__).parent.resolve() / "baselines"
+    env = Environment(loader=FileSystemLoader(template_dir))
 
-    with (open(template_path, "r") as template_f,
-          open("spmv.mlir", "w") as rendered_template_f):
-        template = Template(template_f.read())
+    template_names = {"pref-ains": "spmv.ainsworth.mlir.jinja2",
+                      "pref-spe": "spmv.spe.mlir.jinja2",
+                      "no-opt": "spmv.mlir.jinja2"}
+
+    template = env.get_template(template_names[opt or "no-opt"])
+
+    with open("spmv.mlir", "w") as rendered_template_f:
 
         if opt == "pref-ains" or opt == "pref-spe":
             rendered_template = template.render(rows=rows, cols=cols, pd=pd, loc_hint=loc_hint)
@@ -98,7 +96,7 @@ def apply_passes(src: str, opt: str) -> ir.Module:
     return module
 
 
-def run_spmv(llvm_mlir: ir.Module, rows: int, mat: np.ndarray, vec: np.ndarray, start_cb: Callable, stop_cb: Callable):
+def run_spmv(llvm_mlir: ir.Module, rows: int, mat: sp.csr_array, vec: np.ndarray, start_cb: Callable, stop_cb: Callable):
 
     llvm_path = environ.get("LLVM_PATH", None)
     if llvm_path is None:
@@ -108,7 +106,10 @@ def run_spmv(llvm_mlir: ir.Module, rows: int, mat: np.ndarray, vec: np.ndarray, 
     shared_lib_suffix = ".dylib" if platform.system() == "Darwin" else ".so"
     runtime_paths = [str(Path(llvm_path) / "lib" / (r + shared_lib_suffix)) for r in runtimes]
 
-    mtx_mem = ctypes.pointer(ctypes.pointer(rt.get_ranked_memref_descriptor(mat)))
+    mat_indptr = ctypes.pointer(ctypes.pointer(rt.get_ranked_memref_descriptor(mat.indptr)))
+    mat_indices = ctypes.pointer(ctypes.pointer(rt.get_ranked_memref_descriptor(mat.indices)))
+    mat_vals = ctypes.pointer(ctypes.pointer(rt.get_ranked_memref_descriptor(mat.data)))
+
     vec_mem = ctypes.pointer(ctypes.pointer(rt.get_ranked_memref_descriptor(vec)))
 
     res = np.zeros(rows, np.float64)
@@ -119,21 +120,21 @@ def run_spmv(llvm_mlir: ir.Module, rows: int, mat: np.ndarray, vec: np.ndarray, 
     ref_out = rt.make_nd_memref_descriptor(1, ctypes.c_double)()
     mem_out = ctypes.pointer(ctypes.pointer(ref_out))
 
-    exec_engine = ExecutionEngine(llvm_mlir, shared_libs=runtime_paths)
+    exec_engine = ExecutionEngine(llvm_mlir, opt_level=3, shared_libs=runtime_paths)
     exec_engine.register_runtime("start_measurement_callback", start_cb)
     exec_engine.register_runtime("stop_measurement_callback", stop_cb)
 
-    exec_engine.invoke("main", mem_out, mtx_mem, vec_mem, res_mem)
+    exec_engine.invoke("main", mem_out, vec_mem, res_mem, mat_indptr, mat_indices, mat_vals)
 
     exec_engine.dump_to_object_file("spmv.o")
 
     # Sanity check on computed result.
-    expected = np.matmul(mat, vec)
+    expected = mat.dot(vec)
     c = rt.ranked_memref_to_numpy(mem_out[0])
     assert np.allclose(c, expected), "Wrong output!"
 
 
-def benchmark(args: argparse.Namespace, llvm_mlir: ir.Module, mat: np.ndarray, vec: np.ndarray):
+def benchmark(args: argparse.Namespace, llvm_mlir: ir.Module, mat: sp.csr_array, vec: np.ndarray):
     execution_times = []
 
     @ctypes.CFUNCTYPE(ctypes.c_void_p)
@@ -154,7 +155,7 @@ def benchmark(args: argparse.Namespace, llvm_mlir: ir.Module, mat: np.ndarray, v
     log_execution_times_ns(execution_times)
 
 
-def profile(args: argparse.Namespace, llvm_mlir: ir.Module, mat: np.ndarray, vec: np.ndarray):
+def profile(args: argparse.Namespace, llvm_mlir: ir.Module, mat: sp.csr_array, vec: np.ndarray):
     perf_proc: subprocess.Popen
 
     profile_cmd = []
@@ -203,13 +204,13 @@ def main():
 
     llvm_mlir = apply_passes(src, args.optimization)
 
-    mat, vec = create_sparse_mat_and_dense_vec(args.rows, args.cols, args.density)
+    mat, vec = create_sparse_mat_and_dense_vec(args.rows, args.cols, args.density, "csr")
 
     if args.command == "benchmark":
-        benchmark(args, llvm_mlir, mat.toarray(), vec)
+        benchmark(args, llvm_mlir, mat, vec)
 
     elif args.command == "profile":
-        profile(args, llvm_mlir, mat.toarray(), vec)
+        profile(args, llvm_mlir, mat, vec)
 
 
 def parse_args() -> argparse.Namespace:
@@ -226,13 +227,13 @@ def parse_args() -> argparse.Namespace:
 
     # profile
     profile_parser = subparsers.add_parser("profile", parents=[common_arg_parser],
-                                           help="Profile the application using vtune")
+                                           help="Profile the application")
     profile_parser.add_argument("analysis", choices=["toplev", "prefetches"],
                                 help="Choose an analysis type")
 
     # benchmark
     benchmark_parser = subparsers.add_parser("benchmark", parents=[common_arg_parser],
-                                             help="Benchmark the application.")
+                                             help="Benchmark the application")
     benchmark_parser.add_argument("--repetitions", type=int, default=5,
                                   help="Repeat the kernel with the same input. Gather execution times stats")
 

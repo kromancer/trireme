@@ -2,25 +2,18 @@
 
 module {
 
-  func.func private @start_measurement_callback() -> () attributes { llvm.emit_c_interface }
-  func.func private @stop_measurement_callback(%dur_ns: i64) -> () attributes { llvm.emit_c_interface }
-  func.func private @nanoTime() -> i64 attributes { llvm.emit_c_interface }
-
-  func.func @spmv(%sparseT: tensor<{{ rows }}x{{ cols }}xf64, #CSR>,
-                  %vec: tensor<{{ cols }}xf64>,
-		          %res: tensor<{{ rows }}xf64>) -> tensor<{{ rows }}xf64> {
-
-    call @start_measurement_callback() : () -> ()
-    %time_before = call @nanoTime() : () -> i64
+  func.func @spmv(%vec: tensor<{{ cols }}xf64>,
+		          %res: tensor<{{ rows }}xf64>,
+                  %mat: tensor<{{ rows }}x{{ cols }}xf64, #CSR>) -> tensor<{{ rows }}xf64> {
 
     %rows = arith.constant {{ rows }} : index
     %c0 = arith.constant 0 : index
     %c1 = arith.constant 1 : index
     %pd = arith.constant {{ pd }} : index
 
-    %positions_buff = sparse_tensor.positions %sparseT {level = 1 : index} : tensor<{{ rows }}x{{ cols }}xf64, #CSR> to memref<?xindex>
-    %coordinates_buff = sparse_tensor.coordinates %sparseT {level = 1 : index} : tensor<{{ rows }}x{{ cols }}xf64, #CSR> to memref<?xindex>
-    %values_buff = sparse_tensor.values %sparseT : tensor<{{ rows }}x{{ cols }}xf64, #CSR> to memref<?xf64>
+    %positions_buff = sparse_tensor.positions %mat {level = 1 : index} : tensor<{{ rows }}x{{ cols }}xf64, #CSR> to memref<?xindex>
+    %coordinates_buff = sparse_tensor.coordinates %mat {level = 1 : index} : tensor<{{ rows }}x{{ cols }}xf64, #CSR> to memref<?xindex>
+    %values_buff = sparse_tensor.values %mat : tensor<{{ rows }}x{{ cols }}xf64, #CSR> to memref<?xf64>
 
     %vec_buff = bufferization.to_memref %vec : memref<{{ cols }}xf64>
     %res_buff = bufferization.to_memref %res : memref<{{ rows }}xf64>
@@ -62,21 +55,7 @@ module {
     }
 
     %5 = bufferization.to_tensor %res_buff restrict : memref<{{ rows }}xf64>
-
-    %time_after = call @nanoTime() : () -> i64
-    %diff = arith.subi %time_after, %time_before : i64
-    call @stop_measurement_callback(%diff) : (i64) -> ()
-
     return %5 : tensor<{{ rows }}xf64>
   }
-
-  func.func @main(%dense_mat: tensor<{{ rows }}x{{ cols }}xf64>,
-                  %dense_vec: tensor<{{ cols }}xf64>,
-                  %c: tensor<{{ rows }}xf64>) -> tensor<{{ rows }}xf64> attributes { llvm.emit_c_interface } {
-
-    %sparse = sparse_tensor.convert %dense_mat : tensor<{{ rows }}x{{ cols }}xf64> to tensor<{{ rows }}x{{ cols }}xf64, #CSR>
-    %0 = call @spmv(%sparse, %dense_vec, %c) : (tensor<{{ rows }}x{{ cols }}xf64, #CSR>, tensor<{{ cols }}xf64>, tensor<{{ rows }}xf64>) -> tensor<{{ rows }}xf64>
-    return %0 : tensor<{{ rows }}xf64>
-  }
-
+                   {% include "main.mlir.jinja2" %}
 }
