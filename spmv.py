@@ -17,8 +17,9 @@ from mlir.execution_engine import *
 from mlir import ir
 from mlir.passmanager import *
 
+from create_sparse_mats import create_sparse_mat_and_dense_vec
 from logging_and_graphing import log_execution_times_ns
-from utils import create_sparse_mat_and_dense_vec, get_spmv_arg_parser, make_work_dir_and_cd_to_it, read_config
+from utils import get_spmv_arg_parser, make_work_dir_and_cd_to_it, read_config
 
 
 def get_template_path(opt: Optional[str]) -> Path:

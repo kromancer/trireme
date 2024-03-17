@@ -12,9 +12,9 @@ from shutil import which
 from subprocess import run
 from typing import Dict, List, Tuple
 
+from create_sparse_mats import create_sparse_mat_and_dense_vec
 from logging_and_graphing import log_execution_times_secs
-from utils import (create_sparse_mat_and_dense_vec, get_spmv_arg_parser,
-                   make_work_dir_and_cd_to_it, read_config, run_func_and_capture_stdout)
+from utils import get_spmv_arg_parser, make_work_dir_and_cd_to_it, read_config, run_func_and_capture_stdout
 
 
 def run_spmv_as_foreign_fun(lib_path: Path, mat: sp.csr_array, vec: np.ndarray) -> Tuple[np.ndarray, str, float]:
@@ -33,8 +33,6 @@ def run_spmv_as_foreign_fun(lib_path: Path, mat: sp.csr_array, vec: np.ndarray) 
 
     num_of_rows = mat.shape[0]
     result_buff = np.array([0] * num_of_rows, dtype=np.float64)
-
-
 
     stdout, elapsed_wtime = run_func_and_capture_stdout(lib.compute, num_of_rows, vec, mat.data,
                                                         mat.indptr, mat.indices, result_buff)
@@ -285,7 +283,7 @@ def main():
 
     args = parse_args()
 
-    mat, vec = create_sparse_mat_and_dense_vec(rows=args.rows, cols=args.cols, density=args.density, format="csr")
+    mat, vec = create_sparse_mat_and_dense_vec(rows=args.rows, cols=args.cols, density=args.density, form="csr")
 
     make_work_dir_and_cd_to_it(__file__)
 

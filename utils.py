@@ -1,9 +1,7 @@
 import argparse
 import json
-import numpy as np
 from os import chdir, close, dup, dup2, fsync, makedirs
 from pathlib import Path
-import scipy.sparse as sp
 from shutil import rmtree
 import sys
 from tempfile import TemporaryFile
@@ -46,20 +44,6 @@ def get_spmv_arg_parser() -> argparse.ArgumentParser:
                         help="Density of sparse matrix (default=0.05)")
 
     return parser
-
-
-def create_sparse_mat_and_dense_vec(rows: int, cols: int, density: float,
-                                    format: str = "coo") -> Tuple[Union[sp.coo_array, sp.csr_array], np.ndarray]:
-
-    dense_vec = np.array(cols * [1.0], np.float64)
-    print(f"vector: size: {print_size(cols * np.float64().itemsize)}")
-
-    rng = np.random.default_rng(5)
-    sparse_mat = sp.random_array((rows, cols), density=density, dtype=np.float64, format=format, random_state=rng)
-    print(f"sparse matrix: non-zero values size: {print_size(rows * cols * density * np.float64().itemsize)}, "
-          f"density: {density}%")
-
-    return sparse_mat, dense_vec
 
 
 def make_work_dir_and_cd_to_it(file_path: str):

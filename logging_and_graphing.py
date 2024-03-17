@@ -26,7 +26,7 @@ def append_entry_to_json(new_entry, file_path=None):
             data = json.load(file)
     except FileNotFoundError:
         data = []
-        print(f"No existing file found. A new file will be created at: {abs_file_path}")
+        print(f"Creating: {abs_file_path}")
 
     # Check if data is a list, if not, initialize as a list
     if not isinstance(data, list):
