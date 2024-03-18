@@ -160,10 +160,12 @@ def profile(args: argparse.Namespace, llvm_mlir: ir.Module, mat: sp.csr_array, v
 
     profile_cmd = []
     if args.analysis == "toplev":
-        profile_cmd = ["toplev", "-l6"]
-    elif args.analysis == "prefetches":
-        events = read_config("perf-events.json", "prefetches")
-        profile_cmd = ["perf", "record", "-e", ",".join(events)]
+        profile_cmd = ["toplev", "-l6", "--json", "-o", "toplev.json", "--perf-summary", "perf.csv"]
+    elif args.analysis == "events":
+        events = read_config("perf-events.json", "events")
+        profile_cmd = ["perf", "stat", "-e", ",".join(events), "-j", "-o", "stats.json"]
+    else:
+        assert False, f"unknown analysis {args.analysis}"
 
     @ctypes.CFUNCTYPE(ctypes.c_void_p)
     def start_cb_for_profile():
@@ -198,9 +200,9 @@ def main():
 
     args = parse_args()
 
-    src = render_template(args.rows, args.cols, args.optimization, args.prefetch_distance, args.locality_hint)
-
     make_work_dir_and_cd_to_it(__file__)
+
+    src = render_template(args.rows, args.cols, args.optimization, args.prefetch_distance, args.locality_hint)
 
     llvm_mlir = apply_passes(src, args.optimization)
 
@@ -228,7 +230,7 @@ def parse_args() -> argparse.Namespace:
     # profile
     profile_parser = subparsers.add_parser("profile", parents=[common_arg_parser],
                                            help="Profile the application")
-    profile_parser.add_argument("analysis", choices=["toplev", "prefetches"],
+    profile_parser.add_argument("analysis", choices=["toplev", "events"],
                                 help="Choose an analysis type")
 
     # benchmark
