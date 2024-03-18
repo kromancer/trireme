@@ -1,5 +1,6 @@
 import argparse
 import ctypes
+import json
 from os import getpid, environ, killpg
 from pathlib import Path
 import platform
@@ -7,7 +8,7 @@ from shutil import which
 import signal
 import subprocess
 from time import sleep
-from typing import Callable, List, Optional
+from typing import Callable, Dict, List, Optional
 
 from jinja2 import Environment, FileSystemLoader
 import numpy as np
@@ -19,7 +20,7 @@ from mlir import ir
 from mlir.passmanager import *
 
 from create_sparse_mats import create_sparse_mat_and_dense_vec
-from logging_and_graphing import log_execution_times_ns
+from logging_and_graphing import append_result_to_db, log_execution_times_ns
 from utils import get_spmv_arg_parser, make_work_dir_and_cd_to_it, read_config
 
 
@@ -155,15 +156,31 @@ def benchmark(args: argparse.Namespace, llvm_mlir: ir.Module, mat: sp.csr_array,
     log_execution_times_ns(execution_times)
 
 
+def parse_perf_stat_json_output(report: str) -> List[Dict]:
+    events = []  # To hold the successfully parsed dictionaries
+    with open(report, "r") as f:
+        for line in f:
+            try:
+                # Attempt to parse the line as JSON
+                json_object = json.loads(line.strip())  # strip() to remove leading/trailing whitespace
+                events.append(json_object)
+            except json.JSONDecodeError:
+                # If json.loads() raises an error, skip this line
+                continue
+    return events
+
+
 def profile(args: argparse.Namespace, llvm_mlir: ir.Module, mat: sp.csr_array, vec: np.ndarray):
     perf_proc: subprocess.Popen
 
     profile_cmd = []
+    report = "report.txt"
     if args.analysis == "toplev":
-        profile_cmd = ["toplev", "-l6", "--json", "-o", "toplev.json", "--perf-summary", "perf.csv"]
+        profile_cmd = ["toplev", "-l6", "--nodes", "/Backend_Bound.Memory_Bound*", "--user", "--json",
+                       "-o", f"{report}", "--perf-summary", "perf.csv"]
     elif args.analysis == "events":
         events = read_config("perf-events.json", "events")
-        profile_cmd = ["perf", "stat", "-e", ",".join(events), "-j", "-o", "stats.json"]
+        profile_cmd = ["perf", "stat", "-e", ",".join(events), "-j", "-o", f"{report}"]
     else:
         assert False, f"unknown analysis {args.analysis}"
 
@@ -194,6 +211,13 @@ def profile(args: argparse.Namespace, llvm_mlir: ir.Module, mat: sp.csr_array, v
         return
 
     run_spmv(llvm_mlir, args.rows, mat, vec, start_cb_for_profile, stop_cb_for_profile)
+
+    if args.analysis == "toplev":
+        with open(report, "r") as f:
+            rep = json.loads(f.read())
+    else:
+        rep = parse_perf_stat_json_output(report)
+    append_result_to_db({"report": rep})
 
 
 def main():

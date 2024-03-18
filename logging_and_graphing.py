@@ -10,10 +10,10 @@ from git import Repo
 import matplotlib.pyplot as plt
 
 
-def append_entry_to_json(new_entry, file_path=None):
+def append_result_to_db(new_entry, file_path=None):
     if file_path is None:
-        # Set default file_path to 'logs.json' in the current script's directory
-        file_path = Path(__file__).resolve().parent / 'logs.json'
+        # Set default file_path to 'results.json' in the current script's directory
+        file_path = Path(__file__).resolve().parent / "results.json"
     else:
         file_path = Path(file_path)
 
@@ -31,6 +31,11 @@ def append_entry_to_json(new_entry, file_path=None):
     # Check if data is a list, if not, initialize as a list
     if not isinstance(data, list):
         data = []
+
+    new_entry["args"] = " ".join(sys.argv)
+    new_entry["time"] = str(datetime.now())
+    new_entry["host"] = gethostname()
+    new_entry["git-hash"] = get_git_commit_hash()
 
     # Append the new entry
     data.append(new_entry)
@@ -84,15 +89,12 @@ def log_execution_times_ns(etimes_ns: List[int]):
     cv = round(std_dev / m, 3)
     print(f"mean execution time: {m} ms")
     print(f"std dev: {std_dev} ms, CV: {cv * 100} %")
-    append_entry_to_json({'args': ' '.join(sys.argv),
-                          'time': str(datetime.now()),
-                          'host': gethostname(),
-                          'git-hash': get_git_commit_hash(),
-                          'exec_times_ns': etimes_ns,
-                          'filtered': filtered,
-                          'mean_ms': m,
-                          'std_dev': std_dev,
-                          'cv': cv})
+    append_result_to_db({
+        'exec_times_ns': etimes_ns,
+        'filtered': filtered,
+        'mean_ms': m,
+        'std_dev': std_dev,
+        'cv': cv})
 
 
 def filter_logs(log: Path, args_re: str) -> List[int]:
