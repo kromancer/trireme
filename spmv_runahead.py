@@ -137,7 +137,7 @@ def parse_args() -> argparse.Namespace:
     # profile
     profile_parser = subparsers.add_parser("profile", parents=[common_arg_parser],
                                            help="Profile the application using vtune")
-    profile_parser.add_argument("analysis", choices=["uarch", "prefetches"],
+    profile_parser.add_argument("analysis", choices=["uarch", "threading", "prefetches"],
                                 help="Choose an analysis type")
 
     # benchmark
