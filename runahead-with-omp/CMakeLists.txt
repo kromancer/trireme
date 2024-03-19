@@ -17,10 +17,6 @@ set(LLVM_PATH $ENV{LLVM_PATH})
 message(STATUS "LLVM_PATH: ${LLVM_PATH}")
 
 option(ENABLE_LOGS "Enable logging to stdout with printfs" OFF)
-if(ENABLE_LOGS)
-    list(APPEND COMMON_COMPILE_DEFS "ENABLE_LOGS")
-    message(STATUS "logging is enabled")
-endif()
 
 # Use OpenMP from llvm
 #
@@ -51,8 +47,13 @@ endif()
 
 set(COMMON_INCLUDE_DIRS "${OMP_HEADER_PATH}")
 set(COMMON_COMPILE_OPTIONS "-fopenmp" "-g" "-O2")
-set(COMMON_COMPILE_DEFS PD=${PREFETCH_DISTANCE} LOCALITY_HINT=${LOCALITY_HINT})
 set(COMMON_LINK_OPTIONS "-L${OMP_LIB_PATH}" "-lomp" "-Wl,-rpath,${OMP_LIB_PATH}")
+
+set(COMMON_COMPILE_DEFS PD=${PREFETCH_DISTANCE} LOCALITY_HINT=${LOCALITY_HINT})
+if(ENABLE_LOGS)
+    list(APPEND COMMON_COMPILE_DEFS "ENABLE_LOGS")
+    message(STATUS "Logging is enabled")
+endif()
 
 add_executable(test-spmv-runahead ${SPMV_RUNAHEAD_SRC} test.c)
 add_library(benchmark-spmv-runahead SHARED ${SPMV_RUNAHEAD_SRC})
