@@ -61,6 +61,7 @@ static void log_decorator(pref_or_comp_task_t task, int task_counter, int64_t in
 
 static void pref_task(int64_t start, int64_t end, uint64_t row, int task_pair_counter) {
 
+#pragma omp task depend (out: crd[task_pair_counter]) if (0)
     for (int64_t j = start; j < end; j++) {
         __builtin_prefetch(&vec[crd[j]], 0, LOCALITY_HINT);
     }
@@ -76,7 +77,6 @@ double
 compute(uint64_t num_of_rows, const double *vec_, const double *mat_vals_, const int64_t *pos, const int64_t *crd_,
         double *res_) {
 
-    printf("omp_get_wtick(): %f s (number of seconds between successive ticks)\n", omp_get_wtick());
     double start = omp_get_wtime();
 
     res = res_;
@@ -86,7 +86,7 @@ compute(uint64_t num_of_rows, const double *vec_, const double *mat_vals_, const
 
 #pragma omp parallel num_threads(3)
     {
-        #pragma omp single
+#pragma omp single
         {
 
             // prime dependencies
@@ -107,10 +107,7 @@ compute(uint64_t num_of_rows, const double *vec_, const double *mat_vals_, const
                 for (int64_t j = j_start; j < j_end; j += PD) {
 
                     // prefetching task
-#pragma omp task default(firstprivate) \
-                depend (out: crd[task_pair_counter]) \
-                depend (in: crd[task_pair_counter - 1])  \
-                depend (in: mat_vals[task_pair_counter - 2])
+#pragma omp task default(firstprivate) depend (in: crd[task_pair_counter - 1])
                     log_decorator(pref_task, task_pair_counter, j, min(j + PD, j_end), i);
                     task_pair_counter++;
                 }

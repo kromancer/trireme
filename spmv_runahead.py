@@ -90,8 +90,8 @@ def build_spmv(args: argparse.Namespace, src: Path, specific_gen_args: List[str]
     clang = Path(environ['LLVM_PATH']) / "bin/clang"
     assert clang.exists()
 
-    common_gen_args = [f"-DPREFETCH_DISTANCE={args.prefetch_distance}", f"-DLOCALITY_HINT={args.locality_hint}",
-                       "-Bbuild", f"-S{src}"]
+    common_gen_args = [f"-DVARIANT={args.variant}", f"-DPREFETCH_DISTANCE={args.prefetch_distance}",
+                       f"-DLOCALITY_HINT={args.locality_hint}", "-Bbuild", f"-S{src}"]
 
     gen_cmd = ["cmake", f"-DCMAKE_C_COMPILER={clang}"] + common_gen_args + specific_gen_args + ["-Bbuild", f"-S{src}"]
     run(gen_cmd, check=True)
@@ -128,6 +128,8 @@ def build_exec(args: argparse.Namespace, src: Path) -> Path:
 
 def parse_args() -> argparse.Namespace:
     common_arg_parser = get_spmv_arg_parser()
+    common_arg_parser.add_argument("-v", "--variant", default="omp-tasks",
+                                   help="Which variant of the spmv-runahead-* file to use")
 
     parser = argparse.ArgumentParser(description='(Sparse Matrix)x(Dense Vector) Multiplication (SpMV) '
                                                  'with runahead prefetching using OpenMP')
@@ -278,7 +280,7 @@ def profile(args: argparse.Namespace, exe: Path, mat: sp.csr_array, vec: np.ndar
 
 
 def main():
-    src_path = Path(__file__).parent.resolve() / "runahead-with-omp-tasks"
+    src_path = Path(__file__).parent.resolve() / "runahead-with-omp"
     assert src_path.exists()
 
     args = parse_args()
