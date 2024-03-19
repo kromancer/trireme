@@ -1,11 +1,14 @@
 #!/bin/bash
 
-for rows in {1..500}; do
-    taskset -c 0,1,2,3,4,5,6,7 python spmv.py benchmark -r $rows -c 2000000000 -d 0.0005 --repetitions 10
-    taskset -c 0,1,2,3,4,5,6,7 python spmv.py profile toplev -r $rows -c 2000000000 -d 0.0005
-    taskset -c 0,1,2,3,4,5,6,7 python spmv.py profile events -r $rows -c 2000000000 -d 0.0005
+cd /trireme
 
-    taskset -c 0,1,2,3,4,5,6,7 python spmv.py benchmark -o pref-ains -r $rows -c 2000000000 -d 0.0005 --repetitions 10 -pd 64
-    taskset -c 0,1,2,3,4,5,6,7 python spmv.py profile toplev -o pref-ains -r $rows -c 2000000000 -d 0.0005 -pd 64
-    taskset -c 0,1,2,3,4,5,6,7 python spmv.py profile events -o pref-ains -r $rows -c 2000000000 -d 0.0005 -pd 64
+source venv/bin/activate
+
+python spmv.py benchmark -r 100 -c 2000000000 -d 0.0005  --repetitions 10
+
+for pd in {20..5000}; do
+
+    OMP_PROC_BIND=spread OMP_PLACES=cores python spmv_runahead.py benchmark -r 100 -c 2000000000 -d 0.0005 -pd $pd --repetitions 10
+    OMP_PROC_BIND=spread OMP_PLACES=cores python spmv_runahead.py benchmark -v omp-tasks-2 -r 100 -c 2000000000 -d 0.0005 -pd $pd --repetitions 10
+
 done
