@@ -1,5 +1,6 @@
 {
     "events": [
+        "cycles:u",
         "mem_inst_retired.all_loads:u",
         "offcore_requests.data_rd:u",
         "offcore_requests.demand_data_rd:u",
@@ -15,6 +16,7 @@
         "mem_bound_stalls.load_dram_hit:u",
         "mem_bound_stalls.load_l2_hit:u",
         "mem_bound_stalls.load_llc_hit:u",
+        "l1d_pend_miss.fb_full:u ",
         "l1d.hwpf_miss:u",
         "l2_lines_out.useless_hwpf:u",
         "sw_prefetch_access.nta:u",
