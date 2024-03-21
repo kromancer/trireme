@@ -100,7 +100,7 @@ def log_execution_times_ns(etimes_ns: List[int]):
 def filter_logs(log: Path, args_re: str) -> List[int]:
     with open(log, 'r') as f:
         logs = json.load(f)
-    filtered_means = [log['mean_ms'] for log in logs if re.match(args_re, log['args'])]
+    filtered_means = [log['mean_ms'] for log in logs if re.search(args_re, log['args'])]
     return filtered_means
 
 
