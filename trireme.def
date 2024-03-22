@@ -44,6 +44,13 @@ From: ubuntu:22.04
     rm -rf llvm-project
     git clone https://github.com/llvm/llvm-project.git
     cd llvm-project
+
+    # Temporary - until https://github.com/llvm/llvm-project/pull/86130 is merged
+    git config user.email "paul@dune.com"
+    git config user.name "Paul Atreidis"
+    git fetch origin pull/86130/head:fix-bug-in-openmp
+    git merge fix-bug-in-openmp
+
     /opt/python/bin/python$VERSION_MAJOR -m venv venv
     . ./venv/bin/activate
     pip install -r mlir/python/requirements.txt
@@ -51,9 +58,7 @@ From: ubuntu:22.04
     mkdir /opt/llvm
     mkdir build
     cd build
-    cmake -G Ninja ../llvm -DLLVM_ENABLE_PROJECTS="clang;openmp;polly;lldb" -DCMAKE_INSTALL_PREFIX=/opt/llvm -DLLVM_TARGETS_TO_BUILD="Native" -DCMAKE_BUILD_TYPE=RelWithDebInfo
-    ninja -j12 install
-    cmake -G Ninja ../llvm -DLLVM_ENABLE_PROJECTS="mlir" -DCMAKE_INSTALL_PREFIX=/opt/llvm -DPython3_EXECUTABLE=python -DMLIR_ENABLE_BINDINGS_PYTHON=ON -DLLVM_USE_PERF=ON -DLLVM_TARGETS_TO_BUILD="Native" -DCMAKE_BUILD_TYPE=Release
+    cmake -G Ninja ../llvm -DLLVM_ENABLE_PROJECTS="clang;openmp;lldb;mlir" -DCMAKE_INSTALL_PREFIX=/opt/llvm -DLLVM_TARGETS_TO_BUILD="Native" -DCMAKE_BUILD_TYPE=RelWithDebInfo -DPython3_EXECUTABLE=python -DMLIR_ENABLE_BINDINGS_PYTHON=ON -DLLVM_USE_PERF=ON
     ninja -j12 install
 
     # Get the linux kernel and build perf
