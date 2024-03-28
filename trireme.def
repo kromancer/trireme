@@ -4,7 +4,7 @@ From: ubuntu:22.04
 %post
     # Install dependencies
     apt update && apt upgrade -y && apt-get install -y \
-        git build-essential cmake ninja-build patchelf \
+        git make gcc-12 g++-12 cmake ninja-build patchelf \
         libreadline-dev libncursesw5-dev libssl-dev \
         libsqlite3-dev libgdbm-dev libc6-dev libbz2-dev \
         libffi-dev zlib1g-dev \
@@ -12,18 +12,14 @@ From: ubuntu:22.04
         flex bison \
         libelf-dev libnewt-dev libdw-dev libaudit-dev libiberty-dev \
         libunwind-dev libcap-dev libzstd-dev libnuma-dev libssl-dev \
-        binutils-dev gcc-multilib liblzma-dev hwloc
+        binutils-dev gcc-multilib liblzma-dev hwloc \
+        libtraceevent-dev libbabeltrace-dev libperl-dev libpfm4-dev pkg-config
 
     # Switch to a temporary directory
     # Accepts env variable $TMP
     if [ -z "$TMP" ] || [ ! -d "$TMP" ]; then
         TMP=/tmp
     fi
-
-    # Get intel's vtune
-    wget https://registrationcenter-download.intel.com/akdlm/IRC_NAS/56d0db2b-1ff1-4abe-857a-72ca9be22bd3/l_oneapi_vtune_p_2024.0.1.14_offline.sh
-    chmod +x l_oneapi_vtune_p_2024.0.1.14_offline.sh
-    ./l_oneapi_vtune_p_2024.0.1.14_offline.sh -a -s --eula accept --install-dir /opt/vtune
 
     # Build Python from source
     VERSION="3.10.13"
@@ -33,16 +29,53 @@ From: ubuntu:22.04
     mkdir -p $PYTHON_DIR
 
     cd $TMP
-    wget https://www.python.org/ftp/python/$VERSION/Python-$VERSION.tar.xz
+    if [ -f Python-$VERSION.tar.xz ]; then
+       echo "Python-$VERSION.tar.xz" already here!
+    else
+       wget https://www.python.org/ftp/python/$VERSION/Python-$VERSION.tar.xz
+    fi
+
+    rm -rf Python-$VERSION
     tar -xvf Python-$VERSION.tar.xz
     cd Python-$VERSION/
-    ./configure --enable-optimizations --with-lto --prefix=$PYTHON_DIR --with-ensurepip
+    CC=gcc-12 ./configure --enable-optimizations --with-lto --prefix=$PYTHON_DIR --with-ensurepip
     make altinstall
+
+    # Get intel's vtune
+    cd $TMP
+    wget -O- https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB | gpg --dearmor | tee /usr/share/keyrings/oneapi-archive-keyring.gpg > /dev/null
+    echo "deb [signed-by=/usr/share/keyrings/oneapi-archive-keyring.gpg] https://apt.repos.intel.com/oneapi all main" | tee /etc/apt/sources.list.d/oneAPI.list
+    apt update && apt install intel-oneapi-vtune -y
+
+    # Get the linux kernel and build perf
+    # Assumes that the machine building the image will run the container:
+    cd $TMP
+    if [ -d linux ]; then
+        echo "linux already here!"
+    else
+        git clone https://github.com/torvalds/linux.git
+    fi
+
+    cd linux
+    KERNEL_VERSION=$(uname -r | cut -d'.' -f1,2)
+    git checkout v$KERNEL_VERSION
+
+    mkdir -p /opt/perf
+    PYTHON=/opt/python/bin/python$VERSION_MAJOR make CFLAGS="-Wno-error=maybe-uninitialized" LDFLAGS="-Wno-error=maybe-uninitialized" -C tools/perf prefix=/opt/perf install
+
+    # Get pmu-tools
+    cd /opt
+    git clone https://github.com/andikleen/pmu-tools
 
     # Get & build the llvm-project
     cd $TMP
-    rm -rf llvm-project
-    git clone https://github.com/llvm/llvm-project.git
+    if [ -d llvm-project ]; then
+        echo "llvm-project already here!"
+        (cd llvm-project && git fetch && git reset --hard origin/main)
+    else
+        git clone https://github.com/llvm/llvm-project.git
+    fi
+
     cd llvm-project
 
     # Temporary - until https://github.com/llvm/llvm-project/pull/86130 is merged
@@ -56,27 +89,10 @@ From: ubuntu:22.04
     pip install -r mlir/python/requirements.txt
     pip install pexpect
     mkdir /opt/llvm
-    mkdir build
+    mkdir -p build
     cd build
-    cmake -G Ninja ../llvm -DLLVM_ENABLE_PROJECTS="clang;openmp;lldb;mlir" -DCMAKE_INSTALL_PREFIX=/opt/llvm -DLLVM_TARGETS_TO_BUILD="Native" -DCMAKE_BUILD_TYPE=RelWithDebInfo -DPython3_EXECUTABLE=python -DMLIR_ENABLE_BINDINGS_PYTHON=ON -DLLVM_USE_PERF=ON
-    ninja -j12 install
-
-    # Get the linux kernel and build perf
-    # Assumes that the machine building the image will run the container:
-    cd $TMP
-    rm -rf linux
-    git clone https://github.com/torvalds/linux.git
-    cd linux
-    KERNEL_VERSION=$(uname -r | cut -d'.' -f1,2)
-    git checkout v$KERNEL_VERSION
-
-    mkdir -p /opt/perf
-    PYTHON=/opt/python/bin/python$VERSION_MAJOR make CFLAGS="-Wno-error=maybe-uninitialized" LDFLAGS="-Wno-error=maybe-uninitialized" -C tools/perf prefix=/opt/perf install
-
-    # Get pmu-tools
-    cd /opt
-    git clone https://github.com/andikleen/pmu-tools
-
+    cmake -G Ninja ../llvm -DLLVM_ENABLE_PROJECTS="clang;openmp;lldb;mlir" -DCMAKE_CXX_COMPILER=g++-12 -DCMAKE_C_COMPILER=gcc-12 -DCMAKE_INSTALL_PREFIX=/opt/llvm -DLLVM_TARGETS_TO_BUILD="Native" -DCMAKE_BUILD_TYPE=RelWithDebInfo -DPython3_EXECUTABLE=python -DMLIR_ENABLE_BINDINGS_PYTHON=ON -DLLVM_USE_PERF=ON
+    ninja -j8 install
 
 %environment
     export PATH=/opt/llvm/bin:/opt/python/bin:/opt/perf/bin:/opt/pmu-tools:/opt/vtune/vtune/latest/bin64:$PATH
