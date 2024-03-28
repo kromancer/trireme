@@ -118,7 +118,12 @@ if __name__ == "__main__":
         plt.plot(x_values, means, label=series['label'])
 
     # Plot a horizontal line for the Baseline section
-    plt.axhline(y=7.283, color='r', linestyle='-', label='Baseline')
+    if "baseline" in config:
+        baseline = config['baseline']
+        log_path = base_path / Path(baseline['file']).relative_to('.')
+        means = filter_logs(log_path, baseline['args_re'])
+        assert len(means) == 1
+        plt.axhline(y=means[0], color=baseline['color'], linestyle=baseline['linestyle'], label=baseline['label'])
 
     plt.xlabel(config['xlabel'])
     plt.ylabel(config['ylabel'])
