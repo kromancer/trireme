@@ -15,7 +15,7 @@
 
 #define LFB_SIZE_FOR_L1D 10
 
-#define NUM_OF_DOUBLES_PER_CL 8
+#define CL_SIZE_IN_COL_INDICES 8
 
 #define PREFETCHT2  2
 #define PREFETCHT0  3
@@ -34,9 +34,24 @@ static void comp_task(int64_t start, int64_t end, uint64_t row) {
 }
 
 static void pref_task(int64_t start, int64_t end, uint64_t unused) {
+
     (void) unused;
-    (void) start;
-    (void) end;
+
+    // Fill L1D LFBs
+    int64_t k = start;
+    for (; k < LFB_SIZE_FOR_L1D * CL_SIZE_IN_COL_INDICES; k+=CL_SIZE_IN_COL_INDICES) {
+        asm volatile("nop");
+    }
+
+    for (int64_t j = start; j < end; j+=CL_SIZE_IN_COL_INDICES, k+=CL_SIZE_IN_COL_INDICES) {
+
+#pragma clang loop unroll_count(CL_SIZE_IN_COL_INDICES)
+        for (int64_t l = 0; l < CL_SIZE_IN_COL_INDICES; l++) {
+            asm volatile("nop");
+        }
+
+        asm volatile("nop");
+    }
 }
 
 static void log_decorator(pref_or_comp_task_t task, int task_counter, int64_t index_start, int64_t index_end, uint64_t row) {
