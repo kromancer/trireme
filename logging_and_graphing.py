@@ -86,7 +86,7 @@ def log_execution_times_ns(etimes_ns: List[int]):
 
     m = round(mean(filtered) / 1000000, 3)
     std_dev = round(stdev(filtered) / 1000000, 3)
-    cv = round(std_dev / m, 3)
+    cv = round(std_dev / m, 3) if m != 0 else 0
     print(f"mean execution time: {m} ms")
     print(f"std dev: {std_dev} ms, CV: {cv * 100} %")
     append_result_to_db({
