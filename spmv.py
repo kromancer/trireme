@@ -58,6 +58,7 @@ def render_template(rows: int, cols: int, opt: Optional[str], pd: int, loc_hint:
 
     template_names = {"pref-ains": "spmv.ainsworth.mlir.jinja2",
                       "pref-spe": "spmv.spe.mlir.jinja2",
+                      "pref-trireme": "spmv.trireme.mlir.jinja2",
                       "no-opt": "spmv.mlir.jinja2"}
 
     template = env.get_template(template_names[opt or "no-opt"])
@@ -66,6 +67,9 @@ def render_template(rows: int, cols: int, opt: Optional[str], pd: int, loc_hint:
 
         if opt == "pref-ains" or opt == "pref-spe":
             rendered_template = template.render(rows=rows, cols=cols, pd=pd, loc_hint=loc_hint)
+        elif opt == "pref-trireme":
+            rendered_template = template.render(rows=rows, cols=cols, indices=range(0, 8), cl_size_in_indices=8,
+                                                l1d_mshrs=10, l2_mshrs=50)
         else:
             rendered_template = template.render(rows=rows, cols=cols)
 
@@ -248,7 +252,8 @@ def parse_args() -> argparse.Namespace:
 
     # common args to all subcommands
     common_arg_parser = get_spmv_arg_parser()
-    common_arg_parser.add_argument("-o", "--optimization", choices=["vect-vl4", "pref-ains", "pref-spe"],
+    common_arg_parser.add_argument("-o", "--optimization",
+                                   choices=["vect-vl4", "pref-ains", "pref-spe", "pref-trireme"],
                                    help="Use an optimized version of the kernel")
 
     # profile
