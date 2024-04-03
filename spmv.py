@@ -68,8 +68,14 @@ def render_template(rows: int, cols: int, opt: Optional[str], pd: int, loc_hint:
         if opt == "pref-ains" or opt == "pref-spe":
             rendered_template = template.render(rows=rows, cols=cols, pd=pd, loc_hint=loc_hint)
         elif opt == "pref-trireme":
-            rendered_template = template.render(rows=rows, cols=cols, indices=range(0, 8), cl_size_in_indices=8,
-                                                l1d_mshrs=10, l2_mshrs=50)
+            cl_size_in_indices = 8
+            l1_mshrs = 5
+            l2_mshrs = 20
+            rendered_template = template.render(rows=rows, cols=cols, indices=range(0, 8),
+                                                cl_size_in_indices=cl_size_in_indices,
+                                                l1_mshrs=l1_mshrs,
+                                                l2_mshrs=l2_mshrs,
+                                                cl_offsets=range(0, cl_size_in_indices * l1_mshrs, cl_size_in_indices))
         else:
             rendered_template = template.render(rows=rows, cols=cols)
 
