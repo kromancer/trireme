@@ -38,8 +38,9 @@ static void pref_task(int64_t start, int64_t end, uint64_t unused) {
     (void) unused;
 
     // Fill L1D LFBs
-    int64_t k = start;
-    for (; k < start + LFB_SIZE_FOR_L1D * CL_SIZE_IN_COL_INDICES; k+=CL_SIZE_IN_COL_INDICES) {
+    int64_t k;
+#pragma clang loop unroll_count(CL_SIZE_IN_COL_INDICES)
+    for (k = start; k < start + LFB_SIZE_FOR_L1D * CL_SIZE_IN_COL_INDICES; k+=CL_SIZE_IN_COL_INDICES) {
         __builtin_prefetch(&crd[k], 0, PREFETCHT0);
     }
 
