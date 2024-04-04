@@ -187,10 +187,12 @@ def profile(args: argparse.Namespace, llvm_mlir: ir.Module, mat: sp.csr_array, v
     report = "report.txt"
     if args.analysis == "toplev":
         profile_cmd = ["toplev", "-l6", "--nodes", "/Backend_Bound.Memory_Bound*", "--user", "--json",
-                       "-o", f"{report}", "--perf-summary", "perf.csv"]
+                       "-o", f"{report}", "--perf-summary", "perf.csv", "--pid"]
+    elif args.analysis == "vtune":
+        profile_cmd = ["vtune"] + read_config("vtune-config.json", "uarch") + ["-target-pid"]
     elif args.analysis == "events":
         events = read_config("perf-events.json", "events")
-        profile_cmd = ["perf", "stat", "-e", ",".join(events), "-j", "-o", f"{report}"]
+        profile_cmd = ["perf", "stat", "-e", ",".join(events), "-j", "-o", f"{report}", "--pid"]
     else:
         assert False, f"unknown analysis {args.analysis}"
 
@@ -198,11 +200,13 @@ def profile(args: argparse.Namespace, llvm_mlir: ir.Module, mat: sp.csr_array, v
     def start_cb_for_profile():
         nonlocal perf_proc, profile_cmd
 
-        print("kernel start")
-
         spmv_pid = getpid()
-        perf_proc = subprocess.Popen(profile_cmd + ["--pid", f"{spmv_pid}"], start_new_session=True)
-        sleep(1)
+        perf_proc = subprocess.Popen(profile_cmd + [f"{spmv_pid}"], start_new_session=True)
+
+        # give ample of time to the profiling tool to boot
+        sleep(15)
+
+        print("kernel start")
 
     @ctypes.CFUNCTYPE(ctypes.c_void_p, ctypes.c_uint64)
     def stop_cb_for_profile(dur_ns: int):
@@ -265,7 +269,7 @@ def parse_args() -> argparse.Namespace:
     # profile
     profile_parser = subparsers.add_parser("profile", parents=[common_arg_parser],
                                            help="Profile the application")
-    profile_parser.add_argument("analysis", choices=["toplev", "events"],
+    profile_parser.add_argument("analysis", choices=["toplev", "vtune", "events"],
                                 help="Choose an analysis type")
 
     # benchmark
