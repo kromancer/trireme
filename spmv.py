@@ -180,7 +180,7 @@ def parse_perf_stat_json_output(report: str) -> List[Dict]:
 
 
 def profile(args: argparse.Namespace, llvm_mlir: ir.Module, mat: sp.csr_array, vec: np.ndarray):
-    perf_proc: subprocess.Popen
+    profiler: subprocess.Popen
 
     profile_cmd = []
     report = "report.txt"
@@ -200,10 +200,10 @@ def profile(args: argparse.Namespace, llvm_mlir: ir.Module, mat: sp.csr_array, v
 
     @ctypes.CFUNCTYPE(ctypes.c_void_p)
     def start_cb_for_profile():
-        nonlocal perf_proc, profile_cmd
+        nonlocal profiler, profile_cmd
 
         spmv_pid = getpid()
-        perf_proc = subprocess.Popen(profile_cmd + [f"{spmv_pid}"], start_new_session=True)
+        profiler = subprocess.Popen(profile_cmd + [f"{spmv_pid}"], start_new_session=True)
 
         # give ample of time to the profiling tool to boot
         sleep(15)
@@ -212,13 +212,13 @@ def profile(args: argparse.Namespace, llvm_mlir: ir.Module, mat: sp.csr_array, v
 
     @ctypes.CFUNCTYPE(ctypes.c_void_p, ctypes.c_uint64)
     def stop_cb_for_profile(dur_ns: int):
-        nonlocal perf_proc
+        nonlocal profiler
 
         dur_ms = round(dur_ns / 1000000, 3)
         print(f"kernel finish: execution time: {dur_ms} ms")
 
-        killpg(perf_proc.pid, signal.SIGINT)
-        perf_proc.wait()
+        killpg(profiler.pid, signal.SIGINT)
+        profiler.wait()
 
     run_spmv(llvm_mlir, args.rows, mat, vec, start_cb_for_profile, stop_cb_for_profile)
 
