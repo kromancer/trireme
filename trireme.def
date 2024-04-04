@@ -95,7 +95,7 @@ From: ubuntu:22.04
     ninja -j8 install
 
 %environment
-    export PATH=/opt/llvm/bin:/opt/python/bin:/opt/perf/bin:/opt/pmu-tools:/opt/vtune/vtune/latest/bin64:$PATH
+    export PATH=/opt/llvm/bin:/opt/python/bin:/opt/perf/bin:/opt/pmu-tools:/opt/intel/oneapi/vtune/latest/bin64:$PATH
     export PYTHONPATH=/opt/llvm/python_packages/mlir_core
     export LLVM_PATH=/opt/llvm
     export OMP_DISPLAY_ENV=true
