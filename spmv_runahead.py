@@ -8,13 +8,12 @@ from pathlib import Path
 from platform import system
 import re
 import scipy.sparse as sp
-from shutil import which
 from subprocess import run
 from typing import Dict, List, Tuple
 
 from create_sparse_mats import create_sparse_mat_and_dense_vec
 from logging_and_graphing import log_execution_times_secs
-from utils import get_spmv_arg_parser, make_work_dir_and_cd_to_it, read_config, run_func_and_capture_stdout
+from utils import get_spmv_arg_parser, is_in_path, make_work_dir_and_cd_to_it, read_config, run_func_and_capture_stdout
 
 
 def run_spmv_as_foreign_fun(lib_path: Path, mat: sp.csr_array, vec: np.ndarray) -> Tuple[np.ndarray, str, float]:
@@ -258,9 +257,7 @@ def profile(args: argparse.Namespace, exe: Path, mat: sp.csr_array, vec: np.ndar
     np.copyto(res, all_zeroes)
 
     try:
-        vtune_path = which("vtune")
-
-        if vtune_path is not None:
+        if is_in_path("vtune"):
             vtune_cmd = ["vtune"] + read_config("vtune-config.json", args.analysis) + ["--"]
         else:
             vtune_cmd = []

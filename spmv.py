@@ -4,7 +4,6 @@ import json
 from os import getpid, environ, killpg
 from pathlib import Path
 import platform
-from shutil import which
 import signal
 import subprocess
 from time import sleep
@@ -21,7 +20,7 @@ from mlir.passmanager import *
 
 from create_sparse_mats import create_sparse_mat_and_dense_vec
 from logging_and_graphing import append_result_to_db, log_execution_times_ns
-from utils import get_spmv_arg_parser, make_work_dir_and_cd_to_it, read_config
+from utils import get_spmv_arg_parser, is_in_path, make_work_dir_and_cd_to_it, read_config
 
 
 def get_mlir_opt_passes(opt: Optional[str]) -> List[str]:
@@ -186,11 +185,14 @@ def profile(args: argparse.Namespace, llvm_mlir: ir.Module, mat: sp.csr_array, v
     profile_cmd = []
     report = "report.txt"
     if args.analysis == "toplev":
+        assert is_in_path("toplev")
         profile_cmd = ["toplev", "-l6", "--nodes", "/Backend_Bound.Memory_Bound*", "--user", "--json",
                        "-o", f"{report}", "--perf-summary", "perf.csv", "--pid"]
     elif args.analysis == "vtune":
+        assert is_in_path("vtune")
         profile_cmd = ["vtune"] + read_config("vtune-config.json", "uarch") + ["-target-pid"]
     elif args.analysis == "events":
+        assert is_in_path("perf")
         events = read_config("perf-events.json", "events")
         profile_cmd = ["perf", "stat", "-e", ",".join(events), "-j", "-o", f"{report}", "--pid"]
     else:
@@ -217,12 +219,6 @@ def profile(args: argparse.Namespace, llvm_mlir: ir.Module, mat: sp.csr_array, v
 
         killpg(perf_proc.pid, signal.SIGINT)
         perf_proc.wait()
-
-    perf_path = which("perf")
-
-    if perf_path is None:
-        print("perf not in PATH")
-        return
 
     run_spmv(llvm_mlir, args.rows, mat, vec, start_cb_for_profile, stop_cb_for_profile)
 

@@ -2,10 +2,10 @@ import argparse
 import json
 from os import chdir, close, dup, dup2, fsync, makedirs
 from pathlib import Path
-from shutil import rmtree
+from shutil import rmtree, which
 import sys
 from tempfile import TemporaryFile
-from typing import Any, Callable, List, Tuple, Union
+from typing import Any, Callable, List, Tuple
 
 
 def read_config(file: str, key: str) -> List[str]:
@@ -54,6 +54,17 @@ def make_work_dir_and_cd_to_it(file_path: str):
     makedirs(build_path)
 
     chdir(build_path)
+
+
+def is_in_path(exe: str) -> bool:
+
+    exe_path = which(exe)
+
+    if exe_path is None:
+        print(f"{exe} not in PATH")
+        return False
+
+    return True
 
 
 def run_func_and_capture_stdout(func: Callable, *args, **kwargs) -> Tuple[str, Any]:
