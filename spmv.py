@@ -225,8 +225,10 @@ def profile(args: argparse.Namespace, llvm_mlir: ir.Module, mat: sp.csr_array, v
     if args.analysis == "toplev":
         with open(report, "r") as f:
             rep = json.loads(f.read())
-    else:
+    elif args.analysis == "events":
         rep = parse_perf_stat_json_output(report)
+    else:
+        rep = "TODO: Add prof output from vtune"
     append_result_to_db({"report": rep})
 
 
