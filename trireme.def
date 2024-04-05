@@ -78,12 +78,6 @@ From: ubuntu:22.04
 
     cd llvm-project
 
-    # Temporary - until https://github.com/llvm/llvm-project/pull/86130 is merged
-    git config user.email "paul@dune.com"
-    git config user.name "Paul Atreidis"
-    git fetch origin pull/86130/head:fix-bug-in-openmp
-    git merge fix-bug-in-openmp
-
     /opt/python/bin/python$VERSION_MAJOR -m venv venv
     . ./venv/bin/activate
     pip install -r mlir/python/requirements.txt
