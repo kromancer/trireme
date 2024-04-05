@@ -1,8 +1,18 @@
 {
     "uarch": [
         "-collect", "uarch-exploration",
+        "-loop-mode=loop-only",
         "-knob", "collect-memory-bandwidth=true",
+        "-knob", "collect-bad-speculation=false",
+        "-knob", "collect-frontend-bound=false",
+        "-knob", "sampling-interval=0.01",
         "-knob", "pmu-collection-mode=detailed"
+    ],
+    "hotspots": [
+        "-collect", "hotspots",
+        "-knob", "sampling-interval=0.01",
+        "-knob", "sampling-mode=hw",
+        "-knob", "enable-stack-collection=true"
     ],
     "threading": [
         "-collect", "threading"
