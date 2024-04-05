@@ -4,8 +4,8 @@ from pathlib import Path
 
 from create_sparse_mats import create_sparse_mat_and_dense_vec
 from logging_and_graphing import log_execution_times_secs
-from utils import (benchmark_spmv, build_with_cmake, get_spmv_arg_parser, make_work_dir_and_cd_to_it,
-                   profile_spmv_with_vtune)
+from utils import (add_parser_for_profile, add_parser_for_benchmark, benchmark_spmv, build_with_cmake,
+                   get_spmv_arg_parser, make_work_dir_and_cd_to_it, profile_spmv_with_vtune)
 
 
 def main():
@@ -40,17 +40,8 @@ def parse_args() -> argparse.Namespace:
                                                  'with multiple prefetching stages.')
     subparsers = parser.add_subparsers(dest="command", help="Subcommands")
 
-    # TODO: move this to utils.py
-    profile_parser = subparsers.add_parser("profile", parents=[common_arg_parser],
-                                           help="Profile the application using vtune")
-    profile_parser.add_argument("vtune_cfg", choices=["uarch", "threading", "prefetches"],
-                                help="Choose an analysis type")
-
-    # TODO: move this to utils.py
-    benchmark_parser = subparsers.add_parser("benchmark", parents=[common_arg_parser],
-                                             help="Benchmark the application.")
-    benchmark_parser.add_argument("--repetitions", type=int, default=5,
-                                  help="Repeat the kernel with the same input. Gather execution times stats")
+    add_parser_for_profile(subparsers, parent_parser=common_arg_parser)
+    add_parser_for_benchmark(subparsers, parent_parser=common_arg_parser)
 
     return parser.parse_args()
 

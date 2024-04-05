@@ -20,7 +20,7 @@ from mlir.passmanager import *
 
 from create_sparse_mats import create_sparse_mat_and_dense_vec
 from logging_and_graphing import append_result_to_db, log_execution_times_ns
-from utils import get_spmv_arg_parser, is_in_path, make_work_dir_and_cd_to_it, read_config
+from utils import add_parser_for_benchmark, get_spmv_arg_parser, is_in_path, make_work_dir_and_cd_to_it, read_config
 
 
 def get_mlir_opt_passes(opt: Optional[str]) -> List[str]:
@@ -254,17 +254,13 @@ def parse_args() -> argparse.Namespace:
                                    choices=["vect-vl4", "pref-ains", "pref-spe"],
                                    help="Use an optimized version of the kernel")
 
-    # profile
+    add_parser_for_benchmark(subparsers, parent_parser=common_arg_parser)
+
+    # TODO: re-use fun from utils.py
     profile_parser = subparsers.add_parser("profile", parents=[common_arg_parser],
                                            help="Profile the application")
     profile_parser.add_argument("analysis", choices=["toplev", "vtune", "events"],
                                 help="Choose an analysis type")
-
-    # benchmark
-    benchmark_parser = subparsers.add_parser("benchmark", parents=[common_arg_parser],
-                                             help="Benchmark the application")
-    benchmark_parser.add_argument("--repetitions", type=int, default=5,
-                                  help="Repeat the kernel with the same input. Gather execution times stats")
 
     return parser.parse_args()
 

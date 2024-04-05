@@ -11,8 +11,8 @@ from typing import Dict, List
 
 from create_sparse_mats import create_sparse_mat_and_dense_vec
 from logging_and_graphing import log_execution_times_secs
-from utils import (benchmark_spmv, get_spmv_arg_parser, make_work_dir_and_cd_to_it, profile_spmv_with_vtune,
-                   run_spmv_as_foreign_fun)
+from utils import (add_parser_for_profile, add_parser_for_benchmark, benchmark_spmv, get_spmv_arg_parser,
+                   make_work_dir_and_cd_to_it, profile_spmv_with_vtune, run_spmv_as_foreign_fun)
 
 
 def parse_logs(log) -> List[Dict]:
@@ -111,18 +111,8 @@ def parse_args() -> argparse.Namespace:
                                                  'with runahead prefetching using OpenMP')
 
     subparsers = parser.add_subparsers(dest="command", help="Subcommands")
-
-    # profile
-    profile_parser = subparsers.add_parser("profile", parents=[common_arg_parser],
-                                           help="Profile the application using vtune")
-    profile_parser.add_argument("analysis", choices=["uarch", "threading", "prefetches"],
-                                help="Choose an analysis type")
-
-    # benchmark
-    benchmark_parser = subparsers.add_parser("benchmark", parents=[common_arg_parser],
-                                             help="Benchmark the application.")
-    benchmark_parser.add_argument("--repetitions", type=int, default=5,
-                                  help="Repeat the kernel with the same input. Gather execution times stats")
+    add_parser_for_profile(subparsers, parent_parser=common_arg_parser)
+    add_parser_for_benchmark(subparsers, parent_parser=common_arg_parser)
 
     # check
     check_parser = subparsers.add_parser("check", parents=[common_arg_parser],
