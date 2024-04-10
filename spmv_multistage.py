@@ -19,7 +19,8 @@ def main():
     make_work_dir_and_cd_to_it(__file__)
 
     cmake_args = [f"-DL1_MSHRS={args.l1_mshrs}", f"-DL2_MSHRS={args.l2_mshrs}",
-                  f"-DDISABLE_HW_PREF_L1_IPP={1 if args.disable_l1_ipp else 0}"]
+                  f"-DDISABLE_HW_PREF_L1_IPP={1 if args.disable_l1_ipp else 0}",
+                  f"-DDISABLE_HW_PREF_L1_NPP={1 if args.disable_l1_npp else 0}"]
     if args.command == "benchmark":
         lib = build_with_cmake(cmake_args=cmake_args, target="benchmark-spmv-multistage",
                                src_path=src_path, is_lib=True)
@@ -38,6 +39,8 @@ def parse_args() -> argparse.Namespace:
                                    help="Number of L2 MSHRs")
     common_arg_parser.add_argument('--disable-l1-ipp', action='store_true',
                                    help='Disable the L1 Instruction Point Prefetcher')
+    common_arg_parser.add_argument('--disable-l1-npp', action='store_true',
+                                   help='Disable the L1 Next Page Prefetcher')
 
     parser = argparse.ArgumentParser(description='(Sparse Matrix)x(Dense Vector) Multiplication (SpMV) '
                                                  'with multiple prefetching stages.')
