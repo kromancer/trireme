@@ -21,7 +21,7 @@
 double compute(uint64_t num_of_rows, const double *vec, const double *mat_vals, const int64_t *pos, const int64_t *crd, double *res) {
 
     struct timespec start_ts;
-    clock_gettime(CLOCK_REALTIME, &start_ts);
+    clock_gettime(CLOCK_MONOTONIC, &start_ts);
 
 
     for (uint64_t i = 0; i < num_of_rows; i++) {
@@ -65,7 +65,7 @@ double compute(uint64_t num_of_rows, const double *vec, const double *mat_vals, 
     }
 
     struct timespec end_ts;
-    clock_gettime(CLOCK_REALTIME, &end_ts);
+    clock_gettime(CLOCK_MONOTONIC, &end_ts);
 
     long seconds = end_ts.tv_sec - start_ts.tv_sec;
     long nanoseconds = end_ts.tv_nsec - start_ts.tv_nsec;
