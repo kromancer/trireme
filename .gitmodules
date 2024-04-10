@@ -1,0 +1,3 @@
+[submodule "multistage/hw_pref_control"]
+	path = multistage/hw_pref_control
+	url = https://github.com/kromancer/hardwarePrefetching

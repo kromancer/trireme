@@ -1,3 +1,5 @@
+#define _GNU_SOURCE
+
 #include "spmv.h"
 
 #include <time.h>
@@ -14,11 +16,29 @@
 #define L2_MSHRS 40
 #endif
 
+#ifndef DISABLE_HW_PREF_L1_IPP
+#warning "DISBLE_HW_PREF_L1_IPP not defined, L1 IPP will be ENABLED (applicapable for only on intel atom cores)"
+#define DISABLE_HW_PREF_L1_IPP 0
+#else
+#include <assert.h>
+#include <sched.h>
+#include "msr.h"
+#endif
+
+
 #define PREFETCHT2  2
 #define PREFETCHT0  3
 
 
 double compute(uint64_t num_of_rows, const double *vec, const double *mat_vals, const int64_t *pos, const int64_t *crd, double *res) {
+
+#if DISABLE_HW_PREF_L1_IPP == 1
+    union msr_u hwpf_msr_value[HWPF_MSR_FIELDS];
+    int core_id = sched_getcpu();
+    int msr_file = msr_int(core_id, hwpf_msr_value);
+    assert(msr_disable_l1ipp(hwpf_msr_value) == 0);
+#endif
+
 
     struct timespec start_ts;
     clock_gettime(CLOCK_MONOTONIC, &start_ts);
@@ -66,6 +86,11 @@ double compute(uint64_t num_of_rows, const double *vec, const double *mat_vals, 
 
     struct timespec end_ts;
     clock_gettime(CLOCK_MONOTONIC, &end_ts);
+
+#if DISABLE_HW_PREF_L1_IPP == 1
+    assert(msr_enable_l1ipp(hwpf_msr_value) == 1);
+#endif
+
 
     long seconds = end_ts.tv_sec - start_ts.tv_sec;
     long nanoseconds = end_ts.tv_nsec - start_ts.tv_nsec;

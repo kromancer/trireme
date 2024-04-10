@@ -1,14 +1,38 @@
 [
 {
-  "directory": "/Users/ioanniss/trireme/baselines/build",
-  "command": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/cc  -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.4.sdk -o CMakeFiles/spmv-trireme-baseline.dir/main.c.o -c /Users/ioanniss/trireme/baselines/main.c",
-  "file": "/Users/ioanniss/trireme/baselines/main.c",
-  "output": "CMakeFiles/spmv-trireme-baseline.dir/main.c.o"
+  "directory": "/Users/ioanniss/trireme/multistage/build",
+  "command": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/cc -DL1_MSHRS=10 -DL2_MSHRS=40 -I/Users/ioanniss/trireme/multistage/hw_pref_control/.  -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.4.sdk -g -O2 -o CMakeFiles/spmv-multistage.dir/main.c.o -c /Users/ioanniss/trireme/multistage/main.c",
+  "file": "/Users/ioanniss/trireme/multistage/main.c",
+  "output": "CMakeFiles/spmv-multistage.dir/main.c.o"
 },
 {
-  "directory": "/Users/ioanniss/trireme/baselines/build",
-  "command": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/cc  -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.4.sdk -o CMakeFiles/spmv-trireme-baseline.dir/spmv.trireme.c.o -c /Users/ioanniss/trireme/baselines/spmv.trireme.c",
-  "file": "/Users/ioanniss/trireme/baselines/spmv.trireme.c",
-  "output": "CMakeFiles/spmv-trireme-baseline.dir/spmv.trireme.c.o"
+  "directory": "/Users/ioanniss/trireme/multistage/build",
+  "command": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/cc -DL1_MSHRS=10 -DL2_MSHRS=40 -I/Users/ioanniss/trireme/multistage/hw_pref_control/.  -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.4.sdk -g -O2 -o CMakeFiles/spmv-multistage.dir/spmv.multistage.c.o -c /Users/ioanniss/trireme/multistage/spmv.multistage.c",
+  "file": "/Users/ioanniss/trireme/multistage/spmv.multistage.c",
+  "output": "CMakeFiles/spmv-multistage.dir/spmv.multistage.c.o"
+},
+{
+  "directory": "/Users/ioanniss/trireme/multistage/build",
+  "command": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/cc -DL1_MSHRS=10 -DL2_MSHRS=40 -Dbenchmark_spmv_multistage_EXPORTS -I/Users/ioanniss/trireme/multistage/hw_pref_control/.  -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.4.sdk -fPIC -g -O2 -o CMakeFiles/benchmark-spmv-multistage.dir/spmv.multistage.c.o -c /Users/ioanniss/trireme/multistage/spmv.multistage.c",
+  "file": "/Users/ioanniss/trireme/multistage/spmv.multistage.c",
+  "output": "CMakeFiles/benchmark-spmv-multistage.dir/spmv.multistage.c.o"
+},
+{
+  "directory": "/Users/ioanniss/trireme/multistage/build",
+  "command": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/cc -I/Users/ioanniss/trireme/multistage/hw_pref_control/.  -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.4.sdk -o hw_pref_control/CMakeFiles/hw_pref_control.dir/msr.c.o -c /Users/ioanniss/trireme/multistage/hw_pref_control/msr.c",
+  "file": "/Users/ioanniss/trireme/multistage/hw_pref_control/msr.c",
+  "output": "hw_pref_control/CMakeFiles/hw_pref_control.dir/msr.c.o"
+},
+{
+  "directory": "/Users/ioanniss/trireme/multistage/build",
+  "command": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/cc -I/Users/ioanniss/trireme/multistage/hw_pref_control/.  -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.4.sdk -o hw_pref_control/CMakeFiles/hw_pref_control.dir/pmu.c.o -c /Users/ioanniss/trireme/multistage/hw_pref_control/pmu.c",
+  "file": "/Users/ioanniss/trireme/multistage/hw_pref_control/pmu.c",
+  "output": "hw_pref_control/CMakeFiles/hw_pref_control.dir/pmu.c.o"
+},
+{
+  "directory": "/Users/ioanniss/trireme/multistage/build",
+  "command": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/cc -I/Users/ioanniss/trireme/multistage/hw_pref_control/.  -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.4.sdk -o hw_pref_control/CMakeFiles/hw_pref_control.dir/log.c.o -c /Users/ioanniss/trireme/multistage/hw_pref_control/log.c",
+  "file": "/Users/ioanniss/trireme/multistage/hw_pref_control/log.c",
+  "output": "hw_pref_control/CMakeFiles/hw_pref_control.dir/log.c.o"
 }
 ]

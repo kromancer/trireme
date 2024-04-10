@@ -107,13 +107,14 @@ def run_func_and_capture_stdout(func: Callable, *args, **kwargs) -> Tuple[str, A
             # Call the function
             res = func(*args, **kwargs)
 
+        finally:
             # Flush any buffered output
             fsync(stdout_fd)
 
             # Go back to the start of the temporary file to read its contents
             tmpfile.seek(0)
             captured = tmpfile.read().decode()
-        finally:
+
             # Restore the original stdout file descriptor
             dup2(original_stdout_fd, stdout_fd)
             close(original_stdout_fd)
