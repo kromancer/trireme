@@ -3,10 +3,7 @@
         "-collect", "uarch-exploration",
         "-loop-mode=loop-only",
         "-knob", "collect-memory-bandwidth=true",
-        "-knob", "collect-bad-speculation=false",
-        "-knob", "collect-frontend-bound=false",
-        "-knob", "sampling-interval=0.01",
-        "-knob", "pmu-collection-mode=detailed"
+        "-knob", "sampling-interval=0.01"
     ],
     "hotspots": [
         "-collect", "hotspots",
