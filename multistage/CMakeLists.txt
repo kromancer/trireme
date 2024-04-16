@@ -19,6 +19,12 @@ set(COMMON_COMPILE_DEFS L1_MSHRS=${L1_MSHRS} L2_MSHRS=${L2_MSHRS} DISABLE_HW_PRE
 
 add_subdirectory(hw_pref_control)
 
+# hw_pref_control only on x86_64
+add_library(hw_pref_control_wrapper STATIC
+    $<IF:$<STREQUAL:${CMAKE_SYSTEM_PROCESSOR},x86_64>, hw_pref_control.c, hw_pref_control_dummy.c>)
+target_link_libraries(hw_pref_control_wrapper PRIVATE
+    $<$<STREQUAL:${CMAKE_SYSTEM_PROCESSOR},x86_64>:hw_pref_control>)
+
 add_executable(spmv-multistage main.c spmv.multistage.c)
 add_library(benchmark-spmv-multistage SHARED spmv.multistage.c)
 
@@ -27,5 +33,5 @@ set(TARGETS_LIST spmv-multistage benchmark-spmv-multistage)
 foreach(TARGET ${TARGETS_LIST})
     target_compile_options(${TARGET} PRIVATE ${COMMON_COMPILE_OPTIONS})
     target_compile_definitions(${TARGET} PRIVATE ${COMMON_COMPILE_DEFS})
-    target_link_libraries(${TARGET} PRIVATE hw_pref_control)
+    target_link_libraries(${TARGET} PRIVATE hw_pref_control_wrapper)
 endforeach()
