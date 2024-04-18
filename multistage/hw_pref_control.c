@@ -18,11 +18,21 @@
 #endif
 
 #ifndef DISABLE_HW_PREF_L2_STREAM
-#warning "DISABLE_HW_PREF_L2_STREAM not defined, L2 STREAM will be ENABLED (applicapable for only on intel atom cores)"
+#warning "DISABLE_HW_PREF_L2_STREAM not defined, L2 Stream will be ENABLED (applicapable for only on intel atom cores)"
 #define DISABLE_HW_PREF_L2_STREAM 0
 #endif
 
-#if DISABLE_HW_PREF_L1_IPP == 1 || DISABLE_HW_PREF_L1_NPP == 1 || DISABLE_HW_PREF_L2_STREAM == 1
+#ifndef DISABLE_HW_PREF_L2_AMP
+#warning "DISABLE_HW_PREF_L2_AMP not defined, L2 AMP will be ENABLED (applicapable for only on intel atom cores)"
+#define DISABLE_HW_PREF_L2_AMP 0
+#endif
+
+#ifndef DISABLE_HW_PREF_LLC_STREAM
+#warning "DISABLE_HW_PREF_LLC_STREAM not defined, LLC Stream will be ENABLED (applicapable for only on intel atom cores)"
+#define DISABLE_HW_PREF_LLC_STREAM 0
+#endif
+
+#if DISABLE_HW_PREF_L1_IPP == 1 || DISABLE_HW_PREF_L1_NPP == 1 || DISABLE_HW_PREF_L2_STREAM == 1 || DISABLE_HW_PREF_L2_AMP == 1 || DISABLE_HW_PREF_LLC_STREAM == 1
 #define HW_PREF_CONTROL_ON 1
 #else
 #define HW_PREF_CONTROL_ON 0
@@ -53,6 +63,14 @@ void init_hw_pref_control(void) {
     assert(msr_disable_l2stream(msr) == 0);
 #endif
 
+#if DISABLE_HW_PREF_L2_AMP == 1
+    assert(msr_disable_l2amp(msr) == 0);
+#endif
+
+#if DISABLE_HW_PREF_LLC_STREAM == 1
+    assert(msr_disable_llcstream(msr) == 0);
+#endif
+
 #if HW_PREF_CONTROL_ON == 1
     assert(msr_hwpf_write(msr_file, msr) >= 0);
 #endif
@@ -77,6 +95,14 @@ void deinit_hw_pref_control(void) {
 
 #if DISABLE_HW_PREF_L2_STREAM == 1
     assert(msr_enable_l2stream(msr) == 1);
+#endif
+
+#if DISABLE_HW_PREF_L2_AMP == 1
+    assert(msr_enable_l2amp(msr) == 1);
+#endif
+
+#if DISABLE_HW_PREF_LLC_STREAM == 1
+    assert(msr_enable_llcstream(msr) == 1);
 #endif
 
 #if HW_PREF_CONTROL_ON == 1

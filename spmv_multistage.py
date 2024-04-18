@@ -21,7 +21,9 @@ def main():
     cmake_args = [f"-DL1_MSHRS={args.l1_mshrs}", f"-DL2_MSHRS={args.l2_mshrs}",
                   f"-DDISABLE_HW_PREF_L1_IPP={1 if args.disable_l1_ipp else 0}",
                   f"-DDISABLE_HW_PREF_L1_NPP={1 if args.disable_l1_npp else 0}",
-                  f"-DDISABLE_HW_PREF_L2_STREAM={1 if args.disable_l2_stream else 0}"]
+                  f"-DDISABLE_HW_PREF_L2_STREAM={1 if args.disable_l2_stream else 0}",
+                  f"-DDISABLE_HW_PREF_L2_AMP={1 if args.disable_l2_amp else 0}",
+                  f"-DDISABLE_HW_PREF_LLC_STREAM={1 if args.disable_llc_stream else 0}"]
     if args.command == "benchmark":
         lib = build_with_cmake(cmake_args=cmake_args, target="benchmark-spmv-multistage",
                                src_path=src_path, is_lib=True)
@@ -44,6 +46,10 @@ def parse_args() -> argparse.Namespace:
                                    help='Disable the L1 Next Page Prefetcher')
     common_arg_parser.add_argument('--disable-l2-stream', action='store_true',
                                    help='Disable the L2 Stream Prefetcher')
+    common_arg_parser.add_argument('--disable-l2-amp', action='store_true',
+                                   help='Disable the L2 Adaptive Multi-Path Prefetcher')
+    common_arg_parser.add_argument('--disable-llc-stream', action='store_true',
+                                   help='Disable the LLC Stream Prefetcher')
 
     parser = argparse.ArgumentParser(description='(Sparse Matrix)x(Dense Vector) Multiplication (SpMV) '
                                                  'with multiple prefetching stages.')
