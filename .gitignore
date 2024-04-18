@@ -15,3 +15,5 @@
 **/.cache/
 **/build/
 **/.idea/
+/matrix-storage-manager-config.json
+/graph-config.json

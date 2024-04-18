@@ -9,10 +9,10 @@ import scipy.sparse as sp
 from subprocess import run
 from typing import Dict, List
 
-from create_sparse_mats import create_sparse_mat_and_dense_vec
+from matrix_storage_manager import create_sparse_mat_and_dense_vec
 from logging_and_graphing import log_execution_times_secs
-from utils import (add_parser_for_profile, add_parser_for_benchmark, benchmark_spmv, get_spmv_arg_parser,
-                   make_work_dir_and_cd_to_it, profile_spmv_with_vtune, run_spmv_as_foreign_fun)
+from common import (add_parser_for_profile, add_parser_for_benchmark, benchmark_spmv, get_spmv_arg_parser,
+                    make_work_dir_and_cd_to_it, profile_spmv_with_vtune, run_spmv_as_foreign_fun)
 
 
 def parse_logs(log) -> List[Dict]:

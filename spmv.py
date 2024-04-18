@@ -18,9 +18,9 @@ from mlir.execution_engine import *
 from mlir import ir
 from mlir.passmanager import *
 
-from create_sparse_mats import create_sparse_mat_and_dense_vec
+from matrix_storage_manager import create_sparse_mat_and_dense_vec
 from logging_and_graphing import append_result_to_db, log_execution_times_ns
-from utils import add_parser_for_benchmark, get_spmv_arg_parser, is_in_path, make_work_dir_and_cd_to_it, read_config
+from common import add_parser_for_benchmark, get_spmv_arg_parser, is_in_path, make_work_dir_and_cd_to_it, read_config
 
 
 def get_mlir_opt_passes(opt: Optional[str]) -> List[str]:
@@ -256,7 +256,7 @@ def parse_args() -> argparse.Namespace:
 
     add_parser_for_benchmark(subparsers, parent_parser=common_arg_parser)
 
-    # TODO: re-use fun from utils.py
+    # TODO: re-use fun from common.py
     profile_parser = subparsers.add_parser("profile", parents=[common_arg_parser],
                                            help="Profile the application")
     profile_parser.add_argument("analysis", choices=["toplev", "vtune", "events"],

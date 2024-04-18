@@ -9,7 +9,7 @@ from mlir.dialects.linalg.opdsl import lang as dsl
 from mlir.dialects import sparse_tensor as st
 
 from spmv import apply_passes
-from utils import make_work_dir_and_cd_to_it
+from common import make_work_dir_and_cd_to_it
 
 no_parallelization = ["sparse-reinterpret-map",
                       "sparsification{parallelization-strategy=none}",

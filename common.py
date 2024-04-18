@@ -1,5 +1,6 @@
 import argparse
 import ctypes
+from functools import wraps
 import json
 from multiprocessing import shared_memory
 import numpy as np
@@ -10,7 +11,8 @@ from shutil import rmtree, which
 from subprocess import run
 import sys
 from tempfile import TemporaryFile
-from typing import Any, Callable, List, Tuple
+from time import time
+from typing import Any, Callable, List, Optional, Tuple, Union
 
 import scipy.sparse as sp
 
@@ -30,14 +32,14 @@ def print_size(size):
         return f"{size} Bytes"
 
 
-def read_config(file: str, key: str) -> List[str]:
+def read_config(file: str, key: str) -> Optional[Union[int, str, List[str]]]:
     script_dir = Path(__file__).parent.resolve()
     cfg_file = script_dir / file
 
-    cfg = []
+    cfg = None
     try:
         with open(cfg_file, "r") as f:
-            print(f"Reading config {cfg_file}")
+            print(f"Reading config {cfg_file} for {key}")
             cfg = json.load(f)[key]
     except FileNotFoundError:
         print(f"No {file} in {script_dir}")
@@ -47,6 +49,17 @@ def read_config(file: str, key: str) -> List[str]:
         print(f"{cfg_file} does not have a field for {key}")
     finally:
         return cfg
+
+
+def timeit(func: Callable) -> Callable:
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        start = time()
+        result = func(*args, **kwargs)
+        end = time()
+        print(f"Time taken by {func.__name__}: {end - start:.6f} seconds")
+        return result
+    return wrapper
 
 
 def get_spmv_arg_parser(with_pd: bool = True, with_loc_hint: bool = True) -> argparse.ArgumentParser:
