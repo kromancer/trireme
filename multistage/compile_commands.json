@@ -1,25 +1,25 @@
 [
 {
   "directory": "/Users/ioanniss/trireme/multistage/build",
-  "command": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/cc  -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.4.sdk -o CMakeFiles/hw_pref_control_wrapper.dir/hw_pref_control_dummy.c.o -c /Users/ioanniss/trireme/multistage/hw_pref_control_dummy.c",
+  "command": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/cc -DDISABLE_HW_PREF_L1_IPP=0 -DDISABLE_HW_PREF_L1_NPP=0 -DDISABLE_HW_PREF_L2_STREAM=0  -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.4.sdk -o CMakeFiles/hw_pref_control_wrapper.dir/hw_pref_control_dummy.c.o -c /Users/ioanniss/trireme/multistage/hw_pref_control_dummy.c",
   "file": "/Users/ioanniss/trireme/multistage/hw_pref_control_dummy.c",
   "output": "CMakeFiles/hw_pref_control_wrapper.dir/hw_pref_control_dummy.c.o"
 },
 {
   "directory": "/Users/ioanniss/trireme/multistage/build",
-  "command": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/cc -DDISABLE_HW_PREF_L1_IPP=0 -DDISABLE_HW_PREF_L1_NPP=0 -DL1_MSHRS=10 -DL2_MSHRS=40  -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.4.sdk -g -O2 -o CMakeFiles/spmv-multistage.dir/main.c.o -c /Users/ioanniss/trireme/multistage/main.c",
+  "command": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/cc -DL1_MSHRS=10 -DL2_MSHRS=40  -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.4.sdk -g -O2 -o CMakeFiles/spmv-multistage.dir/main.c.o -c /Users/ioanniss/trireme/multistage/main.c",
   "file": "/Users/ioanniss/trireme/multistage/main.c",
   "output": "CMakeFiles/spmv-multistage.dir/main.c.o"
 },
 {
   "directory": "/Users/ioanniss/trireme/multistage/build",
-  "command": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/cc -DDISABLE_HW_PREF_L1_IPP=0 -DDISABLE_HW_PREF_L1_NPP=0 -DL1_MSHRS=10 -DL2_MSHRS=40  -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.4.sdk -g -O2 -o CMakeFiles/spmv-multistage.dir/spmv.multistage.c.o -c /Users/ioanniss/trireme/multistage/spmv.multistage.c",
+  "command": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/cc -DL1_MSHRS=10 -DL2_MSHRS=40  -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.4.sdk -g -O2 -o CMakeFiles/spmv-multistage.dir/spmv.multistage.c.o -c /Users/ioanniss/trireme/multistage/spmv.multistage.c",
   "file": "/Users/ioanniss/trireme/multistage/spmv.multistage.c",
   "output": "CMakeFiles/spmv-multistage.dir/spmv.multistage.c.o"
 },
 {
   "directory": "/Users/ioanniss/trireme/multistage/build",
-  "command": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/cc -DDISABLE_HW_PREF_L1_IPP=0 -DDISABLE_HW_PREF_L1_NPP=0 -DL1_MSHRS=10 -DL2_MSHRS=40 -Dbenchmark_spmv_multistage_EXPORTS  -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.4.sdk -fPIC -g -O2 -o CMakeFiles/benchmark-spmv-multistage.dir/spmv.multistage.c.o -c /Users/ioanniss/trireme/multistage/spmv.multistage.c",
+  "command": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/cc -DL1_MSHRS=10 -DL2_MSHRS=40 -Dbenchmark_spmv_multistage_EXPORTS  -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.4.sdk -fPIC -g -O2 -o CMakeFiles/benchmark-spmv-multistage.dir/spmv.multistage.c.o -c /Users/ioanniss/trireme/multistage/spmv.multistage.c",
   "file": "/Users/ioanniss/trireme/multistage/spmv.multistage.c",
   "output": "CMakeFiles/benchmark-spmv-multistage.dir/spmv.multistage.c.o"
 },
