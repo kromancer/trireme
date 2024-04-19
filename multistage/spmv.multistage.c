@@ -18,7 +18,7 @@
 #define L2_MSHRS 40
 #endif
 
-#define PREFETCHT2  2
+#define PREFETCHT2  3
 #define PREFETCHT0  3
 
 
