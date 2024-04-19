@@ -18,8 +18,9 @@
 #define L2_MSHRS 40
 #endif
 
-#define PREFETCHT2  3
-#define PREFETCHT0  3
+#define PREFETCHT0  (3)
+#define PREFETCHT2  (2)
+#define PREFETCHNTA (0)
 
 
 static void spmv(uint64_t num_of_rows, const double *vec, const double *mat_vals, const int64_t *pos, const int64_t *crd, double *res)
@@ -34,7 +35,8 @@ static void spmv(uint64_t num_of_rows, const double *vec, const double *mat_vals
         int64_t k;
 #pragma clang loop unroll_count(CL_SIZE_IN_COL_INDICES)
         for (k = j_start; k < j_start + L1_MSHRS * CL_SIZE_IN_COL_INDICES; k+=CL_SIZE_IN_COL_INDICES) {
-            __builtin_prefetch(&crd[k], 0, PREFETCHT0);
+            __builtin_prefetch(&crd[k], 0, PREFETCHNTA);
+            __builtin_prefetch(&mat_vals[k], 0, PREFETCHNTA);
         }
 
         // Fill l2 mshrs by fetching l2_mshr elements
@@ -56,7 +58,8 @@ static void spmv(uint64_t num_of_rows, const double *vec, const double *mat_vals
                 __builtin_prefetch(&vec[crd[j + l + L2_MSHRS]], 0, PREFETCHT2);
             }
 
-            __builtin_prefetch(&crd[k], 0, PREFETCHT0);
+            __builtin_prefetch(&crd[k], 0, PREFETCHNTA);
+            __builtin_prefetch(&mat_vals[k], 0, PREFETCHNTA);
         }
 
         for (int64_t j = j_end_closest_mult_of_cl_size; j < j_end; j++) {
