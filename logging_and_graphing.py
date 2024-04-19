@@ -115,7 +115,17 @@ if __name__ == "__main__":
         log_path = base_path / Path(series['file']).relative_to('.')
         means = filter_logs(log_path, series['args_re'])
         x_values = list(range(series['x_start'], series['x_start'] + len(means)))
-        plt.plot(x_values, means, label=series['label'])
+
+        # Find the minimum value and its index
+        min_value = min(means)
+        min_index = means.index(min_value)
+
+        # Calculate the actual x value for the minimum point
+        min_x_value = x_values[min_index]
+
+        # Highlight the minimum point
+        plt.scatter(min_x_value, min_value, color='red', s=20, zorder=5)
+        plt.plot(x_values, means, label=series['label'] + f", min({min_x_value:.0f}, {min_value:.0f})")
 
     # Plot a horizontal line for the Baseline section
     if "baseline" in config:
@@ -127,8 +137,8 @@ if __name__ == "__main__":
 
     plt.xlabel(config['xlabel'])
     plt.ylabel(config['ylabel'])
-    plt.title(config['title'])
-    plt.legend()
+    plt.title(config['title'], fontsize='small')
+    plt.legend(fontsize='small')
     plt.grid(True)
     plt.savefig("fig.pdf")
 
