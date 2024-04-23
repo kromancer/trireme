@@ -21,9 +21,9 @@ add_subdirectory(hardwarePrefetching)
 
 # hwpref_control_wrapper only on x86_64
 add_library(hwpref_ctrl_wrapper SHARED
-    $<IF:$<STREQUAL:${CMAKE_SYSTEM_PROCESSOR},x86_64>, hw_pref_control.c, hw_pref_control_dummy.c>)
+    $<IF:$<STREQUAL:${CMAKE_SYSTEM_PROCESSOR},x86_64>, hwpref_ctrl.c, hwpref_ctrl_dummy.c>)
 target_link_libraries(hwpref_ctrl_wrapper PRIVATE
-    $<$<STREQUAL:${CMAKE_SYSTEM_PROCESSOR},x86_64>:hw_pref_control>)
+    $<$<STREQUAL:${CMAKE_SYSTEM_PROCESSOR},x86_64>:hwpref_ctrl>)
 
 target_compile_options(hwpref_ctrl_wrapper PRIVATE "-g" "-O0")
 target_compile_definitions(hwpref_ctrl_wrapper PRIVATE

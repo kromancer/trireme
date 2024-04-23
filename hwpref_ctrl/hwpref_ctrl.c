@@ -1,6 +1,6 @@
 #define _GNU_SOURCE
 
-#include "hw_pref_control.h"
+#include "hwpref_ctrl.h"
 
 #include <assert.h>
 #include <sched.h>
@@ -49,7 +49,7 @@ int init_hw_pref_control(void) {
 #if HW_PREF_CONTROL_ON == 1
     core_id = sched_getcpu();
 
-    msr_file = msr_init(core_id);
+    msr_file = msr_init(core_id, msr);
     if (msr_file < 0)
     {
         return msr_file;
