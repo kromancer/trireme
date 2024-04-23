@@ -127,13 +127,13 @@ if __name__ == "__main__":
         plt.scatter(min_x_value, min_value, color='red', s=20, zorder=5)
         plt.plot(x_values, means, label=series['label'] + f", min({min_x_value:.0f}, {min_value:.0f})")
 
-    # Plot a horizontal line for the Baseline section
-    if "baseline" in config:
-        baseline = config['baseline']
-        log_path = base_path / Path(baseline['file']).relative_to('.')
-        means = filter_logs(log_path, baseline['args_re'])
-        assert len(means) == 1
-        plt.axhline(y=means[0], color=baseline['color'], linestyle=baseline['linestyle'], label=baseline['label'])
+    if "baselines" in config:
+        for baseline in config['baselines']:
+            log_path = base_path / Path(baseline['file']).relative_to('.')
+            means = filter_logs(log_path, baseline['args_re'])
+            assert len(means) == 1
+            plt.axhline(y=means[0], color=baseline['color'], linestyle=baseline['linestyle'],
+                        label=baseline['label'] + f", {means[0]:.0f}")
 
     plt.xlabel(config['xlabel'])
     plt.ylabel(config['ylabel'])
