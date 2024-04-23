@@ -36,7 +36,7 @@ class MatrixStorageManager:
             skip_load = read_config("matrix-storage-manager-config.json", "skip_load")
             if skip_load is None:
                 skip_load = False
-        print(f"Skipping loading input from storage?: {skip_load}")
+        print(f"Skip loading input from storage? {skip_load}")
         self.skip_load = skip_load
 
     def _file_path(self, prefix: str, **kwargs) -> Path:

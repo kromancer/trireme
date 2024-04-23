@@ -18,9 +18,10 @@ from mlir.execution_engine import *
 from mlir import ir
 from mlir.passmanager import *
 
-from matrix_storage_manager import create_sparse_mat_and_dense_vec
-from logging_and_graphing import append_result_to_db, log_execution_times_ns
 from common import add_parser_for_benchmark, get_spmv_arg_parser, is_in_path, make_work_dir_and_cd_to_it, read_config
+from hwpref_controller import HwprefController
+from logging_and_graphing import append_result_to_db, log_execution_times_ns
+from matrix_storage_manager import create_sparse_mat_and_dense_vec
 
 
 def get_mlir_opt_passes(opt: Optional[str]) -> List[str]:
@@ -234,11 +235,11 @@ def main():
 
     mat, vec = create_sparse_mat_and_dense_vec(args.rows, args.cols, args.density, "csr")
 
-    if args.command == "benchmark":
-        benchmark(args, llvm_mlir, mat, vec)
-
-    elif args.command == "profile":
-        profile(args, llvm_mlir, mat, vec)
+    with HwprefController(args):
+        if args.command == "benchmark":
+            benchmark(args, llvm_mlir, mat, vec)
+        elif args.command == "profile":
+            profile(args, llvm_mlir, mat, vec)
 
 
 def parse_args() -> argparse.Namespace:
@@ -253,6 +254,7 @@ def parse_args() -> argparse.Namespace:
     common_arg_parser.add_argument("-o", "--optimization",
                                    choices=["vect-vl4", "pref-ains", "pref-spe"],
                                    help="Use an optimized version of the kernel")
+    HwprefController.add_args(common_arg_parser)
 
     add_parser_for_benchmark(subparsers, parent_parser=common_arg_parser)
 

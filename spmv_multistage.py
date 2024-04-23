@@ -1,11 +1,11 @@
 import argparse
-
 from pathlib import Path
 
-from matrix_storage_manager import create_sparse_mat_and_dense_vec
-from logging_and_graphing import log_execution_times_secs
 from common import (add_parser_for_profile, add_parser_for_benchmark, benchmark_spmv, build_with_cmake,
                     get_spmv_arg_parser, make_work_dir_and_cd_to_it, profile_spmv_with_vtune)
+from hwpref_controller import HwprefController
+from logging_and_graphing import log_execution_times_secs
+from matrix_storage_manager import create_sparse_mat_and_dense_vec
 
 
 def main():
@@ -18,43 +18,34 @@ def main():
 
     make_work_dir_and_cd_to_it(__file__)
 
-    cmake_args = [f"-DL1_MSHRS={args.l1_mshrs}", f"-DL2_MSHRS={args.l2_mshrs}",
-                  f"-DDISABLE_HW_PREF_L1_IPP={1 if args.disable_l1_ipp else 0}",
-                  f"-DDISABLE_HW_PREF_L1_NPP={1 if args.disable_l1_npp else 0}",
-                  f"-DDISABLE_HW_PREF_L2_STREAM={1 if args.disable_l2_stream else 0}",
-                  f"-DDISABLE_HW_PREF_L2_AMP={1 if args.disable_l2_amp else 0}",
-                  f"-DDISABLE_HW_PREF_LLC_STREAM={1 if args.disable_llc_stream else 0}"]
-    if args.command == "benchmark":
-        lib = build_with_cmake(cmake_args=cmake_args, target="benchmark-spmv-multistage",
-                               src_path=src_path, is_lib=True)
-        exec_times = benchmark_spmv(args, lib, mat, vec)
-        log_execution_times_secs(exec_times)
-    elif args.command == "profile":
-        exe = build_with_cmake(cmake_args=cmake_args, target="spmv-multistage", src_path=src_path)
-        profile_spmv_with_vtune(exe, mat, vec, args.vtune_cfg)
+    cmake_args = [f"-DL1_MSHRS={args.l1_mshrs}",
+                  f"-DL2_MSHRS={args.l2_mshrs}"]
+
+    with HwprefController(args):
+        if args.command == "benchmark":
+            lib = build_with_cmake(cmake_args=cmake_args, target="benchmark-spmv-multistage",
+                                   src_path=src_path, is_lib=True)
+            exec_times = benchmark_spmv(args, lib, mat, vec)
+            log_execution_times_secs(exec_times)
+        elif args.command == "profile":
+            exe = build_with_cmake(cmake_args=cmake_args, target="spmv-multistage", src_path=src_path)
+            profile_spmv_with_vtune(exe, mat, vec, args.vtune_cfg)
 
 
 def parse_args() -> argparse.Namespace:
+
+    # Add common args for all subcommands
     common_arg_parser = get_spmv_arg_parser(with_pd=False, with_loc_hint=False)
     common_arg_parser.add_argument("--l1-mshrs", default=3, type=int,
                                    help="Number of L1D MSHRs")
     common_arg_parser.add_argument("--l2-mshrs", default=140, type=int,
                                    help="Number of L2 MSHRs")
-    common_arg_parser.add_argument('--disable-l1-ipp', action='store_true',
-                                   help='Disable the L1 Instruction Point Prefetcher')
-    common_arg_parser.add_argument('--disable-l1-npp', action='store_true',
-                                   help='Disable the L1 Next Page Prefetcher')
-    common_arg_parser.add_argument('--disable-l2-stream', action='store_true',
-                                   help='Disable the L2 Stream Prefetcher')
-    common_arg_parser.add_argument('--disable-l2-amp', action='store_true',
-                                   help='Disable the L2 Adaptive Multi-Path Prefetcher')
-    common_arg_parser.add_argument('--disable-llc-stream', action='store_true',
-                                   help='Disable the LLC Stream Prefetcher')
+    HwprefController.add_args(common_arg_parser)
 
+    # Add subcommands
     parser = argparse.ArgumentParser(description='(Sparse Matrix)x(Dense Vector) Multiplication (SpMV) '
                                                  'with multiple prefetching stages.')
     subparsers = parser.add_subparsers(dest="command", help="Subcommands")
-
     add_parser_for_profile(subparsers, parent_parser=common_arg_parser)
     add_parser_for_benchmark(subparsers, parent_parser=common_arg_parser)
 

@@ -4,8 +4,6 @@
 
 #include <time.h>
 
-#include "hw_pref_control.h"
-
 #define CL_SIZE_IN_COL_INDICES 8
 
 #ifndef L1_MSHRS
@@ -68,9 +66,8 @@ static void spmv(uint64_t num_of_rows, const double *vec, const double *mat_vals
     }
 }
 
-double compute(uint64_t num_of_rows, const double *vec, const double *mat_vals, const int64_t *pos, const int64_t *crd, double *res) {
-
-    init_hw_pref_control();
+double compute(uint64_t num_of_rows, const double *vec, const double *mat_vals, const int64_t *pos, const int64_t *crd, double *res)
+{
 
     struct timespec start_ts;
     clock_gettime(CLOCK_MONOTONIC, &start_ts);
@@ -79,8 +76,6 @@ double compute(uint64_t num_of_rows, const double *vec, const double *mat_vals, 
 
     struct timespec end_ts;
     clock_gettime(CLOCK_MONOTONIC, &end_ts);
-
-    deinit_hw_pref_control();
 
     long seconds = end_ts.tv_sec - start_ts.tv_sec;
     long nanoseconds = end_ts.tv_nsec - start_ts.tv_nsec;

@@ -1,0 +1,26 @@
+[
+{
+  "directory": "/Users/ioanniss/trireme/hwpref_ctrl/build",
+  "command": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/cc -DDISABLE_HW_PREF_L1_IPP=0 -DDISABLE_HW_PREF_L1_NPP=0 -DDISABLE_HW_PREF_L2_AMP=0 -DDISABLE_HW_PREF_L2_STREAM=0 -DDISABLE_HW_PREF_LLC_STREAM=0  -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.4.sdk -g -O0 -o CMakeFiles/hwpref_ctrl_wrapper.dir/hw_pref_control.c.o -c /Users/ioanniss/trireme/hwpref_ctrl/hw_pref_control.c",
+  "file": "/Users/ioanniss/trireme/hwpref_ctrl/hw_pref_control.c",
+  "output": "CMakeFiles/hwpref_ctrl_wrapper.dir/hw_pref_control.c.o"
+},
+{
+  "directory": "/Users/ioanniss/trireme/hwpref_ctrl/build",
+  "command": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/cc -Dhwpref_ctrl_EXPORTS -I/Users/ioanniss/trireme/hwpref_ctrl/hardwarePrefetching/.  -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.4.sdk -fPIC -g -O0 -o hardwarePrefetching/CMakeFiles/hwpref_ctrl.dir/msr.c.o -c /Users/ioanniss/trireme/hwpref_ctrl/hardwarePrefetching/msr.c",
+  "file": "/Users/ioanniss/trireme/hwpref_ctrl/hardwarePrefetching/msr.c",
+  "output": "hardwarePrefetching/CMakeFiles/hwpref_ctrl.dir/msr.c.o"
+},
+{
+  "directory": "/Users/ioanniss/trireme/hwpref_ctrl/build",
+  "command": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/cc -Dhwpref_ctrl_EXPORTS -I/Users/ioanniss/trireme/hwpref_ctrl/hardwarePrefetching/.  -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.4.sdk -fPIC -g -O0 -o hardwarePrefetching/CMakeFiles/hwpref_ctrl.dir/pmu.c.o -c /Users/ioanniss/trireme/hwpref_ctrl/hardwarePrefetching/pmu.c",
+  "file": "/Users/ioanniss/trireme/hwpref_ctrl/hardwarePrefetching/pmu.c",
+  "output": "hardwarePrefetching/CMakeFiles/hwpref_ctrl.dir/pmu.c.o"
+},
+{
+  "directory": "/Users/ioanniss/trireme/hwpref_ctrl/build",
+  "command": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/cc -Dhwpref_ctrl_EXPORTS -I/Users/ioanniss/trireme/hwpref_ctrl/hardwarePrefetching/.  -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.4.sdk -fPIC -g -O0 -o hardwarePrefetching/CMakeFiles/hwpref_ctrl.dir/log.c.o -c /Users/ioanniss/trireme/hwpref_ctrl/hardwarePrefetching/log.c",
+  "file": "/Users/ioanniss/trireme/hwpref_ctrl/hardwarePrefetching/log.c",
+  "output": "hardwarePrefetching/CMakeFiles/hwpref_ctrl.dir/log.c.o"
+}
+]

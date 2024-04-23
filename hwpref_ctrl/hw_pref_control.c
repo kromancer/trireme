@@ -5,7 +5,7 @@
 #include <assert.h>
 #include <sched.h>
 
-#include "hw_pref_control/msr.h"
+#include "hardwarePrefetching/msr.h"
 
 #ifndef DISABLE_HW_PREF_L1_IPP
 #warning "DISABLE_HW_PREF_L1_IPP not defined, L1 IPP will be ENABLED (applicapable for only on intel atom cores)"
@@ -40,15 +40,20 @@
 
 #define UNITIALIZED (-1)
 
-static union msr_u msr[HWPF_MSR_FIELDS];
+static msr_t msr;
 static int core_id = UNITIALIZED;
 static int msr_file = UNITIALIZED;
 
-void init_hw_pref_control(void) {
+int init_hw_pref_control(void) {
 
 #if HW_PREF_CONTROL_ON == 1
     core_id = sched_getcpu();
-    msr_file = msr_int(core_id, msr);
+
+    msr_file = msr_init(core_id);
+    if (msr_file < 0)
+    {
+        return msr_file;
+    }
 #endif
 
 #if DISABLE_HW_PREF_L1_IPP == 1
@@ -72,17 +77,18 @@ void init_hw_pref_control(void) {
 #endif
 
 #if HW_PREF_CONTROL_ON == 1
-    assert(msr_hwpf_write(msr_file, msr) >= 0);
+    assert(msr_write_all(msr_file, msr) >= 0);
 #endif
 
+    return 0;
 }
 
 void deinit_hw_pref_control(void) {
 
 #if HW_PREF_CONTROL_ON == 1
-    assert(core_id != UNITIALIZED);
-    assert(msr_file != UNITIALIZED);
-    assert(msr_hwpf_read(msr_file, msr) >= 0);
+    assert(core_id > UNITIALIZED);
+    assert(msr_file > UNITIALIZED);
+    assert(msr_read_all(msr_file, msr) >= 0);
 #endif
 
 #if DISABLE_HW_PREF_L1_IPP == 1
@@ -106,7 +112,7 @@ void deinit_hw_pref_control(void) {
 #endif
 
 #if HW_PREF_CONTROL_ON == 1
-    assert(msr_hwpf_write(msr_file, msr) >= 0);
+    assert(msr_write_all(msr_file, msr) >= 0);
 #endif
 
 }

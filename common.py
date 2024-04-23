@@ -57,7 +57,7 @@ def timeit(func: Callable) -> Callable:
         start = time()
         result = func(*args, **kwargs)
         end = time()
-        print(f"Time taken by {func.__name__}: {end - start:.6f} seconds")
+        print(f"Time taken by {func.__name__}: {end - start:.3f} seconds")
         return result
     return wrapper
 
@@ -146,17 +146,20 @@ def build_with_cmake(cmake_args: List[str], target: str, src_path: Path, is_lib:
 
     assert is_in_path(clang)
 
-    gen_cmd = ["cmake", f"-DCMAKE_C_COMPILER={clang}"] + cmake_args + ["-Bbuild", f"-S{src_path}"]
+    # Use a build directory named after the target
+    build_dir = "build-" + target
+
+    gen_cmd = ["cmake", f"-DCMAKE_C_COMPILER={clang}"] + cmake_args + [f"-B{build_dir}", f"-S{src_path}"]
     run(gen_cmd, check=True)
 
-    build_cmd = ["cmake", "--build", "build", "--target", target]
+    build_cmd = ["cmake", "--build", build_dir, "--target", target]
     run(build_cmd, check=True)
 
     artifact = target
     if is_lib:
         artifact = "lib" + target + (".dylib" if system() == "Darwin" else ".so")
 
-    artifact_path = Path("./build").resolve() / artifact
+    artifact_path = Path(build_dir).resolve() / artifact
     assert artifact_path.exists(), f"Could not find {artifact}"
 
     return artifact_path
@@ -240,7 +243,7 @@ def run_spmv_as_foreign_fun(lib_path: Path, mat: sp.csr_array, vec: np.ndarray) 
     lib = ctypes.CDLL(str(lib_path))
 
     lib.compute.argtypes = [
-        ctypes.c_uint64, # num_of_rows
+        ctypes.c_uint64,  # num_of_rows
         np.ctypeslib.ndpointer(dtype=np.float64, ndim=1, flags="C_CONTIGUOUS"),  # const double* vec_
         np.ctypeslib.ndpointer(dtype=np.float64, ndim=1, flags="C_CONTIGUOUS"),  # const double* mat_vals_
         np.ctypeslib.ndpointer(dtype=np.int64, ndim=1, flags="C_CONTIGUOUS"),    # const int64_t* pos
