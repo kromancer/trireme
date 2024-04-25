@@ -16,7 +16,7 @@
     ],
     "events": [
         "-collect-with", "runsa",
-        "-knob", "event-config=OCR.DEMAND_DATA_RD.L3_MISS",
+        "-knob", "event-config=OCR.DEMAND_DATA_RD.L3_MISS,UNC_MC0_RDCAS_COUNT_FREERUN,UNC_MC1_RDCAS_COUNT_FREERUN",
         "-knob", "enable-pebs-collection=true",
         "-knob", "enable-lbr-collection=true",
         "-knob", "dram-bandwidth-limits=true",
