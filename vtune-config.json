@@ -1,9 +1,10 @@
 {
-    "uarch": [
+    "uarch-exploration": [
         "-collect", "uarch-exploration",
+        "-knob", "sampling-interval=0.01",
         "-loop-mode=loop-only",
         "-knob", "collect-memory-bandwidth=true",
-        "-knob", "sampling-interval=0.01"
+        "-knob", "collect-bad-speculation=false"
     ],
     "hotspots": [
         "-collect", "hotspots",
