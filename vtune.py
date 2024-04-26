@@ -2,12 +2,13 @@ from multiprocessing import shared_memory
 from subprocess import run
 import numpy as np
 from pathlib import Path
-from typing import Dict
+import re
+from typing import Dict, List
 
+import matplotlib.pyplot as plt
 import scipy.sparse as sp
 
-from common import is_in_path, read_config
-from logging_and_graphing import append_result_to_db
+from common import append_result_to_db, is_in_path, read_config
 
 
 def gen_summary_report(db_entry: Dict) -> None:
@@ -37,6 +38,19 @@ def gen_and_store_reports() -> None:
     gen_summary_report(db_entry)
 
     append_result_to_db(db_entry)
+
+
+def plot_observed_max_bandwidth(logs: List[Dict], series: Dict) -> None:
+    bw = []
+    for log in logs:
+        # Regular expression to find the line starting with 'DRAM, GB/sec'
+        match = re.search(r'DRAM, GB/sec\s+(\d+)\s+([\d.]+)', log["vtune-summary-txt"])
+
+        if match:
+            bw.append(match.group(2))
+
+    x_values = list(range(series['x_start'], series['x_start'] + len(bw)))
+    plt.plot(x_values, bw, label=series['label'])
 
 
 def profile_spmv_with_vtune(exe: Path, mat: sp.csr_array, vec: np.ndarray, vtune_config: str) -> None:

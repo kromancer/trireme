@@ -1,61 +1,13 @@
-from datetime import datetime
 import json
 from pathlib import Path
 import re
-from socket import gethostname
 from statistics import mean, median, stdev
-import sys
-from typing import List
-from git import Repo
+from typing import Dict, List
+
 import matplotlib.pyplot as plt
 
-
-def append_result_to_db(new_entry, file_path=None):
-    if file_path is None:
-        # Set default file_path to 'results.json' in the current script's directory
-        file_path = Path(__file__).resolve().parent / "results.json"
-    else:
-        file_path = Path(file_path)
-
-    # Get the absolute path of the file
-    abs_file_path = file_path.resolve()
-
-    # Attempt to open the file, create a new one if it does not exist
-    try:
-        with open(file_path, 'r') as file:
-            data = json.load(file)
-    except FileNotFoundError:
-        data = []
-        print(f"Creating: {abs_file_path}")
-
-    # Check if data is a list, if not, initialize as a list
-    if not isinstance(data, list):
-        data = []
-
-    new_entry["args"] = " ".join(sys.argv)
-    new_entry["time"] = str(datetime.now())
-    new_entry["host"] = gethostname()
-    new_entry["git-hash"] = get_git_commit_hash()
-
-    # Append the new entry
-    data.append(new_entry)
-
-    # Write the updated list back to the JSON file
-    with open(file_path, 'w') as file:
-        json.dump(data, file, indent=4)
-
-
-def get_git_commit_hash():
-    # Convert script_path to a Path object to find the repo's root directory
-    repo_path = Path(__file__).resolve().parent
-
-    # Initialize a Repo object using the script's directory
-    repo = Repo(repo_path, search_parent_directories=True)
-
-    # Get the current commit hash
-    commit_hash = repo.head.commit.hexsha
-
-    return commit_hash
+from common import append_result_to_db
+from vtune import plot_observed_max_bandwidth
 
 
 def filtered_by_median(data) -> List[int]:
@@ -97,14 +49,31 @@ def log_execution_times_ns(etimes_ns: List[int]):
         'cv': cv})
 
 
-def filter_logs(log: Path, args_re: str) -> List[int]:
+def filter_logs(log: Path, args_re: str) -> List[Dict]:
     with open(log, 'r') as f:
         logs = json.load(f)
-    filtered_means = [log['mean_ms'] for log in logs if re.search(args_re, log['args'])]
-    return filtered_means
+    filtered = [log for log in logs if re.search(args_re, log['args'])]
+    return filtered
 
 
-if __name__ == "__main__":
+def plot_mean_exec_times(logs: List[Dict], series: Dict) -> None:
+    means = [log['mean_ms'] for log in logs]
+    x_values = list(range(series['x_start'], series['x_start'] + len(means)))
+
+    # Find the minimum value and its index
+    min_value = min(means)
+    min_index = means.index(min_value)
+
+    # Calculate the actual x value for the minimum point
+    min_x_value = x_values[min_index]
+
+    # Highlight the minimum point
+    plt.scatter(min_x_value, min_value, color='red', s=20, zorder=5)
+
+    plt.plot(x_values, means, label=series['label'] + f", min({min_x_value:.0f}, {min_value:.0f})")
+
+
+def main():
     config_file = './graph-config.json'
     with open(config_file, 'r') as file:
         config = json.load(file)
@@ -112,20 +81,14 @@ if __name__ == "__main__":
     base_path = Path(config_file).resolve().parent
 
     for series in config['series']:
-        log_path = base_path / Path(series['file']).relative_to('.')
-        means = filter_logs(log_path, series['args_re'])
-        x_values = list(range(series['x_start'], series['x_start'] + len(means)))
+        log = base_path / Path(series['file']).relative_to('.')
 
-        # Find the minimum value and its index
-        min_value = min(means)
-        min_index = means.index(min_value)
+        logs = filter_logs(log, series['args_re'])
 
-        # Calculate the actual x value for the minimum point
-        min_x_value = x_values[min_index]
-
-        # Highlight the minimum point
-        plt.scatter(min_x_value, min_value, color='red', s=20, zorder=5)
-        plt.plot(x_values, means, label=series['label'] + f", min({min_x_value:.0f}, {min_value:.0f})")
+        if series["plot_method"] == "plot_mean_exec_time":
+            plot_mean_exec_times(logs, series)
+        else:
+            plot_observed_max_bandwidth(logs, series)
 
     if "baselines" in config:
         for baseline in config['baselines']:
@@ -143,3 +106,7 @@ if __name__ == "__main__":
     plt.savefig("fig.pdf")
 
     plt.show()
+
+
+if __name__ == "__main__":
+    main()
