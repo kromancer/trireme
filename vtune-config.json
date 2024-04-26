@@ -14,6 +14,12 @@
     "threading": [
         "-collect", "threading"
     ],
+    "memory-access": [
+        "-collect", "memory-access",
+        "-knob", "sampling-interval=0.01",
+        "-knob", "dram-bandwidth-limits=true",
+        "-knob", "analyze-openmp=false"
+    ],
     "events": [
         "-collect-with", "runsa",
         "-knob", "event-config=OCR.DEMAND_DATA_RD.L3_MISS,UNC_MC0_RDCAS_COUNT_FREERUN,UNC_MC1_RDCAS_COUNT_FREERUN",
