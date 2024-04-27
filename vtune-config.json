@@ -1,39 +1,43 @@
 {
     "uarch-exploration": [
         "-collect", "uarch-exploration",
+        "-data-limit=0",
+        "-start-paused",
         "-knob", "sampling-interval=0.01",
-        "-loop-mode=loop-only",
         "-knob", "collect-memory-bandwidth=true",
-        "-knob", "collect-bad-speculation=false",
-        "-start-paused"
+        "-knob", "collect-bad-speculation=false"
     ],
     "hotspots": [
         "-collect", "hotspots",
+        "-data-limit=0",
+        "-start-paused",
         "-knob", "sampling-interval=0.01",
         "-knob", "sampling-mode=hw",
-        "-knob", "enable-stack-collection=true",
-        "-start-paused"
+        "-knob", "enable-stack-collection=true"
     ],
     "threading": [
         "-collect", "threading",
+        "-data-limit=0",
         "-start-paused"
     ],
     "memory-access": [
         "-collect", "memory-access",
+        "-data-limit=0",
+        "-start-paused",
         "-knob", "sampling-interval=0.01",
         "-knob", "dram-bandwidth-limits=true",
-        "-knob", "analyze-openmp=false",
-        "-start-paused"
+        "-knob", "analyze-openmp=false"
     ],
     "events": [
         "-collect-with", "runsa",
+        "-data-limit=0",
+        "-start-paused",
         "-knob", "event-config=OCR.DEMAND_DATA_RD.L3_MISS,UNC_MC0_RDCAS_COUNT_FREERUN,UNC_MC1_RDCAS_COUNT_FREERUN",
         "-knob", "enable-pebs-collection=true",
         "-knob", "enable-lbr-collection=true",
         "-knob", "dram-bandwidth-limits=true",
         "-knob", "sampling-interval=0.01",
         "-knob", "uncore-sampling-interval=1",
-        "-knob", "analyze-openmp=false",
-        "-start-paused"
+        "-knob", "analyze-openmp=false"
     ]
 }
