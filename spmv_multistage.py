@@ -29,6 +29,7 @@ def main():
             exec_times = benchmark_spmv(args, lib, mat, vec)
             log_execution_times_secs(exec_times)
         elif args.command == "profile":
+            cmake_args += ["-DPROFILE_WITH_VTUNE=ON"]
             exe = build_with_cmake(cmake_args=cmake_args, target="spmv-multistage", src_path=src_path)
             profile_spmv_with_vtune(exe, mat, vec, args.vtune_cfg)
 

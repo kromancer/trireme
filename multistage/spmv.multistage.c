@@ -16,13 +16,21 @@
 #define L2_MSHRS 40
 #endif
 
+#ifdef PROFILE_WITH_VTUNE
+#include "ittnotify.h"
+#endif
+
 #define PREFETCHT0  (3)
 #define PREFETCHT2  (2)
 #define PREFETCHNTA (0)
 
-
 static void spmv(uint64_t num_of_rows, const double *vec, const double *mat_vals, const int64_t *pos, const int64_t *crd, double *res)
 {
+
+#ifdef PROFILE_WITH_VTUNE
+    __itt_resume();
+#endif
+
     for (uint64_t i = 0; i < num_of_rows; i++) {
 
         res[i] = 0.0;
@@ -66,6 +74,11 @@ static void spmv(uint64_t num_of_rows, const double *vec, const double *mat_vals
             res[i] += mat_vals[j] * vec[crd[j]];
         }
     }
+
+#ifdef PROFILE_WITH_VTUNE
+    __itt_detach();
+#endif
+
 }
 
 double compute(uint64_t num_of_rows, const double *vec, const double *mat_vals, const int64_t *pos, const int64_t *crd, double *res)

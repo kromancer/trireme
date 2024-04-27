@@ -4,22 +4,26 @@
         "-knob", "sampling-interval=0.01",
         "-loop-mode=loop-only",
         "-knob", "collect-memory-bandwidth=true",
-        "-knob", "collect-bad-speculation=false"
+        "-knob", "collect-bad-speculation=false",
+        "-start-paused"
     ],
     "hotspots": [
         "-collect", "hotspots",
         "-knob", "sampling-interval=0.01",
         "-knob", "sampling-mode=hw",
-        "-knob", "enable-stack-collection=true"
+        "-knob", "enable-stack-collection=true",
+        "-start-paused"
     ],
     "threading": [
-        "-collect", "threading"
+        "-collect", "threading",
+        "-start-paused"
     ],
     "memory-access": [
         "-collect", "memory-access",
         "-knob", "sampling-interval=0.01",
         "-knob", "dram-bandwidth-limits=true",
-        "-knob", "analyze-openmp=false"
+        "-knob", "analyze-openmp=false",
+        "-start-paused"
     ],
     "events": [
         "-collect-with", "runsa",
@@ -29,6 +33,7 @@
         "-knob", "dram-bandwidth-limits=true",
         "-knob", "sampling-interval=0.01",
         "-knob", "uncore-sampling-interval=1",
-        "-knob", "analyze-openmp=false"
+        "-knob", "analyze-openmp=false",
+        "-start-paused"
     ]
 }
