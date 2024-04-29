@@ -13,7 +13,7 @@ from common import append_result_to_db, is_in_path, read_config
 
 def gen_summary_report(db_entry: Dict) -> None:
 
-    vtune_cmd = ["vtune", "-report", "summary"]
+    vtune_cmd = ["vtune", "-report", "summary", "-format=text"]
     res = run(vtune_cmd, check=True, capture_output=True, text=True)
     db_entry["vtune-summary-txt"] = res.stdout
 
@@ -47,7 +47,7 @@ def plot_observed_max_bandwidth(logs: List[Dict], series: Dict) -> None:
         match = re.search(r'DRAM, GB/sec\s+(\d+)\s+([\d.]+)', log["vtune-summary-txt"])
 
         if match:
-            bw.append(match.group(2))
+            bw.append(float(match.group(2)))
 
     x_values = list(range(series['x_start'], series['x_start'] + len(bw)))
     plt.plot(x_values, bw, label=series['label'])

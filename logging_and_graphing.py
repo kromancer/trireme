@@ -85,7 +85,7 @@ def main():
 
         logs = filter_logs(log, series['args_re'])
 
-        if series["plot_method"] == "plot_mean_exec_time":
+        if series["plot_method"] == "plot_mean_exec_times":
             plot_mean_exec_times(logs, series)
         else:
             plot_observed_max_bandwidth(logs, series)

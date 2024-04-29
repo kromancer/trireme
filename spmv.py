@@ -22,6 +22,7 @@ from common import add_parser_for_benchmark, get_spmv_arg_parser, is_in_path, ma
 from hwpref_controller import HwprefController
 from logging_and_graphing import append_result_to_db, log_execution_times_ns
 from matrix_storage_manager import create_sparse_mat_and_dense_vec
+from vtune import gen_and_store_reports
 
 
 def get_mlir_opt_passes(opt: Optional[str]) -> List[str]:
@@ -181,7 +182,7 @@ def profile(args: argparse.Namespace, llvm_mlir: ir.Module, mat: sp.csr_array, v
                        "-o", f"{report}", "--perf-summary", "perf.csv", "--pid"]
     elif args.analysis == "vtune":
         assert is_in_path("vtune")
-        profile_cmd = ["vtune"] + read_config("vtune-config.json", "uarch") + ["-target-pid"]
+        profile_cmd = ["vtune"] + read_config("vtune-config.json", "memory-access") + ["-target-pid"]
     elif args.analysis == "events":
         assert is_in_path("perf")
         events = read_config("perf-events.json", "events")
@@ -219,7 +220,7 @@ def profile(args: argparse.Namespace, llvm_mlir: ir.Module, mat: sp.csr_array, v
     elif args.analysis == "events":
         rep = parse_perf_stat_json_output(report)
     else:
-        rep = "TODO: Add prof output from vtune"
+        rep = gen_and_store_reports()
     append_result_to_db({"report": rep})
 
 
