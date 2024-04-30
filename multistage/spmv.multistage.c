@@ -33,7 +33,6 @@ static void spmv(uint64_t num_of_rows, const double *vec, const double *mat_vals
 
     for (uint64_t i = 0; i < num_of_rows; i++) {
 
-        res[i] = 0.0;
         const int64_t j_start = pos[i];
         const int64_t j_end = pos[i + 1];
 
@@ -56,13 +55,14 @@ static void spmv(uint64_t num_of_rows, const double *vec, const double *mat_vals
         int64_t num_of_non_zeros_in_row = j_end - j_start;
         int64_t j_end_closest_mult_of_cl_size = j_start + (num_of_non_zeros_in_row / CL_SIZE_IN_COL_INDICES) * CL_SIZE_IN_COL_INDICES;
 
+        double res_i = 0;
         for (int64_t j = j_start; j < j_end_closest_mult_of_cl_size; j+=CL_SIZE_IN_COL_INDICES, k+=CL_SIZE_IN_COL_INDICES) {
 
 #pragma clang loop unroll_count(CL_SIZE_IN_COL_INDICES)
             for (int64_t l = 0; l < CL_SIZE_IN_COL_INDICES; l++) {
                 double vec_val = vec[crd[j + l]];
                 double mat_val = mat_vals[j + l];
-                res[i] += mat_val * vec_val;
+                res_i += mat_val * vec_val;
                 __builtin_prefetch(&vec[crd[j + l + L2_MSHRS]], 0, PREFETCHT2);
             }
 
@@ -71,8 +71,10 @@ static void spmv(uint64_t num_of_rows, const double *vec, const double *mat_vals
         }
 
         for (int64_t j = j_end_closest_mult_of_cl_size; j < j_end; j++) {
-            res[i] += mat_vals[j] * vec[crd[j]];
+            res_i += mat_vals[j] * vec[crd[j]];
         }
+
+        res[i] = res_i;
     }
 
 #ifdef PROFILE_WITH_VTUNE
