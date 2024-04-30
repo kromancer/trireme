@@ -1,3 +1,5 @@
+from csv import DictReader
+from io import StringIO
 from multiprocessing import shared_memory
 from subprocess import run
 import numpy as np
@@ -51,6 +53,25 @@ def plot_observed_max_bandwidth(logs: List[Dict], series: Dict) -> None:
 
     x_values = list(range(series['x_start'], series['x_start'] + len(bw)))
     plt.plot(x_values, bw, label=series['label'])
+
+
+def plot_event(logs: List[Dict], series: Dict) -> None:
+    event_counts = []
+    for log in logs:
+        csv_file = StringIO(log["vtune-hw-events.csv"])
+        reader = DictReader(csv_file)
+
+        event = "Hardware Event Count:" + series["event"]
+        total = 0
+        for row in reader:
+            try:
+                total += int(row[event])
+            except ValueError:  # Handles non-integer and missing values gracefully
+                continue
+        event_counts.append(total)
+
+    x_values = list(range(series['x_start'], series['x_start'] + len(event_counts)))
+    plt.plot(x_values, event_counts, label=series['label'])
 
 
 def profile_spmv_with_vtune(exe: Path, mat: sp.csr_array, vec: np.ndarray, vtune_config: str) -> None:

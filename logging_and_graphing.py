@@ -7,7 +7,7 @@ from typing import Dict, List
 import matplotlib.pyplot as plt
 
 from common import append_result_to_db
-from vtune import plot_observed_max_bandwidth
+from vtune import plot_observed_max_bandwidth, plot_event
 
 
 def filtered_by_median(data) -> List[int]:
@@ -85,10 +85,12 @@ def main():
 
         logs = filter_logs(log, series['args_re'])
 
-        if series["plot_method"] == "plot_mean_exec_times":
-            plot_mean_exec_times(logs, series)
-        else:
-            plot_observed_max_bandwidth(logs, series)
+        # plot series based on specified method
+        {
+            "plot_mean_exec_times": plot_mean_exec_times,
+            "plot_observed_max_bandwidth": plot_observed_max_bandwidth,
+            "plot_event": plot_event
+        }[series["plot_method"]](logs, series)
 
     if "baselines" in config:
         for baseline in config['baselines']:
