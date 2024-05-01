@@ -46,7 +46,8 @@ static void spmv(uint64_t num_of_rows, const double *vec, const double *mat_vals
 
         // Fill l2 mshrs by fetching l2_mshr elements
         for (int64_t l = j_start; l < j_start + L2_MSHRS; l++) {
-            __builtin_prefetch(&vec[crd[l]], 0, PREFETCHT2);
+            int64_t to_pref = crd[l];
+            __builtin_prefetch(&vec[to_pref], 0, PREFETCHT2);
         }
 
         // Assume that all capacity for MLP is now exhausted:
@@ -63,7 +64,9 @@ static void spmv(uint64_t num_of_rows, const double *vec, const double *mat_vals
                 double vec_val = vec[crd[j + l]];
                 double mat_val = mat_vals[j + l];
                 res_i += mat_val * vec_val;
-                __builtin_prefetch(&vec[crd[j + l + L2_MSHRS]], 0, PREFETCHT2);
+
+                int64_t to_pref = crd[j + l + L2_MSHRS];
+                __builtin_prefetch(&vec[to_pref], 0, PREFETCHT2);
             }
 
             __builtin_prefetch(&crd[k], 0, PREFETCHNTA);
