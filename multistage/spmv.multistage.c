@@ -61,9 +61,9 @@ static void spmv(uint64_t num_of_rows, const double *vec, const double *mat_vals
 
 #pragma clang loop unroll_count(CL_SIZE_IN_COL_INDICES)
             for (int64_t l = 0; l < CL_SIZE_IN_COL_INDICES; l++) {
-                double vec_val = vec[crd[j + l]];
                 double mat_val = mat_vals[j + l];
-                res_i += mat_val * vec_val;
+                int64_t col_idx = crd[j + l];
+                res_i += vec[col_idx] * mat_val;
 
                 int64_t to_pref = crd[j + l + L2_MSHRS];
                 __builtin_prefetch(&vec[to_pref], 0, PREFETCHT2);
