@@ -13,19 +13,16 @@ import scipy.sparse as sp
 from common import append_result_to_db, is_in_path, read_config
 
 
-def gen_summary_report(db_entry: Dict) -> None:
-
-    vtune_cmd = ["vtune", "-report", "summary", "-format=text"]
-    res = run(vtune_cmd, check=True, capture_output=True, text=True)
-    db_entry["vtune-summary-txt"] = res.stdout
-
-
 def gen_and_store_reports() -> None:
 
     reports = [
         {
             "args": ["hw-events", "-format=csv", "-csv-delimiter=comma", "-group-by=source-line"],
             "output": "vtune-hw-events.csv"
+        },
+        {
+            "args": ["summary", "-format=text"],
+            "output": "vtune-summary.txt"
         }
     ]
 
@@ -36,8 +33,6 @@ def gen_and_store_reports() -> None:
 
         with open(report["output"], "r") as f:
             db_entry[report["output"]] = f.read()
-
-    gen_summary_report(db_entry)
 
     append_result_to_db(db_entry)
 
