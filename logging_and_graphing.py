@@ -1,3 +1,4 @@
+import csv
 import json
 from pathlib import Path
 import re
@@ -54,6 +55,18 @@ def filter_logs(log: Path, args_re: str) -> List[Dict]:
         logs = json.load(f)
     filtered = [log for log in logs if re.search(args_re, log['args'])]
     return filtered
+
+
+def save_hw_event_report_to_csv(log: str, args_re: str) -> Path:
+    log = Path(log)
+    assert log.exists()
+
+    entry = filter_logs(log=log, args_re=args_re)
+    assert len(entry) == 1
+    entry = entry[0]
+
+    with open("hw-events.csv", "w") as f:
+        f.write(entry["vtune-hw-events.csv"])
 
 
 def plot_mean_exec_times(logs: List[Dict], series: Dict) -> None:
