@@ -46,7 +46,7 @@ static void spmv(uint64_t num_of_rows, const double *vec, const double *mat_vals
 
         // Fill l2 mshrs by fetching l2_mshr elements
         for (int64_t l = j_start; l < j_start + L2_MSHRS; l++) {
-            int64_t to_pref = crd[l];
+            int64_t to_pref = crd[l]; // <- this should cause problems if L1_MSHRS * CL < L2_MSHRS
             __builtin_prefetch(&vec[to_pref], 0, PREFETCHT2);
         }
 
@@ -65,7 +65,7 @@ static void spmv(uint64_t num_of_rows, const double *vec, const double *mat_vals
                 int64_t col_idx = crd[j + l];
                 res_i += vec[col_idx] * mat_val;
 
-                int64_t to_pref = crd[j + l + L2_MSHRS];
+                int64_t to_pref = crd[j + l + L2_MSHRS]; // <- this is causing the upward trend
                 __builtin_prefetch(&vec[to_pref], 0, PREFETCHT2);
             }
 
