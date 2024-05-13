@@ -57,13 +57,20 @@ def plot_event(logs: List[Dict], series: Dict) -> None:
         reader = DictReader(csv_file)
 
         event = "Hardware Event Count:" + series["event"]
-        total = 0
+        assert event in reader.fieldnames, f"'{event}' is not a valid column header"
+
+        count = 0
         for row in reader:
             try:
-                total += int(row[event])
+                if "source_line" in series:
+                    if int(row["Source Line"]) == series["source_line"]:
+                        count = int(row[event])
+                        break
+                else:
+                    count += int(row[event])
             except ValueError:  # Handles non-integer and missing values gracefully
                 continue
-        event_counts.append(total)
+        event_counts.append(count)
 
     x_values = list(range(series['x_start'], series['x_start'] + len(event_counts)))
     plt.plot(x_values, event_counts, label=series['label'])
