@@ -4,17 +4,14 @@
 
 #include <time.h>
 
-#define CL_SIZE_IN_COL_INDICES 8
-
-#ifndef L1_MSHRS
-#warning "L1_MSHRS not defined, using 10"
-#define L1_MSHRS 10
-#endif
 
 #ifndef L2_MSHRS
 #warning "L2_MSHRS not defined, using 40"
 #define L2_MSHRS 40
 #endif
+
+#define CL_SIZE_IN_COL_INDICES 8
+#define NUM_OF_L1_CL_PREFETCHES (L2_MSHRS / CL_SIZE_IN_COL_INDICES)
 
 #ifdef PROFILE_WITH_VTUNE
 #include "ittnotify.h"
@@ -39,14 +36,14 @@ static void spmv(uint64_t num_of_rows, const double *vec, const double *mat_vals
         // Fill l1 mshrs by fetching l1_mshrs cache lines
         int64_t k;
 #pragma clang loop unroll_count(CL_SIZE_IN_COL_INDICES)
-        for (k = j_start; k < j_start + L1_MSHRS * CL_SIZE_IN_COL_INDICES; k+=CL_SIZE_IN_COL_INDICES) {
+        for (k = j_start; k < j_start + NUM_OF_L1_CL_PREFETCHES * CL_SIZE_IN_COL_INDICES; k+=CL_SIZE_IN_COL_INDICES) {
             __builtin_prefetch(&crd[k], 0, PREFETCHNTA);
             __builtin_prefetch(&mat_vals[k], 0, PREFETCHNTA);
         }
 
         // Fill l2 mshrs by fetching l2_mshr elements
         for (int64_t l = j_start; l < j_start + L2_MSHRS; l++) {
-            int64_t to_pref = crd[l]; // <- this should cause problems if L1_MSHRS * CL < L2_MSHRS
+            int64_t to_pref = crd[l];
             __builtin_prefetch(&vec[to_pref], 0, PREFETCHT2);
         }
 
@@ -65,7 +62,7 @@ static void spmv(uint64_t num_of_rows, const double *vec, const double *mat_vals
                 int64_t col_idx = crd[j + l];
                 res_i += vec[col_idx] * mat_val;
 
-                int64_t to_pref = crd[j + l + L2_MSHRS]; // <- this is causing the upward trend
+                int64_t to_pref = crd[j + l + L2_MSHRS];
                 __builtin_prefetch(&vec[to_pref], 0, PREFETCHT2);
             }
 

@@ -2,9 +2,6 @@ cmake_minimum_required(VERSION 3.22)
 
 project(baselines LANGUAGES C)
 
-set(L1_MSHRS 10 CACHE STRING "L1 MSHRS")
-message(STATUS "L1_MSHRS is set to ${L1_MSHRS}")
-
 set(L2_MSHRS 40 CACHE STRING "L2 MSHRS")
 message(STATUS "L2_MSHRS is set to ${L2_MSHRS}")
 
@@ -17,7 +14,6 @@ set(TARGETS_LIST spmv-multistage benchmark-spmv-multistage)
 foreach(TARGET ${TARGETS_LIST})
     target_compile_options(${TARGET} PRIVATE "-g" "-O2")
     target_compile_definitions(${TARGET} PRIVATE
-        L1_MSHRS=${L1_MSHRS}
         L2_MSHRS=${L2_MSHRS})
 
     if(PROFILE_WITH_VTUNE)

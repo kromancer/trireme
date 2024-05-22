@@ -59,19 +59,29 @@ def plot_event(logs: List[Dict], series: Dict) -> None:
         event = "Hardware Event Count:" + series["event"]
         assert event in reader.fieldnames, f"'{event}' is not a valid column header"
 
+        if "normalize" in series:
+            norm_event = "Hardware Event Count:" + series["normalize"]
+            assert norm_event in reader.fieldnames, f"'{norm_event}' is not a valid column header"
+
         count = 0
+        norm = 0
         for row in reader:
             try:
                 if "source_line" in series:
                     if int(row["Source Line"]) == series["source_line"]:
                         count = int(row[event])
-                        break
                 else:
                     count += int(row[event])
+
+                if "normalize" in series:
+                    norm += int(row[norm_event])
+
             except ValueError:  # Handles non-integer and missing values gracefully
                 continue
-        event_counts.append(count)
 
+        event_counts.append(round((100 * count) / (1 if norm == 0 else norm), 4))
+
+    print(event_counts)
     x_values = list(range(series['x_start'], series['x_start'] + len(event_counts)))
     plt.plot(x_values, event_counts, label=series['label'])
 

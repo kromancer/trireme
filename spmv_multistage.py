@@ -19,8 +19,7 @@ def main():
 
     make_work_dir_and_cd_to_it(__file__)
 
-    cmake_args = [f"-DL1_MSHRS={args.l1_mshrs}",
-                  f"-DL2_MSHRS={args.l2_mshrs}"]
+    cmake_args = [f"-DL2_MSHRS={args.l2_mshrs}"]
 
     with HwprefController(args):
         if args.command == "benchmark":
@@ -38,8 +37,6 @@ def parse_args() -> argparse.Namespace:
 
     # Add common args for all subcommands
     common_arg_parser = get_spmv_arg_parser(with_pd=False, with_loc_hint=False)
-    common_arg_parser.add_argument("--l1-mshrs", default=3, type=int,
-                                   help="Number of L1D MSHRs")
     common_arg_parser.add_argument("--l2-mshrs", default=140, type=int,
                                    help="Number of L2 MSHRs")
     HwprefController.add_args(common_arg_parser)
