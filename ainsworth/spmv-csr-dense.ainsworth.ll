@@ -43,7 +43,7 @@ for.body4:                                        ; preds = %for.body4.preheader
 
   ; load B_vals[j]
   %6 = getelementptr inbounds double, double* %B_vals, i32 %j
-  &B_vals_j = load double, double* %6, align 4
+  %B_vals_j = load double, double* %6, align 4
 
   ; compute address of c_vals[crd[j]]
   %c_vals_crd_j_addr = getelementptr inbounds double, double* %c_vals, i32 %crd_j
@@ -63,7 +63,7 @@ for.body4:                                        ; preds = %for.body4.preheader
 
   ; compute a[i] += B_vals[j] * c_vals[crd[j]]
   %15 = load double, double* %c_vals_crd_j_addr, align 4
-  %mul = fmul double &B_vals_j, %15
+  %mul = fmul double %B_vals_j, %15
   %add8 = fadd double %tja_val.02, %mul
 
   ; j loop termination condition
