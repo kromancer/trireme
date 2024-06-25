@@ -2,6 +2,7 @@
 
 module {
 
+// Computes: a(i) = B(i,j) * c(j)
 func.func @spmv(%vec: tensor<{{ cols }}xf64>,
                 %res: tensor<{{ rows }}xf64>,
                 %mat: tensor<{{ rows }}x{{ cols }}xf64, #CSR>) -> tensor<{{ rows }}xf64> {
@@ -11,47 +12,51 @@ func.func @spmv(%vec: tensor<{{ cols }}xf64>,
     %c1 = arith.constant 1 : index
     %c2 = arith.constant 2 : index
 
-    %pos = sparse_tensor.positions %mat {level = 1 : index} : tensor<{{ rows }}x{{ cols }}xf64, #CSR> to memref<?xindex>
-    %crd = sparse_tensor.coordinates %mat {level = 1 : index} : tensor<{{ rows }}x{{ cols }}xf64, #CSR> to memref<?xindex>
-    %mat_vals = sparse_tensor.values %mat : tensor<{{ rows }}x{{ cols }}xf64, #CSR> to memref<?xf64>
+    %B2_pos = sparse_tensor.positions %mat {level = 1 : index} : tensor<{{ rows }}x{{ cols }}xf64, #CSR> to memref<?xindex>
+    %B2_crd = sparse_tensor.coordinates %mat {level = 1 : index} : tensor<{{ rows }}x{{ cols }}xf64, #CSR> to memref<?xindex>
+    %B_vals = sparse_tensor.values %mat : tensor<{{ rows }}x{{ cols }}xf64, #CSR> to memref<?xf64>
 
-    %vec_vals = bufferization.to_memref %vec : memref<{{ cols }}xf64>
+    %c_vals = bufferization.to_memref %vec : memref<{{ cols }}xf64>
     %res_buff = bufferization.to_memref %res : memref<{{ rows }}xf64>
 
     // Fixed lookahead distance
     %dist = arith.constant {{ pd }} : index
-    %dist_double = arith.muli %dist, %c2 : index
+    %double_dist = arith.muli %dist, %c2 : index
 
     scf.for %i = %c0 to %c3 step %c1 {
         %6 = memref.load %res_buff[%i] : memref<{{ rows }}xf64>
 
-        // Load j_start
-        %j_start = memref.load %pos[%i] : memref<?xindex>
+        // Load position of B2 segment start
+        %pB2 = memref.load %B2_pos[%i] : memref<?xindex>
 
-        // Load j_end
+        // Load position of B2 segment end
         %i_plus_one = arith.addi %i, %c1 : index
-        %j_end = memref.load %pos[%i_plus_one] : memref<?xindex>
+        %pB2_end = memref.load %B2_pos[%i_plus_one] : memref<?xindex>
 
-        %res_i = scf.for %j = %j_start to %j_end step %c1 iter_args(%arg5 = %6) -> (f64) {
+        %res_i = scf.for %jB = %pB2 to %pB2_end step %c1 iter_args(%arg5 = %6) -> (f64) {
 
-            //  Load column indices and values for non-zero elements
-            %col_idx = memref.load %crd[%j] : memref<?xindex>
-            %mat_j = memref.load %mat_vals[%j] : memref<?xf64>
-            %vec_val = memref.load %vec_vals[%col_idx] : memref<{{ cols }}xf64>
+            // Load B_vals[jB]
+            %B_vals_jB = memref.load %B_vals[%jB] : memref<?xf64>
 
-            // Prefetch crd[j + 2 * dist],
-            %j_dist_double = arith.addi %j, %dist_double : index
-            memref.prefetch %crd[%j_dist_double], read, locality<{{ loc_hint }}>, data : memref<?xindex>
+            // Load candidate coordinate j
+            %j = memref.load %B2_crd[%jB] : memref<?xindex>
 
-            // Load crd[min(j + dist, j_end)]
-            %j_dist = arith.addi %j, %dist : index
-            %j_dist_or_bound = arith.minui %j_dist, %j_end : index
-            %crd_dist = memref.load %crd[%j_dist_or_bound] : memref<?xindex>
+            // Load c_vals[j]
+            %c_vals_j = memref.load %c_vals[%j] : memref<{{ cols }}xf64>
 
-            // Prefetch vec_vals[crd[%crd_dist]]
-            memref.prefetch %vec_vals[%crd_dist], read, locality<{{ loc_hint }}>, data : memref<{{ cols }}xf64>
+            // Prefetch B2_crd[jB + 2 * dist]
+            %jB_plus_double_dist = arith.addi %jB, %double_dist : index
+            memref.prefetch %B2_crd[%jB_plus_double_dist], read, locality<{{ loc_hint }}>, data : memref<?xindex>
 
-            %14 = arith.mulf %mat_j, %vec_val : f64
+            // Load B2_crd[min(j + dist, j_end)]
+            %jB_plus_dist = arith.addi %jB, %dist : index
+            %jB_plus_dist_or_pB2_end = arith.minui %jB_plus_dist, %pB2_end : index
+            %B2_crd_jB_plus_dist_or_pB2_end = memref.load %B2_crd[%jB_plus_dist_or_pB2_end] : memref<?xindex>
+
+            // Prefetch c_vals[B2_crd[%B2_crd_jB_plus_dist_or_pB2_end]]
+            memref.prefetch %c_vals[%B2_crd_jB_plus_dist_or_pB2_end], read, locality<{{ loc_hint }}>, data : memref<{{ cols }}xf64>
+
+            %14 = arith.mulf %B_vals_jB, %c_vals_j : f64
             %15 = arith.addf %arg5, %14 : f64
             scf.yield %15 : f64
         }
