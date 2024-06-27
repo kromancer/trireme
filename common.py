@@ -6,7 +6,7 @@ import json
 import numpy as np
 from os import chdir, close, dup, dup2, environ, fsync, makedirs
 from pathlib import Path
-from platform import system
+from platform import machine, system
 from shutil import rmtree, which
 from socket import gethostname
 from subprocess import run
@@ -123,7 +123,7 @@ def get_spmv_arg_parser(with_pd: bool = True, with_loc_hint: bool = True) -> arg
                         help="Density of sparse matrix (default=0.05)")
 
     if with_pd:
-        parser.add_argument("-pd", "--prefetch-distance", type=int, default=16,
+        parser.add_argument("-pd", "--prefetch-distance", type=int, default=32,
                                    help="Prefetch distance")
 
     if with_loc_hint:

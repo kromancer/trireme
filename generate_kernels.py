@@ -1,48 +1,70 @@
 import argparse
-import platform
-from os import chdir, getcwd, makedirs
 from contextlib import contextmanager
+from platform import machine
+from os import chdir, getcwd, makedirs
 
 from mlir import ir
 from mlir.dialects import func
 from mlir.dialects.linalg.opdsl import lang as dsl
 from mlir.dialects import sparse_tensor as st
+from mlir.passmanager import *
 
-from spmv import apply_passes
 from common import make_work_dir_and_cd_to_it
 
-no_parallelization = ["sparse-reinterpret-map",
-                      "sparsification{parallelization-strategy=none}",
-                      "sparse-tensor-conversion",
-                      "sparse-tensor-codegen",
-                      "func-bufferize",
-                      "bufferization-bufferize",
-                      "convert-scf-to-cf",
-                      "convert-to-llvm"]
+pipelines = {
+    "no-opt":
+    ["sparse-reinterpret-map",
+     "sparsification{parallelization-strategy=none}",
+     "sparse-tensor-codegen",
+     "sparse-storage-specifier-to-llvm",
+     "func-bufferize",
+     "convert-scf-to-cf",
+     "convert-to-llvm"],
 
-vectorized = ["sparse-reinterpret-map",
-              "sparsification{parallelization-strategy=none}",
-              "sparse-vectorization{vl=4}",
-              "sparse-tensor-conversion",
-              "sparse-tensor-codegen",
-              "func-bufferize",
-              "bufferization-bufferize",
-              "convert-scf-to-cf",
-              f"convert-vector-to-llvm{{{'enable-x86vector' if platform.machine() == 'x86_64' else 'enable-arm-neon'}}}",
-              "lower-affine",
-              "convert-arith-to-llvm",
-              "convert-to-llvm"]
+    "vect-vl4":
+    ["sparse-reinterpret-map",
+     "sparsification{parallelization-strategy=none}",
+     "sparse-vectorization{vl=4}",
+     "sparse-tensor-codegen",
+     "func-bufferize",
+     "convert-scf-to-cf",
+     f"convert-vector-to-llvm{{{'enable-x86vector' if machine() == 'x86_64' else 'enable-arm-neon'}}}",
+     "lower-affine",
+     "convert-arith-to-llvm",
+     "convert-to-llvm",
+     "reconcile-unrealized-casts"],
 
-omp = ["sparse-reinterpret-map",
-       "sparsification{parallelization-strategy=any-storage-any-loop}",
-       "sparse-tensor-conversion",
-       "sparse-tensor-codegen",
-       "func-bufferize",
-       "bufferization-bufferize",
-       "convert-scf-to-openmp",
-       "convert-to-llvm"]
+    "omp":
+    ["sparse-reinterpret-map",
+     "sparsification{parallelization-strategy=any-storage-any-loop}",
+     "sparse-tensor-codegen",
+     "func-bufferize",
+     "convert-scf-to-openmp",
+     "convert-to-llvm"]
+}
 
-pipelines = {"no_parallelization": no_parallelization, "vectorized": vectorized, "omp": omp}
+
+def apply_passes(src: str, kernel: str, pipeline: str) -> ir.Module:
+
+    def run_pass(mlir_opt_pass: str):
+        run_pass.call_count += 1
+        try:
+            pm = PassManager.parse(f"builtin.module({mlir_opt_pass})")
+        except ValueError:
+            pm = PassManager.parse(f"builtin.module(func.func({mlir_opt_pass}))")
+
+        pm.run(module.operation)
+        with open(f"{kernel}.{run_pass.call_count}.{mlir_opt_pass}.mlir", "w") as f:
+            f.write(str(module))
+
+    with ir.Context():
+        module = ir.Module.parse(src)
+
+        run_pass.call_count = 0
+        for p in pipelines[pipeline]:
+            run_pass(p)
+
+    return module
 
 
 @dsl.linalg_structured_op
@@ -121,9 +143,9 @@ def generate(module: ir.Module, kernel_name: str):
         with open(f"{kernel_name}.mlir", "w") as f:
             f.write(str(module))
 
-        for kernel_name, passes in pipelines.items():
-            with make_and_switch_dir(kernel_name):
-                apply_passes(str(module), passes)
+        for p in pipelines:
+            with make_and_switch_dir(p):
+                apply_passes(str(module), kernel_name, p)
 
 
 def generate_spmv(rows: int, cols: int):
@@ -154,11 +176,12 @@ def generate_spmm(rows: int, cols: int):
         bitwidth = 0
 
         encoding_csr = st.EncodingAttr.get(csr, ordering, ordering, bitwidth, bitwidth)
+        module = make_spmm_mlir_module(rows, cols, encoding_csr, encoding_csr)
+        generate(module, "spmm_csr_csr")
+
         encoding_coo = st.EncodingAttr.get(coo, ordering, ordering, bitwidth, bitwidth)
-
         module = make_spmm_mlir_module(rows, cols, encoding_csr, encoding_coo)
-
-        generate(module, "spmm")
+        generate(module, "spmm_csr_coo")
 
 
 if __name__ == "__main__":

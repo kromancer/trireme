@@ -16,40 +16,13 @@ import scipy.sparse as sp
 from mlir import runtime as rt
 from mlir.execution_engine import *
 from mlir import ir
-from mlir.passmanager import *
 
 from common import add_parser_for_benchmark, get_spmv_arg_parser, is_in_path, make_work_dir_and_cd_to_it, read_config
+from generate_kernels import apply_passes
 from hwpref_controller import HwprefController
 from logging_and_graphing import append_result_to_db, log_execution_times_ns
 from matrix_storage_manager import create_sparse_mat_and_dense_vec
 from vtune import gen_and_store_reports
-
-
-def get_mlir_opt_passes(opt: Optional[str]) -> List[str]:
-    if opt == "vect-vl4":
-        return ["lower-sparse-ops-to-foreach",
-                "lower-sparse-foreach-to-scf",
-                "sparse-reinterpret-map",
-                "sparse-vectorization{vl=4}",
-                "sparse-tensor-conversion",
-                "tensor-bufferize",
-                "func-bufferize",
-                "bufferization-bufferize",
-                "convert-scf-to-cf",
-                f"convert-vector-to-llvm{{{'enable-x86vector' if platform.machine() == 'x86_64' else 'enable-arm-neon'}}}",
-                "lower-affine",
-                "convert-arith-to-llvm",
-                "convert-to-llvm",
-                "reconcile-unrealized-casts"]
-    else:
-        return ["sparse-reinterpret-map",
-                "sparsification{parallelization-strategy=none}",
-                "sparse-tensor-codegen",
-                "sparse-storage-specifier-to-llvm",
-                "func-bufferize",
-                "bufferization-bufferize",
-                "convert-scf-to-cf",
-                "convert-to-llvm"]
 
 
 def render_template(rows: int, cols: int, opt: Optional[str], pd: int, loc_hint: int) -> str:
@@ -73,29 +46,6 @@ def render_template(rows: int, cols: int, opt: Optional[str], pd: int, loc_hint:
         rendered_template_f.write(rendered_template)
 
     return rendered_template
-
-
-def apply_passes(src: str, opt: str) -> ir.Module:
-
-    def run_pass(p: str):
-        run_pass.call_count += 1
-        try:
-            pm = PassManager.parse(f"builtin.module({p})")
-        except ValueError:
-            pm = PassManager.parse(f"builtin.module(func.func({p}))")
-
-        pm.run(module.operation)
-        with open(f"spmv.{run_pass.call_count}.{p}.mlir", "w") as f:
-            f.write(str(module))
-
-    with ir.Context():
-        module = ir.Module.parse(src)
-
-        run_pass.call_count = 0
-        for p in get_mlir_opt_passes(opt):
-            run_pass(p)
-
-    return module
 
 
 def run_spmv(llvm_mlir: ir.Module, rows: int, mat: sp.csr_array, vec: np.ndarray, start_cb: Callable, stop_cb: Callable):
@@ -232,7 +182,7 @@ def main():
 
     src = render_template(args.rows, args.cols, args.optimization, args.prefetch_distance, args.locality_hint)
 
-    llvm_mlir = apply_passes(src, args.optimization)
+    llvm_mlir = apply_passes(src, kernel="spmv", pipeline="vect-vl4" if args.optimization == "vect-vl4" else "no-opt")
 
     mat, vec = create_sparse_mat_and_dense_vec(args.rows, args.cols, args.density, "csr")
 
