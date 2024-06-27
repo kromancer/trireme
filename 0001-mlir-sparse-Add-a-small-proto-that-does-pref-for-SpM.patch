@@ -1,0 +1,55 @@
+From 84c05bc9ff632d3c58a3d492a66ed389c8396025 Mon Sep 17 00:00:00 2001
+From: Konstantinos Sotiropoulos <konstantinos.sotiropoulos@chalmers.se>
+Date: Thu, 27 Jun 2024 11:09:09 +0200
+Subject: [PATCH] [mlir][sparse] Add a small proto that does pref for SpMV
+
+---
+ .../Transforms/Utils/LoopEmitter.cpp          | 30 ++++++++++++++++++-
+ 1 file changed, 29 insertions(+), 1 deletion(-)
+
+diff --git a/mlir/lib/Dialect/SparseTensor/Transforms/Utils/LoopEmitter.cpp b/mlir/lib/Dialect/SparseTensor/Transforms/Utils/LoopEmitter.cpp
+index 2be0193f0de8..a7d332cc97c8 100644
+--- a/mlir/lib/Dialect/SparseTensor/Transforms/Utils/LoopEmitter.cpp
++++ b/mlir/lib/Dialect/SparseTensor/Transforms/Utils/LoopEmitter.cpp
+@@ -686,9 +686,37 @@ Operation *LoopEmitter::enterCoIterationOverTensorsAtLvls(
+   }
+ 
+   // Enter dense tensor levels.
+-  for (SparseIterator *it : raIters)
++  for (SparseIterator *it : raIters) {
+     it->locate(builder, loc, iv);
+ 
++    if (auto loadOp = dyn_cast_or_null<memref::LoadOp>(iv.getDefiningOp())) {
++      const auto indices = loadOp.getIndices();
++      assert(indices.size() == 1 && "Expected crd buffers to have one index");
++
++      auto forOp = dyn_cast<scf::ForOp>(l);
++      assert(forOp && "Expected For Loop");
++      auto upperB = forOp.getUpperBound();
++
++      const auto crdBuf = loadOp.getMemRef();
++
++      // Prefetch B2_crd[jB + 2 * dist]
++      auto doubleDist = C_IDX(64);
++      auto plusDoubleDist = ADDI(indices[0], doubleDist);
++      builder.create<memref::PrefetchOp>(loc, crdBuf, plusDoubleDist.getResult(), false, 0, true);
++
++      // Load B2_crd[min(j + dist, j_end)]
++      auto dist = C_IDX(32);
++      auto plusDist = ADDI(indices[0], dist);
++      auto cmp = CMPI(ult, plusDist, upperB);
++      auto min = SELECT(cmp, plusDist, upperB);
++      auto prefIdx = builder.create<memref::LoadOp>(loc, crdBuf, min.getResult());
++
++      // Prefetch c_vals[B2_crd[%B2_crd_jB_plus_dist_or_pB2_end]]
++      auto valBuffer = getValBuffer()[it->tid];
++      builder.create<memref::PrefetchOp>(loc, valBuffer, prefIdx.getResult(), false, 0, true);
++    }
++  }
++
+   // NOTE: we can also prepare for next dim here in advance
+   // Pushes the loop into stack.
+   loopStack.emplace_back(tls, l, builder.getInsertionBlock(), iv, loopTag);
+-- 
+2.45.2
+
