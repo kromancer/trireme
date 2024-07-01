@@ -1,17 +1,18 @@
-From 84c05bc9ff632d3c58a3d492a66ed389c8396025 Mon Sep 17 00:00:00 2001
+From a3932fdc76cdcdbb9aaf7dedba20939c4ee3b8ca Mon Sep 17 00:00:00 2001
 From: Konstantinos Sotiropoulos <konstantinos.sotiropoulos@chalmers.se>
 Date: Thu, 27 Jun 2024 11:09:09 +0200
-Subject: [PATCH] [mlir][sparse] Add a small proto that does pref for SpMV
+Subject: [PATCH] [mlir][sparse] Add pref that for SpMV (csr) and SpMM (csr x
+ csr)
 
 ---
- .../Transforms/Utils/LoopEmitter.cpp          | 30 ++++++++++++++++++-
- 1 file changed, 29 insertions(+), 1 deletion(-)
+ .../Transforms/Utils/LoopEmitter.cpp          | 48 ++++++++++++++++++-
+ 1 file changed, 47 insertions(+), 1 deletion(-)
 
 diff --git a/mlir/lib/Dialect/SparseTensor/Transforms/Utils/LoopEmitter.cpp b/mlir/lib/Dialect/SparseTensor/Transforms/Utils/LoopEmitter.cpp
-index 2be0193f0de8..a7d332cc97c8 100644
+index 2be0193f0de8..3c1ba7351886 100644
 --- a/mlir/lib/Dialect/SparseTensor/Transforms/Utils/LoopEmitter.cpp
 +++ b/mlir/lib/Dialect/SparseTensor/Transforms/Utils/LoopEmitter.cpp
-@@ -686,9 +686,37 @@ Operation *LoopEmitter::enterCoIterationOverTensorsAtLvls(
+@@ -686,9 +686,55 @@ Operation *LoopEmitter::enterCoIterationOverTensorsAtLvls(
    }
  
    // Enter dense tensor levels.
@@ -23,27 +24,45 @@ index 2be0193f0de8..a7d332cc97c8 100644
 +      const auto indices = loadOp.getIndices();
 +      assert(indices.size() == 1 && "Expected crd buffers to have one index");
 +
-+      auto forOp = dyn_cast<scf::ForOp>(l);
-+      assert(forOp && "Expected For Loop");
-+      auto upperB = forOp.getUpperBound();
++      assert(spIters.size() == 1 && "Expected only one sparse iterator");
++      auto [_, upperB] = spIters.front()->genForCond(builder, loc) ;
 +
 +      const auto crdBuf = loadOp.getMemRef();
 +
++      const auto stt = getSparseTensorType(tensors[it->tid]);
++      const Level lvlRank = stt.getLvlRank();
++      const bool isLastLvl = it->lvl >= lvlRank - 1;
++      const unsigned prefDist = isLastLvl ? 32 : 1;
++
 +      // Prefetch B2_crd[jB + 2 * dist]
-+      auto doubleDist = C_IDX(64);
++      auto doubleDist = C_IDX(prefDist * 2);
 +      auto plusDoubleDist = ADDI(indices[0], doubleDist);
 +      builder.create<memref::PrefetchOp>(loc, crdBuf, plusDoubleDist.getResult(), false, 0, true);
 +
 +      // Load B2_crd[min(j + dist, j_end)]
-+      auto dist = C_IDX(32);
++      auto dist = C_IDX(prefDist);
 +      auto plusDist = ADDI(indices[0], dist);
 +      auto cmp = CMPI(ult, plusDist, upperB);
 +      auto min = SELECT(cmp, plusDist, upperB);
 +      auto prefIdx = builder.create<memref::LoadOp>(loc, crdBuf, min.getResult());
 +
 +      // Prefetch c_vals[B2_crd[%B2_crd_jB_plus_dist_or_pB2_end]]
-+      auto valBuffer = getValBuffer()[it->tid];
-+      builder.create<memref::PrefetchOp>(loc, valBuffer, prefIdx.getResult(), false, 0, true);
++      SmallVector<Value> prefIndices;
++      bool isWrite = false;
++      Value posOrValbuf;
++      if (isLastLvl) {
++        posOrValbuf = getValBuffer()[it->tid];
++        if (isOutputTensor(it->tid))
++          isWrite = true;
++        SmallVector<Value> valPosits = getValPosits(it->tid);
++        prefIndices.append(valPosits.begin(), valPosits.begin() + it->lvl);
++      } else {
++        const auto &stl = *lvls[it->tid][it->lvl + 1];
++        posOrValbuf = stl.getLvlBuffers()[0]; // Pos buffer
++      }
++
++      prefIndices.push_back(prefIdx.getResult());
++      builder.create<memref::PrefetchOp>(loc, posOrValbuf, prefIndices, isWrite, 0, true);
 +    }
 +  }
 +

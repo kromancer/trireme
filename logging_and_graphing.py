@@ -110,8 +110,8 @@ def main():
             log_path = base_path / Path(baseline['file']).relative_to('.')
             means = filter_logs(log_path, baseline['args_re'])
             assert len(means) == 1
-            plt.axhline(y=means[0], color=baseline['color'], linestyle=baseline['linestyle'],
-                        label=baseline['label'] + f", {means[0]:.0f}")
+            plt.axhline(y=means[0]["mean_ms"], color=baseline["color"], linestyle=baseline["linestyle"],
+                        label=baseline["label"] + f", {means[0]['mean_ms']:.0f}ms")
 
     plt.xlabel(config['xlabel'])
     plt.ylabel(config['ylabel'])
