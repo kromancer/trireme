@@ -18,7 +18,7 @@ from mlir.execution_engine import *
 from mlir import ir
 
 from common import add_parser_for_benchmark, get_spmv_arg_parser, is_in_path, make_work_dir_and_cd_to_it, read_config
-from generate_kernels import apply_passes
+from generate_kernel import apply_passes
 from hwpref_controller import HwprefController
 from logging_and_graphing import append_result_to_db, log_execution_times_ns
 from matrix_storage_manager import create_sparse_mat_and_dense_vec
@@ -175,15 +175,10 @@ def profile(args: argparse.Namespace, llvm_mlir: ir.Module, mat: sp.csr_array, v
 
 
 def main():
-
     args = parse_args()
-
     make_work_dir_and_cd_to_it(__file__)
-
     src = render_template(args.rows, args.cols, args.optimization, args.prefetch_distance, args.locality_hint)
-
     llvm_mlir = apply_passes(src, kernel="spmv", pipeline="vect-vl4" if args.optimization == "vect-vl4" else "no-opt")
-
     mat, vec = create_sparse_mat_and_dense_vec(args.rows, args.cols, args.density, "csr")
 
     with HwprefController(args):

@@ -1,7 +1,9 @@
 import argparse
+from enum import Enum
 from contextlib import contextmanager
 from platform import machine
 from os import chdir, getcwd, makedirs
+from typing import List
 
 from mlir import ir
 from mlir.dialects import func
@@ -9,7 +11,7 @@ from mlir.dialects.linalg.opdsl import lang as dsl
 from mlir.dialects import sparse_tensor as st
 from mlir.passmanager import *
 
-from common import make_work_dir_and_cd_to_it
+from common import Encodings, get_spmm_arg_parser, get_spmv_arg_parser, make_work_dir_and_cd_to_it
 
 pipelines = {
     "no-opt":
@@ -63,8 +65,30 @@ def apply_passes(src: str, kernel: str, pipeline: str) -> ir.Module:
         run_pass.call_count = 0
         for p in pipelines[pipeline]:
             run_pass(p)
-
     return module
+
+
+def get_csr_encoding() -> st.EncodingAttr:
+    builder = st.EncodingAttr.build_level_type
+    fmt = st.LevelFormat
+    csr = [builder(fmt.dense), builder(fmt.compressed)]
+    ordering = ir.AffineMap.get_permutation([0, 1])
+    bitwidth = 0
+    return st.EncodingAttr.get(csr, ordering, ordering, bitwidth, bitwidth)
+
+
+def get_coo_encoding() -> st.EncodingAttr:
+    builder = st.EncodingAttr.build_level_type
+    fmt = st.LevelFormat
+    prop = st.LevelProperty
+    coo = [builder(fmt.compressed, [prop.non_unique]), builder(fmt.singleton)]
+    ordering = ir.AffineMap.get_permutation([0, 1])
+    bitwidth = 0
+    return st.EncodingAttr.get(coo, ordering, ordering, bitwidth, bitwidth)
+
+
+get_encoding = {Encodings.CSR: get_csr_encoding,
+                Encodings.COO: get_coo_encoding}
 
 
 @dsl.linalg_structured_op
@@ -76,10 +100,10 @@ def mat_vec_dsl(
     C[dsl.D.i] += A[dsl.D.i, dsl.D.j] * B[dsl.D.j]
 
 
-def make_spmv_mlir_module(rows: int, cols: int, attr: st.EncodingAttr) -> ir.Module:
+def make_spmv_mlir_module(rows: int, cols: int, enc: Encodings) -> ir.Module:
     module = ir.Module.create()
     f64 = ir.F64Type.get()
-    a = ir.RankedTensorType.get([rows, cols], f64, attr)
+    a = ir.RankedTensorType.get([rows, cols], f64, get_encoding[enc]())
     b = ir.RankedTensorType.get([cols], f64)
     c = ir.RankedTensorType.get([rows], f64)
     arguments = [a, b, c]
@@ -101,12 +125,12 @@ def mat_mat_dsl(
     A[dsl.D.i, dsl.D.j] += B[dsl.D.i, dsl.D.k] * C[dsl.D.k, dsl.D.j]
 
 
-def make_spmm_mlir_module(rows: int, cols: int, enc_first: st.EncodingAttr, enc_other: st.EncodingAttr) -> ir.Module:
+def make_spmm_mlir_module(res_rows: int, res_cols: int, inner_dim: int, enc_first: Encodings, enc_other: Encodings) -> ir.Module:
     module = ir.Module.create()
     f64 = ir.F64Type.get()
-    A = ir.RankedTensorType.get([rows, cols], f64)
-    B = ir.RankedTensorType.get([rows, cols], f64, enc_first)
-    C = ir.RankedTensorType.get([cols, cols], f64, enc_other)
+    A = ir.RankedTensorType.get([res_rows, res_cols], f64)
+    B = ir.RankedTensorType.get([res_rows, inner_dim], f64, get_encoding[enc_first]())
+    C = ir.RankedTensorType.get([inner_dim, res_cols], f64, get_encoding[enc_other]())
     arguments = [A, B, C]
     with ir.InsertionPoint(module.body):
 
@@ -128,17 +152,7 @@ def make_and_switch_dir(dir):
         chdir(current_dir)
 
 
-def get_args():
-    parser = argparse.ArgumentParser(description="Process rows and cols.")
-    parser.add_argument("-r", "--rows", type=int, default=1024, help="Number of rows (default=1024)")
-    parser.add_argument("-c", "--cols", type=int, default=1024, help="Number of columns (default=1024)")
-
-    args = parser.parse_args()
-    return args.rows, args.cols
-
-
 def generate(module: ir.Module, kernel_name: str):
-
     with make_and_switch_dir(kernel_name):
         with open(f"{kernel_name}.mlir", "w") as f:
             f.write(str(module))
@@ -148,45 +162,40 @@ def generate(module: ir.Module, kernel_name: str):
                 apply_passes(str(module), kernel_name, p)
 
 
-def generate_spmv(rows: int, cols: int):
-
+def generate_spmv(rows: int, cols: int, enc: Encodings):
     with ir.Context() as ctx, ir.Location.unknown():
-        builder = st.EncodingAttr.build_level_type
-        fmt = st.LevelFormat
-        level = [builder(fmt.dense), builder(fmt.compressed)]
-        ordering = ir.AffineMap.get_permutation([0, 1])
-        bitwidth = 0
-
-        attr = st.EncodingAttr.get(level, ordering, ordering, bitwidth, bitwidth)
-        module = make_spmv_mlir_module(rows, cols, attr)
-
+        module = make_spmv_mlir_module(rows, cols, enc)
         generate(module, "spmv")
 
 
-def generate_spmm(rows: int, cols: int):
-
+def generate_spmm(res_rows: int, res_cols: int, inner_dim: int, enc_first: Encodings, enc_other: Encodings):
     with ir.Context() as ctx, ir.Location.unknown():
-        builder = st.EncodingAttr.build_level_type
-        fmt = st.LevelFormat
-        prop = st.LevelProperty
-        csr = [builder(fmt.dense), builder(fmt.compressed)]
-        coo = [builder(fmt.compressed, [prop.non_unique]), builder(fmt.singleton)]
+        module = make_spmm_mlir_module(res_rows, res_cols, inner_dim, enc_first, enc_other)
+        generate(module, f"spmm_{enc_first}_{enc_other}")
 
-        ordering = ir.AffineMap.get_permutation([0, 1])
-        bitwidth = 0
 
-        encoding_csr = st.EncodingAttr.get(csr, ordering, ordering, bitwidth, bitwidth)
-        module = make_spmm_mlir_module(rows, cols, encoding_csr, encoding_csr)
-        generate(module, "spmm_csr_csr")
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="Generate mlir, from the linalg to the llvm dialect, for given kernel")
 
-        encoding_coo = st.EncodingAttr.get(coo, ordering, ordering, bitwidth, bitwidth)
-        module = make_spmm_mlir_module(rows, cols, encoding_csr, encoding_coo)
-        generate(module, "spmm_csr_coo")
+    subparsers = parser.add_subparsers(dest="kernel", help="Which kernel to generate")
+    subparsers.add_parser("spmv", help="Sparse-Matrix X Dense-Vector (SpMV)",
+                          parents=[get_spmv_arg_parser(with_pd=False, with_loc_hint=False, with_density=False)])
+    subparsers.add_parser("spmm", help="Sparse-Matrix X Sparse-Matrix (SpMM)",
+                          parents=[get_spmm_arg_parser(with_density=False)])
+
+    return parser.parse_args()
+
+
+def main():
+    args = parse_args()
+    make_work_dir_and_cd_to_it(__file__)
+
+    if args.kernel == "spmv":
+        generate_spmv(args.rows, args.cols, Encodings.CSR)
+    elif args.kernel == "spmm":
+        generate_spmm(args.rows, args.cols, args.inner_dim_size, Encodings.CSR, Encodings.CSR)
+        generate_spmm(args.rows, args.cols, args.inner_dim_size, Encodings.COO, Encodings.COO)
 
 
 if __name__ == "__main__":
-    rows, cols = get_args()
-    make_work_dir_and_cd_to_it(__file__)
-
-    generate_spmv(rows, cols)
-    generate_spmm(rows, cols)
+    main()

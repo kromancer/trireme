@@ -1,6 +1,7 @@
 import argparse
 import ctypes
 from datetime import datetime
+from enum import Enum
 from functools import wraps
 import json
 import numpy as np
@@ -17,6 +18,14 @@ from typing import Any, Callable, List, Optional, Tuple, Union
 
 from git import Repo
 import scipy.sparse as sp
+
+
+class Encodings(Enum):
+    CSR = "csr"
+    COO = "coo"
+
+    def __str__(self):
+        return self.value
 
 
 def get_git_commit_hash():
@@ -112,15 +121,17 @@ def timeit(func: Callable) -> Callable:
     return wrapper
 
 
-def get_spmv_arg_parser(with_pd: bool = True, with_loc_hint: bool = True) -> argparse.ArgumentParser:
+def get_spmv_arg_parser(with_density: bool = True, with_pd: bool = True, with_loc_hint: bool = True) -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(add_help=False)
 
     parser.add_argument("-r", "--rows", type=int, default=1024,
                                help="Number of rows (default=1024)")
     parser.add_argument("-c", "--cols", type=int, default=1024,
                                help="Number of columns (default=1024)")
-    parser.add_argument("-d", "--density", type=float, default=0.05,
-                        help="Density of sparse matrix (default=0.05)")
+
+    if with_density:
+        parser.add_argument("-d", "--density", type=float, default=0.05,
+                            help="Density of sparse matrix (default=0.05)")
 
     if with_pd:
         parser.add_argument("-pd", "--prefetch-distance", type=int, default=32,
@@ -131,6 +142,23 @@ def get_spmv_arg_parser(with_pd: bool = True, with_loc_hint: bool = True) -> arg
                             help="Temporal locality hint for prefetch instructions, "
                                  "3 for maximum temporal locality, 0 for no temporal locality. "
                                  "On x86, value 3 will produce PREFETCHT0, while value 0 will produce PREFETCHNTA")
+
+    return parser
+
+
+def get_spmm_arg_parser(with_density: bool = True) -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(add_help=False)
+
+    parser.add_argument("-i", "--rows", type=int, default=1024,
+                               help="Number of res tensor rows (default=1024)")
+    parser.add_argument("-j", "--cols", type=int, default=1024,
+                               help="Number of res tensor columns (default=1024)")
+    parser.add_argument("-k", "--inner_dim_size", type=int, default=1024,
+                        help="Size of inner (reduction) dimension size(default=1024)")
+
+    if with_density:
+        parser.add_argument("-d", "--density", type=float, default=0.05,
+        help="Density of sparse matrix (default=0.05)")
 
     return parser
 

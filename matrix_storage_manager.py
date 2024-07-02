@@ -5,15 +5,21 @@ from typing import Tuple, Union
 import numpy as np
 import scipy.sparse as sp
 
-from common import timeit, print_size, read_config
+from common import Encodings, timeit, print_size, read_config
+from singleton_metaclass import SingletonMeta
 
 
-def create_sparse_mat_and_dense_vec(rows: int, cols: int, density: float, form: str = "coo") -> Tuple[Union[sp.coo_array, sp.csr_array], np.ndarray]:
+def create_sparse_mat(rows: int, cols: int, density: float, form: Encodings = Encodings.COO) -> sp.sparray:
+    m = MatrixStorageManager()
+    return m.create_sparse_mat(rows, cols, density, form)
+
+
+def create_sparse_mat_and_dense_vec(rows: int, cols: int, density: float, form: Encodings = Encodings.COO) -> Tuple[sp.sparray, np.ndarray]:
     m = MatrixStorageManager()
     return m.create_sparse_mat(rows, cols, density, form), m.create_dense_vec(cols)
 
 
-class MatrixStorageManager:
+class MatrixStorageManager(metaclass=SingletonMeta):
 
     def __init__(self, sdir: Path = None, seed: int = None, skip_load: bool = None):
         if seed is None:
@@ -44,13 +50,13 @@ class MatrixStorageManager:
         return self.directory / f"{prefix}_{params}.npz"
 
     @timeit
-    def create_sparse_mat(self, rows: int, cols: int, density: float, form: str = "coo") -> Union[sp.coo_array, sp.csr_array]:
+    def create_sparse_mat(self, rows: int, cols: int, density: float, form: Encodings = Encodings.COO) -> Union[sp.coo_array, sp.csr_array]:
 
         file_path = self._file_path('sparse_matrix', rows=rows, cols=cols, density=density, format=form)
         if file_path.exists() and not self.skip_load:
             return sp.load_npz(file_path)
 
-        sparse_mat = sp.random_array((rows, cols), density=density, dtype=np.float64, format=form, random_state=self.rng)
+        sparse_mat = sp.random_array((rows, cols), density=density, dtype=np.float64, format=form.value, random_state=self.rng)
 
         if not self.skip_load:
             sp.save_npz(file_path, sparse_mat)
