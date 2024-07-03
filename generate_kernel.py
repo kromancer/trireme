@@ -15,39 +15,42 @@ from common import Encodings, get_spmm_arg_parser, get_spmv_arg_parser, make_wor
 
 pipelines = {
     "no-opt":
-    ["sparse-reinterpret-map",
-     "sparsification{parallelization-strategy=none}",
-     "sparse-tensor-codegen",
+    ["sparsification-and-bufferization{sparse-emit-strategy=functional}",
      "sparse-storage-specifier-to-llvm",
-     "func-bufferize",
      "convert-scf-to-cf",
-     "convert-to-llvm"],
+     "expand-strided-metadata",
+     "finalize-memref-to-llvm{index-bitwidth=0 use-aligned-alloc=false use-generic-functions=false}",
+     "convert-func-to-llvm{index-bitwidth=0 use-bare-ptr-memref-call-conv=false}",
+     "reconcile-unrealized-casts"],
 
     "vect-vl4":
-    ["sparse-reinterpret-map",
-     "sparsification{parallelization-strategy=none}",
-     "sparse-vectorization{vl=4}",
-     "sparse-tensor-codegen",
-     "func-bufferize",
+    ["sparsification-and-bufferization{sparse-emit-strategy=functional vl=4}",
+     "sparse-storage-specifier-to-llvm",
      "convert-scf-to-cf",
-     f"convert-vector-to-llvm{{{'enable-x86vector' if machine() == 'x86_64' else 'enable-arm-neon'}}}",
+     "expand-strided-metadata",
      "lower-affine",
-     "convert-arith-to-llvm",
-     "convert-to-llvm",
+     "finalize-memref-to-llvm{index-bitwidth=0 use-aligned-alloc=false use-generic-functions=false}",
+     f"convert-vector-to-llvm{{{'enable-x86vector' if machine() == 'x86_64' else 'enable-arm-neon'}}}",
+     "convert-func-to-llvm{index-bitwidth=0 use-bare-ptr-memref-call-conv=false}",
      "reconcile-unrealized-casts"],
 
     "omp":
     ["sparse-reinterpret-map",
-     "sparsification{parallelization-strategy=any-storage-any-loop}",
+     "sparsification{enable-runtime-library=false parallelization-strategy=any-storage-any-loop}",
      "sparse-tensor-codegen",
      "func-bufferize",
+     "finalizing-bufferize",
+     "sparse-storage-specifier-to-llvm",
      "convert-scf-to-openmp",
-     "convert-to-llvm"]
+     "expand-strided-metadata",
+     "finalize-memref-to-llvm{index-bitwidth=0 use-aligned-alloc=false use-generic-functions=false}",
+     "convert-func-to-llvm{index-bitwidth=0 use-bare-ptr-memref-call-conv=false}",
+     "convert-openmp-to-llvm",
+     "reconcile-unrealized-casts"]
 }
 
 
 def apply_passes(src: str, kernel: str, pipeline: str) -> ir.Module:
-
     def run_pass(mlir_opt_pass: str):
         run_pass.call_count += 1
         try:
@@ -59,12 +62,11 @@ def apply_passes(src: str, kernel: str, pipeline: str) -> ir.Module:
         with open(f"{kernel}.{run_pass.call_count}.{mlir_opt_pass}.mlir", "w") as f:
             f.write(str(module))
 
-    with ir.Context():
-        module = ir.Module.parse(src)
+    module = ir.Module.parse(src)
+    run_pass.call_count = 0
+    for p in pipelines[pipeline]:
+        run_pass(p)
 
-        run_pass.call_count = 0
-        for p in pipelines[pipeline]:
-            run_pass(p)
     return module
 
 
