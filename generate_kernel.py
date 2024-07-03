@@ -1,9 +1,10 @@
 import argparse
-from enum import Enum
 from contextlib import contextmanager
 from platform import machine
-from os import chdir, getcwd, makedirs
-from typing import List
+from os import chdir, environ, getcwd, makedirs
+from pathlib import Path
+from subprocess import run
+from typing import Tuple
 
 from mlir import ir
 from mlir.dialects import func
@@ -11,7 +12,7 @@ from mlir.dialects.linalg.opdsl import lang as dsl
 from mlir.dialects import sparse_tensor as st
 from mlir.passmanager import *
 
-from common import Encodings, get_spmm_arg_parser, get_spmv_arg_parser, make_work_dir_and_cd_to_it
+from common import Encodings, get_spmm_arg_parser, get_spmv_arg_parser, is_in_path, make_work_dir_and_cd_to_it
 
 pipelines = {
     "no-opt":
@@ -50,7 +51,9 @@ pipelines = {
 }
 
 
-def apply_passes(src: str, kernel: str, pipeline: str) -> ir.Module:
+def apply_passes(src: str, kernel: str, pipeline: str) -> Tuple[ir.Module, str]:
+    last_pass_out: str
+
     def run_pass(mlir_opt_pass: str):
         run_pass.call_count += 1
         try:
@@ -59,15 +62,18 @@ def apply_passes(src: str, kernel: str, pipeline: str) -> ir.Module:
             pm = PassManager.parse(f"builtin.module(func.func({mlir_opt_pass}))")
 
         pm.run(module.operation)
-        with open(f"{kernel}.{run_pass.call_count}.{mlir_opt_pass}.mlir", "w") as f:
+        out = f"{kernel}.{run_pass.call_count}.{mlir_opt_pass}.mlir"
+        with open(out, "w") as f:
             f.write(str(module))
+        return out
 
     module = ir.Module.parse(src)
     run_pass.call_count = 0
+    last_pass_out = ""
     for p in pipelines[pipeline]:
-        run_pass(p)
+        last_pass_out = run_pass(p)
 
-    return module
+    return module, last_pass_out
 
 
 def get_csr_encoding() -> st.EncodingAttr:
@@ -154,26 +160,33 @@ def make_and_switch_dir(dir):
         chdir(current_dir)
 
 
-def generate(module: ir.Module, kernel_name: str):
+def generate(module: ir.Module, kernel_name: str, translate_to_llvm_ir: bool = False):
     with make_and_switch_dir(kernel_name):
         with open(f"{kernel_name}.mlir", "w") as f:
             f.write(str(module))
 
         for p in pipelines:
             with make_and_switch_dir(p):
-                apply_passes(str(module), kernel_name, p)
+                _, last_output = apply_passes(str(module), kernel_name, p)
+
+            if translate_to_llvm_ir:
+                mlir_translate = Path(environ['LLVM_PATH']) / "bin/mlir-translate"
+                assert mlir_translate.exists()
+
+                translate_cmd = [str(mlir_translate), "--mlir-to-llvmir", Path(p) / last_output, "-o", f"{kernel_name}_{p}.ll"]
+                run(translate_cmd, check=True)
 
 
 def generate_spmv(rows: int, cols: int, enc: Encodings):
     with ir.Context() as ctx, ir.Location.unknown():
         module = make_spmv_mlir_module(rows, cols, enc)
-        generate(module, "spmv")
+        generate(module, "spmv", translate_to_llvm_ir=True)
 
 
 def generate_spmm(res_rows: int, res_cols: int, inner_dim: int, enc_first: Encodings, enc_other: Encodings):
     with ir.Context() as ctx, ir.Location.unknown():
         module = make_spmm_mlir_module(res_rows, res_cols, inner_dim, enc_first, enc_other)
-        generate(module, f"spmm_{enc_first}_{enc_other}")
+        generate(module, f"spmm_{enc_first}_{enc_other}", translate_to_llvm_ir=True)
 
 
 def parse_args() -> argparse.Namespace:
