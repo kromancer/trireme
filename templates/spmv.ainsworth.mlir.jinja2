@@ -3,9 +3,9 @@
 module {
 
 // Computes: a(i) = B(i,j) * c(j)
-func.func @spmv(%vec: tensor<{{ cols }}xf64>,
-                %res: tensor<{{ rows }}xf64>,
-                %mat: tensor<{{ rows }}x{{ cols }}xf64, #CSR>) -> tensor<{{ rows }}xf64> {
+func.func @spmv(%mat: tensor<{{ rows }}x{{ cols }}xf64, #CSR>,
+                %vec: tensor<{{ cols }}xf64>,
+                %res: tensor<{{ rows }}xf64>) -> tensor<{{ rows }}xf64> {
 
     %c3 = arith.constant {{ rows }} : index
     %c0 = arith.constant 0 : index
@@ -67,6 +67,4 @@ func.func @spmv(%vec: tensor<{{ cols }}xf64>,
     %5 = bufferization.to_tensor %res_buff restrict : memref<{{ rows }}xf64>
     return %5 : tensor<{{ rows }}xf64>
 }
-
-            {% include "main.mlir.jinja2" %}
 }

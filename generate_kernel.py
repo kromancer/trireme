@@ -4,7 +4,7 @@ from platform import machine
 from os import chdir, environ, getcwd, makedirs
 from pathlib import Path
 from subprocess import run
-from typing import Tuple
+from typing import Optional, Tuple
 
 from mlir import ir
 from mlir.dialects import func
@@ -12,11 +12,12 @@ from mlir.dialects.linalg.opdsl import lang as dsl
 from mlir.dialects import sparse_tensor as st
 from mlir.passmanager import *
 
-from common import Encodings, get_spmm_arg_parser, get_spmv_arg_parser, is_in_path, make_work_dir_and_cd_to_it
+from common import Encodings, get_spmm_arg_parser, get_spmv_arg_parser, make_work_dir_and_cd_to_it
 
 pipelines = {
     "no-opt":
-    ["sparsification-and-bufferization{sparse-emit-strategy=functional}",
+    ["sparse-assembler",
+     "sparsification-and-bufferization{sparse-emit-strategy=functional}",
      "sparse-storage-specifier-to-llvm",
      "convert-scf-to-cf",
      "expand-strided-metadata",
@@ -25,7 +26,8 @@ pipelines = {
      "reconcile-unrealized-casts"],
 
     "vect-vl4":
-    ["sparsification-and-bufferization{sparse-emit-strategy=functional vl=4}",
+    ["sparse-assembler",
+     "sparsification-and-bufferization{sparse-emit-strategy=functional vl=4}",
      "sparse-storage-specifier-to-llvm",
      "convert-scf-to-cf",
      "expand-strided-metadata",
@@ -36,12 +38,15 @@ pipelines = {
      "reconcile-unrealized-casts"],
 
     "omp":
-    ["sparse-reinterpret-map",
+    ["sparse-assembler",
+     "sparse-reinterpret-map",
      "sparsification{enable-runtime-library=false parallelization-strategy=any-storage-any-loop}",
      "sparse-tensor-codegen",
      "func-bufferize",
-     "finalizing-bufferize",
+     "reconcile-unrealized-casts",
      "sparse-storage-specifier-to-llvm",
+     "canonicalize{max-iterations=10 max-num-rewrites=-1 region-simplify=normal test-convergence=false top-down=true}",
+     "finalizing-bufferize",
      "convert-scf-to-openmp",
      "expand-strided-metadata",
      "finalize-memref-to-llvm{index-bitwidth=0 use-aligned-alloc=false use-generic-functions=false}",
@@ -51,10 +56,38 @@ pipelines = {
 }
 
 
-def apply_passes(src: str, kernel: str, pipeline: str) -> Tuple[ir.Module, str]:
-    last_pass_out: str
+def make_spmv_main_boilerplate(rows: int, cols: int):
+    return f"""
+    func.func private @start_measurement_callback() -> () attributes {{ llvm.emit_c_interface }}
+    func.func private @stop_measurement_callback(%dur_ns: i64) -> () attributes {{ llvm.emit_c_interface }}
+    func.func private @nanoTime() -> i64 attributes {{ llvm.emit_c_interface }}
+
+    func.func @main(%B2_pos: tensor<?xindex>,
+                    %B2_crd: tensor<?xindex>,
+                    %B_vals: tensor<?xf64>,
+                    %c: tensor<{cols}xf64>,
+                    %a: tensor<{rows}xf64>) -> tensor<{rows}xf64> attributes {{ llvm.emit_c_interface }} {{
+
+        call @start_measurement_callback() : () -> ()
+        %time_before = call @nanoTime() : () -> i64
+
+        %0 = call @spmv(%B2_pos, %B2_crd, %B_vals, %c, %a) : (tensor<?xindex>, tensor<?xindex>, tensor<?xf64>, tensor<{cols}xf64>, tensor<{rows}xf64>) -> tensor<{rows}xf64>
+
+        %time_after = call @nanoTime() : () -> i64
+        %diff = arith.subi %time_after, %time_before : i64
+        call @stop_measurement_callback(%diff) : (i64) -> ()
+
+        return %0 : tensor<{rows}xf64>
+    }}
+    """
+
+
+def apply_passes(src: str, kernel: str, pipeline: str, main: Optional[str] = None) -> Tuple[ir.Module, str]:
+    out_file_name: str
 
     def run_pass(mlir_opt_pass: str):
+        nonlocal module
+
         run_pass.call_count += 1
         try:
             pm = PassManager.parse(f"builtin.module({mlir_opt_pass})")
@@ -63,17 +96,24 @@ def apply_passes(src: str, kernel: str, pipeline: str) -> Tuple[ir.Module, str]:
 
         pm.run(module.operation)
         out = f"{kernel}.{run_pass.call_count}.{mlir_opt_pass}.mlir"
+
+        # Inject main after the "sparse-assembler" pass
+        if mlir_opt_pass == "sparse-assembler" and main is not None:
+            spmv_func = str(module.operation.regions[0].blocks[0].operations[0].operation)
+            spmv_func_internal = str(module.operation.regions[0].blocks[0].operations[1].operation)
+            module = ir.Module.parse(spmv_func + spmv_func_internal + main)
+
         with open(out, "w") as f:
             f.write(str(module))
         return out
 
     module = ir.Module.parse(src)
     run_pass.call_count = 0
-    last_pass_out = ""
+    out_file_name = ""
     for p in pipelines[pipeline]:
-        last_pass_out = run_pass(p)
+        out_file_name = run_pass(p)
 
-    return module, last_pass_out
+    return module, out_file_name
 
 
 def get_csr_encoding() -> st.EncodingAttr:
@@ -100,7 +140,7 @@ get_encoding = {Encodings.CSR: get_csr_encoding,
 
 
 @dsl.linalg_structured_op
-def mat_vec_dsl(
+def spmv_dsl(
     A=dsl.TensorDef(dsl.T, dsl.S.I, dsl.S.J),
     B=dsl.TensorDef(dsl.T, dsl.S.J),
     C=dsl.TensorDef(dsl.T, dsl.S.I, output=True)
@@ -119,13 +159,13 @@ def make_spmv_mlir_module(rows: int, cols: int, enc: Encodings) -> ir.Module:
 
         @func.FuncOp.from_py_func(*arguments)
         def spmv(*args):
-            return mat_vec_dsl(args[0], args[1], outs=[args[2]])
+            return spmv_dsl(args[0], args[1], outs=[args[2]])
 
     return module
 
 
 @dsl.linalg_structured_op
-def mat_mat_dsl(
+def spmm_dsl(
     B=dsl.TensorDef(dsl.T, dsl.S.I, dsl.S.K),
     C=dsl.TensorDef(dsl.T, dsl.S.K, dsl.S.J),
     A=dsl.TensorDef(dsl.T, dsl.S.I, dsl.S.J, output=True)
@@ -144,7 +184,7 @@ def make_spmm_mlir_module(res_rows: int, res_cols: int, inner_dim: int, enc_firs
 
         @func.FuncOp.from_py_func(*arguments)
         def spmm(*args):
-            return mat_mat_dsl(args[1], args[2], outs=[args[0]])
+            return spmm_dsl(args[1], args[2], outs=[args[0]])
 
     return module
 
