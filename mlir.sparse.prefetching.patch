@@ -1,18 +1,180 @@
-From a3932fdc76cdcdbb9aaf7dedba20939c4ee3b8ca Mon Sep 17 00:00:00 2001
+From 7ebf5b550e52ea48f2640d675e0e14e41fd51d9b Mon Sep 17 00:00:00 2001
 From: Konstantinos Sotiropoulos <konstantinos.sotiropoulos@chalmers.se>
 Date: Thu, 27 Jun 2024 11:09:09 +0200
-Subject: [PATCH] [mlir][sparse] Add pref that for SpMV (csr) and SpMM (csr x
- csr)
+Subject: [PATCH] [mlir][sparse] Emit prefetches for indirect lds at
+ sparsification
 
+- Works for spmv and spmm_csr_csr
+- Add `enable-prefetches` opt to `sparsification` pass
 ---
- .../Transforms/Utils/LoopEmitter.cpp          | 48 ++++++++++++++++++-
- 1 file changed, 47 insertions(+), 1 deletion(-)
+ .../Dialect/SparseTensor/Pipelines/Passes.h   |  2 +-
+ .../Dialect/SparseTensor/Transforms/Passes.h  | 11 ++--
+ .../Dialect/SparseTensor/Transforms/Passes.td |  2 +
+ .../Transforms/SparseTensorPasses.cpp         |  3 +-
+ .../Transforms/Sparsification.cpp             |  3 +-
+ .../Transforms/Utils/CodegenEnv.cpp           |  4 +-
+ .../Transforms/Utils/CodegenEnv.h             |  2 +-
+ .../Transforms/Utils/LoopEmitter.cpp          | 58 ++++++++++++++++++-
+ .../Transforms/Utils/LoopEmitter.h            |  7 ++-
+ 9 files changed, 77 insertions(+), 15 deletions(-)
 
+diff --git a/mlir/include/mlir/Dialect/SparseTensor/Pipelines/Passes.h b/mlir/include/mlir/Dialect/SparseTensor/Pipelines/Passes.h
+index 90021ffa7c38..a38d53900d01 100644
+--- a/mlir/include/mlir/Dialect/SparseTensor/Pipelines/Passes.h
++++ b/mlir/include/mlir/Dialect/SparseTensor/Pipelines/Passes.h
+@@ -158,7 +158,7 @@ struct SparsifierOptions : public PassPipelineOptions<SparsifierOptions> {
+   /// Projects out the options for `createSparsificationPass`.
+   SparsificationOptions sparsificationOptions() const {
+     return SparsificationOptions(parallelization, emitStrategy,
+-                                 enableRuntimeLibrary);
++                                 enableRuntimeLibrary, false);
+   }
+ 
+   /// Projects out the options for `createConvertVectorToLLVMPass`.
+diff --git a/mlir/include/mlir/Dialect/SparseTensor/Transforms/Passes.h b/mlir/include/mlir/Dialect/SparseTensor/Transforms/Passes.h
+index 841369191018..2fb18b0051d9 100644
+--- a/mlir/include/mlir/Dialect/SparseTensor/Transforms/Passes.h
++++ b/mlir/include/mlir/Dialect/SparseTensor/Transforms/Passes.h
+@@ -92,20 +92,23 @@ std::unique_ptr<Pass> createPreSparsificationRewritePass();
+ /// Options for the Sparsification pass.
+ struct SparsificationOptions {
+   SparsificationOptions(SparseParallelizationStrategy p, SparseEmitStrategy d,
+-                        bool enableRT)
++                        bool enableRT, bool enablePref)
+       : parallelizationStrategy(p), sparseEmitStrategy(d),
+-        enableRuntimeLibrary(enableRT) {}
++        enableRuntimeLibrary(enableRT), enablePrefetches(enablePref){}
+ 
+   SparsificationOptions(SparseParallelizationStrategy p, bool enableRT)
+-      : SparsificationOptions(p, SparseEmitStrategy::kFunctional, enableRT) {}
++      : SparsificationOptions(p, SparseEmitStrategy::kFunctional, enableRT,
++                              false) {}
+ 
+   SparsificationOptions()
+       : SparsificationOptions(SparseParallelizationStrategy::kNone,
+-                              SparseEmitStrategy::kFunctional, true) {}
++                              SparseEmitStrategy::kFunctional, true,
++                              false) {}
+ 
+   SparseParallelizationStrategy parallelizationStrategy;
+   SparseEmitStrategy sparseEmitStrategy;
+   bool enableRuntimeLibrary;
++  bool enablePrefetches;
+ };
+ 
+ /// Sets up sparsification rewriting rules with the given options.
+diff --git a/mlir/include/mlir/Dialect/SparseTensor/Transforms/Passes.td b/mlir/include/mlir/Dialect/SparseTensor/Transforms/Passes.td
+index 8ec18a1e1864..235dd77f1595 100644
+--- a/mlir/include/mlir/Dialect/SparseTensor/Transforms/Passes.td
++++ b/mlir/include/mlir/Dialect/SparseTensor/Transforms/Passes.td
+@@ -182,6 +182,8 @@ def SparsificationPass : Pass<"sparsification", "ModuleOp"> {
+                         "Emit non-functional but easy-to-read interfaces to debug."))}]>,
+     Option<"enableRuntimeLibrary", "enable-runtime-library", "bool",
+            "true", "Enable runtime library for manipulating sparse tensors">,
++    Option<"enablePrefetches", "enable-prefetches", "bool",
++           "false", "Emit (experimental) prefetches for indirect memory accesses">,
+   ];
+ }
+ 
+diff --git a/mlir/lib/Dialect/SparseTensor/Transforms/SparseTensorPasses.cpp b/mlir/lib/Dialect/SparseTensor/Transforms/SparseTensorPasses.cpp
+index 8004bdb904b8..3dda62d321ce 100644
+--- a/mlir/lib/Dialect/SparseTensor/Transforms/SparseTensorPasses.cpp
++++ b/mlir/lib/Dialect/SparseTensor/Transforms/SparseTensorPasses.cpp
+@@ -99,13 +99,14 @@ struct SparsificationPass
+     parallelization = options.parallelizationStrategy;
+     sparseEmitStrategy = options.sparseEmitStrategy;
+     enableRuntimeLibrary = options.enableRuntimeLibrary;
++    enablePrefetches = options.enablePrefetches;
+   }
+ 
+   void runOnOperation() override {
+     auto *ctx = &getContext();
+     // Translate strategy flags to strategy options.
+     SparsificationOptions options(parallelization, sparseEmitStrategy,
+-                                  enableRuntimeLibrary);
++                                  enableRuntimeLibrary, enablePrefetches);
+     // Apply sparsification and cleanup rewriting.
+     RewritePatternSet patterns(ctx);
+     populateSparsificationPatterns(patterns, options);
+diff --git a/mlir/lib/Dialect/SparseTensor/Transforms/Sparsification.cpp b/mlir/lib/Dialect/SparseTensor/Transforms/Sparsification.cpp
+index c612a52aa8d5..9736c5bdeafb 100644
+--- a/mlir/lib/Dialect/SparseTensor/Transforms/Sparsification.cpp
++++ b/mlir/lib/Dialect/SparseTensor/Transforms/Sparsification.cpp
+@@ -1395,7 +1395,8 @@ public:
+       return failure();
+ 
+     // Recursively generates code if admissible.
+-    env.startEmit(options.sparseEmitStrategy);
++    env.startEmit(options.sparseEmitStrategy,
++                  options.enablePrefetches);
+     genBuffers(env, rewriter);
+     // TODO: Constant affine expression should be handled differently when using
+     // slice-based codegen, it does not matter now because we already reject the
+diff --git a/mlir/lib/Dialect/SparseTensor/Transforms/Utils/CodegenEnv.cpp b/mlir/lib/Dialect/SparseTensor/Transforms/Utils/CodegenEnv.cpp
+index 86c13d03c7ec..e46aec9386f0 100644
+--- a/mlir/lib/Dialect/SparseTensor/Transforms/Utils/CodegenEnv.cpp
++++ b/mlir/lib/Dialect/SparseTensor/Transforms/Utils/CodegenEnv.cpp
+@@ -59,7 +59,7 @@ LogicalResult CodegenEnv::initTensorExp() {
+   return success();
+ }
+ 
+-void CodegenEnv::startEmit(SparseEmitStrategy emitStrategy) {
++void CodegenEnv::startEmit(SparseEmitStrategy emitStrategy, bool enablePrefetches) {
+   assert(insChain == nullptr && "must only start emitting once");
+   if (sparseOut) {
+     insChain = sparseOut->get();
+@@ -97,7 +97,7 @@ void CodegenEnv::startEmit(SparseEmitStrategy emitStrategy) {
+       [this](TensorId t, Level lvl) -> std::vector<LoopCoeffPair> {
+         return merger().getDependentLoops(t, lvl);
+       },
+-      emitStrategy);
++      emitStrategy, enablePrefetches);
+ }
+ 
+ std::optional<Operation *> CodegenEnv::genLoopBoundary(
+diff --git a/mlir/lib/Dialect/SparseTensor/Transforms/Utils/CodegenEnv.h b/mlir/lib/Dialect/SparseTensor/Transforms/Utils/CodegenEnv.h
+index d69ae53fb0f2..eb434429d634 100644
+--- a/mlir/lib/Dialect/SparseTensor/Transforms/Utils/CodegenEnv.h
++++ b/mlir/lib/Dialect/SparseTensor/Transforms/Utils/CodegenEnv.h
+@@ -52,7 +52,7 @@ public:
+   Merger &merger() { return latticeMerger; }
+   LoopEmitter &emitter() { return loopEmitter; }
+ 
+-  void startEmit(SparseEmitStrategy emitStrategy);
++  void startEmit(SparseEmitStrategy emitStrategy, bool enablePrefetches);
+ 
+   /// Generates loop boundary statements (entering/exiting loops). The function
+   /// passes and updates the passed-in parameters.
 diff --git a/mlir/lib/Dialect/SparseTensor/Transforms/Utils/LoopEmitter.cpp b/mlir/lib/Dialect/SparseTensor/Transforms/Utils/LoopEmitter.cpp
-index 2be0193f0de8..3c1ba7351886 100644
+index 2be0193f0de8..9131afbea593 100644
 --- a/mlir/lib/Dialect/SparseTensor/Transforms/Utils/LoopEmitter.cpp
 +++ b/mlir/lib/Dialect/SparseTensor/Transforms/Utils/LoopEmitter.cpp
-@@ -686,9 +686,55 @@ Operation *LoopEmitter::enterCoIterationOverTensorsAtLvls(
+@@ -116,19 +116,22 @@ static Value tryFoldTensors(Value t) {
+ LoopEmitter::LoopEmitter(ValueRange tensors, StringAttr loopTag, bool hasOutput,
+                          bool isSparseOut, unsigned numLoops,
+                          DependentLvlGetter dimGetter,
+-                         SparseEmitStrategy emitStrategy) {
++                         SparseEmitStrategy emitStrategy,
++                         bool enablePrefetches) {
+   initialize(tensors, loopTag, hasOutput, isSparseOut, numLoops, dimGetter);
+ }
+ 
+ void LoopEmitter::initialize(ValueRange ts, StringAttr loopTag, bool hasOutput,
+                              bool isSparseOut, unsigned numLoops,
+                              DependentLvlGetter dimGetter,
+-                             SparseEmitStrategy emitStrategy) {
++                             SparseEmitStrategy emitStrategy,
++                             bool enablePrefetches) {
+   // First initialize the top-level type of the fields.
+   this->loopTag = loopTag;
+   this->hasOutput = hasOutput;
+   this->isSparseOut = isSparseOut;
+   this->emitStrategy = emitStrategy;
++  this->enablePrefetches = enablePrefetches;
+ 
+   const unsigned numManifestTensors = ts.size();
+   const unsigned synTensorId = numManifestTensors;
+@@ -686,9 +689,58 @@ Operation *LoopEmitter::enterCoIterationOverTensorsAtLvls(
    }
  
    // Enter dense tensor levels.
@@ -20,6 +182,9 @@ index 2be0193f0de8..3c1ba7351886 100644
 +  for (SparseIterator *it : raIters) {
      it->locate(builder, loc, iv);
  
++    if (!enablePrefetches)
++      continue;
++
 +    if (auto loadOp = dyn_cast_or_null<memref::LoadOp>(iv.getDefiningOp())) {
 +      const auto indices = loadOp.getIndices();
 +      assert(indices.size() == 1 && "Expected crd buffers to have one index");
@@ -69,6 +234,36 @@ index 2be0193f0de8..3c1ba7351886 100644
    // NOTE: we can also prepare for next dim here in advance
    // Pushes the loop into stack.
    loopStack.emplace_back(tls, l, builder.getInsertionBlock(), iv, loopTag);
+diff --git a/mlir/lib/Dialect/SparseTensor/Transforms/Utils/LoopEmitter.h b/mlir/lib/Dialect/SparseTensor/Transforms/Utils/LoopEmitter.h
+index 2a884b10e36b..f4a9a7f96708 100644
+--- a/mlir/lib/Dialect/SparseTensor/Transforms/Utils/LoopEmitter.h
++++ b/mlir/lib/Dialect/SparseTensor/Transforms/Utils/LoopEmitter.h
+@@ -89,13 +89,15 @@ public:
+   initialize(ValueRange tensors, StringAttr loopTag = nullptr,
+              bool hasOutput = false, bool isSparseOut = false,
+              unsigned numLoops = 0, DependentLvlGetter getter = nullptr,
+-             SparseEmitStrategy emitStrategy = SparseEmitStrategy::kFunctional);
++             SparseEmitStrategy emitStrategy = SparseEmitStrategy::kFunctional,
++             bool enablePrefetches = false);
+ 
+   explicit LoopEmitter(
+       ValueRange tensors, StringAttr loopTag = nullptr, bool hasOutput = false,
+       bool isSparseOut = false, unsigned numLoops = 0,
+       DependentLvlGetter getter = nullptr,
+-      SparseEmitStrategy emitStrategy = SparseEmitStrategy::kFunctional);
++      SparseEmitStrategy emitStrategy = SparseEmitStrategy::kFunctional,
++      bool enablePrefetches = false);
+ 
+   /// Starts a loop emitting session by generating all the buffers needed
+   /// for iterating over the tensors.
+@@ -383,6 +385,7 @@ private:
+   bool hasOutput;
+   bool isSparseOut;
+   SparseEmitStrategy emitStrategy;
++  bool enablePrefetches;
+ 
+   //
+   // Fields which have `numTensor` many entries.
 -- 
 2.45.2
 

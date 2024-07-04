@@ -155,6 +155,7 @@ def get_spmm_arg_parser(with_density: bool = True) -> argparse.ArgumentParser:
                                help="Number of res tensor columns (default=1024)")
     parser.add_argument("-k", "--inner_dim_size", type=int, default=1024,
                         help="Size of inner (reduction) dimension size(default=1024)")
+    parser.add_argument("--enable-prefetches", action='store_true', help='Enable prefetches')
 
     if with_density:
         parser.add_argument("-d", "--density", type=float, default=0.05,

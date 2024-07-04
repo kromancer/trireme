@@ -31,6 +31,22 @@ pipelines = {
      "convert-func-to-llvm{index-bitwidth=0 use-bare-ptr-memref-call-conv=false}",
      "reconcile-unrealized-casts"],
 
+    "pref":
+    ["sparse-assembler",
+     "sparse-reinterpret-map",
+     "sparsification{enable-runtime-library=false parallelization-strategy=any-storage-any-loop enable-prefetches=true}",
+     "sparse-tensor-codegen",
+     "func-bufferize",
+     "reconcile-unrealized-casts",
+     "sparse-storage-specifier-to-llvm",
+     "canonicalize{max-iterations=10 max-num-rewrites=-1 region-simplify=normal test-convergence=false top-down=true}",
+     "finalizing-bufferize",
+     "convert-scf-to-cf",
+     "expand-strided-metadata",
+     "finalize-memref-to-llvm{index-bitwidth=0 use-aligned-alloc=false use-generic-functions=false}",
+     "convert-func-to-llvm{index-bitwidth=0 use-bare-ptr-memref-call-conv=false}",
+     "reconcile-unrealized-casts"],
+
     "vect-vl4":
     ["sparse-assembler",
      "sparse-reinterpret-map",

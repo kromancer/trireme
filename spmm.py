@@ -1,8 +1,6 @@
 import argparse
 import ctypes
-from os import environ
 from pathlib import Path
-from platform import system
 
 import jinja2
 import numpy as np
@@ -88,7 +86,7 @@ def main():
         with open(f"spmm.mlir", "w") as f:
             f.write(spmm)
         main = render_main_template(args.rows, args.cols)
-        llvm_mlir, _ = apply_passes(kernel="spmm", src=spmm, pipeline="no-opt", main=main)
+        llvm_mlir, _ = apply_passes(kernel="spmm", src=spmm, pipeline="pref" if args.enable_prefetches else "no-opt", main=main)
 
     exec_engine = create_exec_engine(llvm_mlir)
     if args.command == "benchmark":
