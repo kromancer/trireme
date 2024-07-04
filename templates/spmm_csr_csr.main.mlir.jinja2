@@ -1,0 +1,24 @@
+func.func private @start_cb() -> () attributes { llvm.emit_c_interface }
+func.func private @stop_cb(%dur_ns: i64) -> () attributes { llvm.emit_c_interface }
+func.func private @nanoTime() -> i64 attributes { llvm.emit_c_interface }
+
+func.func @main(%A: tensor<{{ rows }}x{{ cols }}xf64>,
+                %B2_pos: tensor<?xindex>,
+                %B2_crd: tensor<?xindex>,
+                %B_vals: tensor<?xf64>,
+                %C2_pos: tensor<?xindex>,
+                %C2_crd: tensor<?xindex>,
+                %C_vals: tensor<?xf64>
+                ) -> tensor<{{ rows }}x{{ cols }}xf64> attributes { llvm.emit_c_interface } {
+
+    call @start_cb() : () -> ()
+    %time_before = call @nanoTime() : () -> i64
+
+    %0 = call @spmm(%A, %B2_pos, %B2_crd, %B_vals, %C2_pos, %C2_crd, %C_vals) : (tensor<{{ rows }}x{{ cols }}xf64>, tensor<?xindex>, tensor<?xindex>, tensor<?xf64>, tensor<?xindex>, tensor<?xindex>, tensor<?xf64>) -> tensor<{{ rows }}x{{ cols }}xf64>
+
+    %time_after = call @nanoTime() : () -> i64
+    %diff = arith.subi %time_after, %time_before : i64
+    call @stop_cb(%diff) : (i64) -> ()
+
+    return %0 : tensor<{{ rows }}x{{ cols }}xf64>
+}

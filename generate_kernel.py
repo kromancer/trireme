@@ -99,9 +99,9 @@ def apply_passes(src: str, kernel: str, pipeline: str, main: Optional[str] = Non
 
         # Inject main after the "sparse-assembler" pass
         if mlir_opt_pass == "sparse-assembler" and main is not None:
-            spmv_func = str(module.operation.regions[0].blocks[0].operations[0].operation)
-            spmv_func_internal = str(module.operation.regions[0].blocks[0].operations[1].operation)
-            module = ir.Module.parse(spmv_func + spmv_func_internal + main)
+            kernel_func = str(module.operation.regions[0].blocks[0].operations[0].operation)
+            kernel_func_internal = str(module.operation.regions[0].blocks[0].operations[1].operation)
+            module = ir.Module.parse(kernel_func + kernel_func_internal + main)
 
         with open(out, "w") as f:
             f.write(str(module))

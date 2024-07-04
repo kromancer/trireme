@@ -6,7 +6,8 @@ func.func @main(%B2_pos: tensor<?xindex>,
                 %B2_crd: tensor<?xindex>,
                 %B_vals: tensor<?xf64>,
                 %c: tensor<{{ cols }}xf64>,
-                %a: tensor<{{ rows }}xf64>) -> tensor<{{ rows }}xf64> attributes { llvm.emit_c_interface } {
+                %a: tensor<{{ rows }}xf64>
+                ) -> tensor<{{ rows }}xf64> attributes { llvm.emit_c_interface } {
 
     call @start_cb() : () -> ()
     %time_before = call @nanoTime() : () -> i64

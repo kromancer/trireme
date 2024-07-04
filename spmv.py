@@ -20,7 +20,6 @@ from matrix_storage_manager import create_sparse_mat_and_dense_vec
 
 
 def render_templates(rows: int, cols: int, opt: Optional[str], pd: int, loc_hint: int) -> Tuple[str, str]:
-
     template_dir = Path(__file__).parent.resolve() / "templates"
     env = jinja2.Environment(loader=jinja2.FileSystemLoader(template_dir))
 
@@ -87,14 +86,13 @@ def main():
 
     mat, vec = create_sparse_mat_and_dense_vec(args.rows, args.cols, args.density, form=Encodings.CSR)
 
-    exec_engine = create_exec_engine(llvm_mlir)
-
     with HwprefController(args):
         if args.command == "benchmark":
             decorator = benchmark
         elif args.command == "profile":
             decorator = profile
 
+        exec_engine = create_exec_engine(llvm_mlir)
         run_spmv(exec_engine, args, mat, vec, decorator=decorator)
 
 
