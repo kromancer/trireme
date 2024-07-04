@@ -17,8 +17,14 @@ from common import Encodings, get_spmm_arg_parser, get_spmv_arg_parser, make_wor
 pipelines = {
     "no-opt":
     ["sparse-assembler",
-     "sparsification-and-bufferization{sparse-emit-strategy=functional}",
+     "sparse-reinterpret-map",
+     "sparsification{enable-runtime-library=false parallelization-strategy=any-storage-any-loop}",
+     "sparse-tensor-codegen",
+     "func-bufferize",
+     "reconcile-unrealized-casts",
      "sparse-storage-specifier-to-llvm",
+     "canonicalize{max-iterations=10 max-num-rewrites=-1 region-simplify=normal test-convergence=false top-down=true}",
+     "finalizing-bufferize",
      "convert-scf-to-cf",
      "expand-strided-metadata",
      "finalize-memref-to-llvm{index-bitwidth=0 use-aligned-alloc=false use-generic-functions=false}",
@@ -27,8 +33,15 @@ pipelines = {
 
     "vect-vl4":
     ["sparse-assembler",
-     "sparsification-and-bufferization{sparse-emit-strategy=functional vl=4}",
+     "sparse-reinterpret-map",
+     "sparsification{enable-runtime-library=false parallelization-strategy=any-storage-any-loop}",
+     "sparse-vectorization{vl=4}",
+     "sparse-tensor-codegen",
+     "func-bufferize",
+     "reconcile-unrealized-casts",
      "sparse-storage-specifier-to-llvm",
+     "canonicalize{max-iterations=10 max-num-rewrites=-1 region-simplify=normal test-convergence=false top-down=true}",
+     "finalizing-bufferize",
      "convert-scf-to-cf",
      "expand-strided-metadata",
      "lower-affine",
@@ -54,32 +67,6 @@ pipelines = {
      "convert-openmp-to-llvm",
      "reconcile-unrealized-casts"]
 }
-
-
-def make_spmv_main_boilerplate(rows: int, cols: int):
-    return f"""
-    func.func private @start_measurement_callback() -> () attributes {{ llvm.emit_c_interface }}
-    func.func private @stop_measurement_callback(%dur_ns: i64) -> () attributes {{ llvm.emit_c_interface }}
-    func.func private @nanoTime() -> i64 attributes {{ llvm.emit_c_interface }}
-
-    func.func @main(%B2_pos: tensor<?xindex>,
-                    %B2_crd: tensor<?xindex>,
-                    %B_vals: tensor<?xf64>,
-                    %c: tensor<{cols}xf64>,
-                    %a: tensor<{rows}xf64>) -> tensor<{rows}xf64> attributes {{ llvm.emit_c_interface }} {{
-
-        call @start_measurement_callback() : () -> ()
-        %time_before = call @nanoTime() : () -> i64
-
-        %0 = call @spmv(%B2_pos, %B2_crd, %B_vals, %c, %a) : (tensor<?xindex>, tensor<?xindex>, tensor<?xf64>, tensor<{cols}xf64>, tensor<{rows}xf64>) -> tensor<{rows}xf64>
-
-        %time_after = call @nanoTime() : () -> i64
-        %diff = arith.subi %time_after, %time_before : i64
-        call @stop_measurement_callback(%diff) : (i64) -> ()
-
-        return %0 : tensor<{rows}xf64>
-    }}
-    """
 
 
 def apply_passes(src: str, kernel: str, pipeline: str, main: Optional[str] = None) -> Tuple[ir.Module, str]:
