@@ -261,13 +261,6 @@ def add_parser_for_profile(subparsers, parent_parser):
     profile_parser.add_argument("vtune_cfg", type=str, help="Choose an analysis type")
 
 
-def add_parser_for_benchmark(subparsers, parent_parser):
-    benchmark_parser = subparsers.add_parser("benchmark", parents=[parent_parser],
-                                             help="Benchmark the application.")
-    benchmark_parser.add_argument("--repetitions", type=int, default=5,
-                                  help="Repeat the kernel with the same input. Gather execution times stats")
-
-
 def run_spmv_as_foreign_fun(lib_path: Path, mat: sp.csr_array, vec: np.ndarray) -> Tuple[np.ndarray, str, float]:
     lib = ctypes.CDLL(str(lib_path))
 

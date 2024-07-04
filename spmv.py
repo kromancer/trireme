@@ -7,7 +7,7 @@ import platform
 import signal
 import subprocess
 from time import sleep
-from typing import Callable, Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 
 import jinja2
 import numpy as np
@@ -17,11 +17,11 @@ from mlir import runtime as rt
 from mlir.execution_engine import *
 from mlir import ir
 
-from benchmark import add_parser_for_benchmark
+from benchmark import add_parser_for_benchmark, benchmark
 from common import Encodings, get_spmv_arg_parser, is_in_path, make_work_dir_and_cd_to_it, read_config
 from generate_kernel import apply_passes
 from hwpref_controller import HwprefController
-from logging_and_graphing import append_result_to_db, log_execution_times_ns
+from logging_and_graphing import append_result_to_db
 from matrix_storage_manager import create_sparse_mat_and_dense_vec
 from vtune import gen_and_store_reports
 
@@ -50,8 +50,7 @@ def render_templates(rows: int, cols: int, opt: Optional[str], pd: int, loc_hint
     return spmv_rendered, main_rendered
 
 
-def run_spmv(llvm_mlir: ir.Module, rows: int, mat: sp.csr_array, vec: np.ndarray, start_cb: Callable, stop_cb: Callable):
-
+def run_spmv(llvm_mlir: ir.Module, args: argparse.Namespace, mat: sp.csr_array, vec: np.ndarray):
     llvm_path = environ.get("LLVM_PATH", None)
     if llvm_path is None:
         raise RuntimeError("Env var LLVM_PATH not specified")
@@ -60,14 +59,14 @@ def run_spmv(llvm_mlir: ir.Module, rows: int, mat: sp.csr_array, vec: np.ndarray
     shared_lib_suffix = ".dylib" if platform.system() == "Darwin" else ".so"
     runtime_paths = [str(Path(llvm_path) / "lib" / (r + shared_lib_suffix)) for r in runtimes]
 
-    mat_indptr = ctypes.pointer(ctypes.pointer(rt.get_ranked_memref_descriptor(mat.indptr)))
-    mat_indices = ctypes.pointer(ctypes.pointer(rt.get_ranked_memref_descriptor(mat.indices)))
-    mat_vals = ctypes.pointer(ctypes.pointer(rt.get_ranked_memref_descriptor(mat.data)))
+    B2_pos = ctypes.pointer(ctypes.pointer(rt.get_ranked_memref_descriptor(mat.indptr)))
+    B2_crd = ctypes.pointer(ctypes.pointer(rt.get_ranked_memref_descriptor(mat.indices)))
+    B_vals = ctypes.pointer(ctypes.pointer(rt.get_ranked_memref_descriptor(mat.data)))
 
-    vec_mem = ctypes.pointer(ctypes.pointer(rt.get_ranked_memref_descriptor(vec)))
+    c_vals = ctypes.pointer(ctypes.pointer(rt.get_ranked_memref_descriptor(vec)))
 
-    res = np.zeros(rows, np.float64)
-    res_mem = ctypes.pointer(ctypes.pointer(rt.get_ranked_memref_descriptor(res)))
+    a = np.zeros(args.rows, np.float64)
+    a_vals = ctypes.pointer(ctypes.pointer(rt.get_ranked_memref_descriptor(a)))
 
     # Allocate a MemRefDescriptor to receive the output tensor.
     # The buffer itself is allocated inside the MLIR code generation.
@@ -75,39 +74,24 @@ def run_spmv(llvm_mlir: ir.Module, rows: int, mat: sp.csr_array, vec: np.ndarray
     mem_out = ctypes.pointer(ctypes.pointer(ref_out))
 
     exec_engine = ExecutionEngine(llvm_mlir, opt_level=3, shared_libs=runtime_paths)
-    exec_engine.register_runtime("start_measurement_callback", start_cb)
-    exec_engine.register_runtime("stop_measurement_callback", stop_cb)
 
-    exec_engine.invoke("main", mem_out, mat_indptr, mat_indices, mat_vals, vec_mem, res_mem)
+    @benchmark(exec_engine, args)
+    def run():
+        nonlocal a, a_vals
 
-    exec_engine.dump_to_object_file("spmv.o")
+        exec_engine.invoke("main", mem_out, B2_pos, B2_crd, B_vals, c_vals, a_vals)
+        exec_engine.dump_to_object_file("spmm.o")
 
-    # Sanity check on computed result.
-    expected = mat.dot(vec)
-    c = rt.ranked_memref_to_numpy(mem_out[0])
-    assert np.allclose(c, expected), "Wrong output!"
+        # Sanity check on computed result.
+        expected = mat.dot(vec)
+        res = rt.ranked_memref_to_numpy(mem_out[0])
+        assert np.allclose(res, expected), "Wrong output!"
 
+        # reset output
+        a = np.zeros(args.rows, np.float64)
+        a_vals = ctypes.pointer(ctypes.pointer(rt.get_ranked_memref_descriptor(a)))
 
-# TODO: Use benchmark.benchmark decorator
-def benchmark(args: argparse.Namespace, llvm_mlir: ir.Module, mat: sp.csr_array, vec: np.ndarray):
-    execution_times = []
-
-    @ctypes.CFUNCTYPE(ctypes.c_void_p)
-    def start_cb_for_benchmark():
-        print("kernel start")
-
-    @ctypes.CFUNCTYPE(ctypes.c_void_p, ctypes.c_uint64)
-    def stop_cb_for_benchmark(dur_ns: int):
-        nonlocal execution_times
-
-        dur_ms = round(dur_ns / 1000000, 3)
-        print(f"kernel finish: execution time: {dur_ms} ms")
-        execution_times.append(dur_ns)
-
-    for _ in range(0, args.repetitions):
-        run_spmv(llvm_mlir, args.rows, mat, vec, start_cb_for_benchmark, stop_cb_for_benchmark)
-
-    log_execution_times_ns(execution_times)
+    run()
 
 
 def parse_perf_stat_json_output(report: str) -> List[Dict]:
@@ -124,6 +108,7 @@ def parse_perf_stat_json_output(report: str) -> List[Dict]:
     return events
 
 
+# TODO: This is broken!
 def profile(args: argparse.Namespace, llvm_mlir: ir.Module, mat: sp.csr_array, vec: np.ndarray):
     profiler: subprocess.Popen
 
@@ -189,7 +174,7 @@ def main():
 
     with HwprefController(args):
         if args.command == "benchmark":
-            benchmark(args, llvm_mlir, mat, vec)
+            run_spmv(llvm_mlir, args, mat, vec)
         elif args.command == "profile":
             profile(args, llvm_mlir, mat, vec)
 
