@@ -1,8 +1,9 @@
 import argparse
 from pathlib import Path
 
-from common import (add_parser_for_profile, add_parser_for_benchmark, benchmark_spmv, build_with_cmake,
-                    get_spmv_arg_parser, make_work_dir_and_cd_to_it)
+from benchmark import add_parser_for_benchmark
+from common import (add_parser_for_profile, benchmark_spmv, build_with_cmake, get_spmv_arg_parser,
+                    make_work_dir_and_cd_to_it)
 from hwpref_controller import HwprefController
 from logging_and_graphing import log_execution_times_secs
 from matrix_storage_manager import create_sparse_mat_and_dense_vec

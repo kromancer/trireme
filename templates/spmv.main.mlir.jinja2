@@ -1,5 +1,5 @@
-func.func private @start_measurement_callback() -> () attributes { llvm.emit_c_interface }
-func.func private @stop_measurement_callback(%dur_ns: i64) -> () attributes { llvm.emit_c_interface }
+func.func private @start_cb() -> () attributes { llvm.emit_c_interface }
+func.func private @stop_cb(%dur_ns: i64) -> () attributes { llvm.emit_c_interface }
 func.func private @nanoTime() -> i64 attributes { llvm.emit_c_interface }
 
 func.func @main(%B2_pos: tensor<?xindex>,
@@ -8,14 +8,14 @@ func.func @main(%B2_pos: tensor<?xindex>,
                 %c: tensor<{{ cols }}xf64>,
                 %a: tensor<{{ rows }}xf64>) -> tensor<{{ rows }}xf64> attributes { llvm.emit_c_interface } {
 
-    call @start_measurement_callback() : () -> ()
+    call @start_cb() : () -> ()
     %time_before = call @nanoTime() : () -> i64
 
     %0 = call @spmv(%B2_pos, %B2_crd, %B_vals, %c, %a) : (tensor<?xindex>, tensor<?xindex>, tensor<?xf64>, tensor<{{ cols }}xf64>, tensor<{{ rows }}xf64>) -> tensor<{{ rows }}xf64>
 
     %time_after = call @nanoTime() : () -> i64
     %diff = arith.subi %time_after, %time_before : i64
-    call @stop_measurement_callback(%diff) : (i64) -> ()
+    call @stop_cb(%diff) : (i64) -> ()
 
     return %0 : tensor<{{ rows }}xf64>
 }

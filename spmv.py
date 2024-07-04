@@ -1,29 +1,22 @@
 import argparse
 import ctypes
-import json
-from os import getpid, environ, killpg
 from pathlib import Path
-import platform
-import signal
-import subprocess
-from time import sleep
-from typing import Dict, List, Optional, Tuple
+from typing import Callable, Optional, Tuple
 
 import jinja2
 import numpy as np
 import scipy.sparse as sp
 
 from mlir import runtime as rt
-from mlir.execution_engine import *
 from mlir import ir
+from mlir.execution_engine import ExecutionEngine
 
-from benchmark import add_parser_for_benchmark, benchmark
-from common import Encodings, get_spmv_arg_parser, is_in_path, make_work_dir_and_cd_to_it, read_config
+from decorators import add_parser_for_benchmark, benchmark, profile, RunFuncType
+from common import Encodings, get_spmv_arg_parser, make_work_dir_and_cd_to_it
+from mlir_exec_engine import create_exec_engine
 from generate_kernel import apply_passes
 from hwpref_controller import HwprefController
-from logging_and_graphing import append_result_to_db
 from matrix_storage_manager import create_sparse_mat_and_dense_vec
-from vtune import gen_and_store_reports
 
 
 def render_templates(rows: int, cols: int, opt: Optional[str], pd: int, loc_hint: int) -> Tuple[str, str]:
@@ -50,15 +43,8 @@ def render_templates(rows: int, cols: int, opt: Optional[str], pd: int, loc_hint
     return spmv_rendered, main_rendered
 
 
-def run_spmv(llvm_mlir: ir.Module, args: argparse.Namespace, mat: sp.csr_array, vec: np.ndarray):
-    llvm_path = environ.get("LLVM_PATH", None)
-    if llvm_path is None:
-        raise RuntimeError("Env var LLVM_PATH not specified")
-
-    runtimes = ["libmlir_runner_utils", "libmlir_c_runner_utils"]
-    shared_lib_suffix = ".dylib" if platform.system() == "Darwin" else ".so"
-    runtime_paths = [str(Path(llvm_path) / "lib" / (r + shared_lib_suffix)) for r in runtimes]
-
+def run_spmv(exec_engine: ExecutionEngine, args: argparse.Namespace, mat: sp.csr_array, vec: np.ndarray,
+             decorator:  Callable[[ExecutionEngine, argparse.Namespace], Callable[[RunFuncType], RunFuncType]]):
     B2_pos = ctypes.pointer(ctypes.pointer(rt.get_ranked_memref_descriptor(mat.indptr)))
     B2_crd = ctypes.pointer(ctypes.pointer(rt.get_ranked_memref_descriptor(mat.indices)))
     B_vals = ctypes.pointer(ctypes.pointer(rt.get_ranked_memref_descriptor(mat.data)))
@@ -69,13 +55,9 @@ def run_spmv(llvm_mlir: ir.Module, args: argparse.Namespace, mat: sp.csr_array, 
     a_vals = ctypes.pointer(ctypes.pointer(rt.get_ranked_memref_descriptor(a)))
 
     # Allocate a MemRefDescriptor to receive the output tensor.
-    # The buffer itself is allocated inside the MLIR code generation.
     ref_out = rt.make_nd_memref_descriptor(1, ctypes.c_double)()
     mem_out = ctypes.pointer(ctypes.pointer(ref_out))
 
-    exec_engine = ExecutionEngine(llvm_mlir, opt_level=3, shared_libs=runtime_paths)
-
-    @benchmark(exec_engine, args)
     def run():
         nonlocal a, a_vals
 
@@ -91,75 +73,8 @@ def run_spmv(llvm_mlir: ir.Module, args: argparse.Namespace, mat: sp.csr_array, 
         a = np.zeros(args.rows, np.float64)
         a_vals = ctypes.pointer(ctypes.pointer(rt.get_ranked_memref_descriptor(a)))
 
-    run()
-
-
-def parse_perf_stat_json_output(report: str) -> List[Dict]:
-    events = []  # To hold the successfully parsed dictionaries
-    with open(report, "r") as f:
-        for line in f:
-            try:
-                # Attempt to parse the line as JSON
-                json_object = json.loads(line.strip())  # strip() to remove leading/trailing whitespace
-                events.append(json_object)
-            except json.JSONDecodeError:
-                # If json.loads() raises an error, skip this line
-                continue
-    return events
-
-
-# TODO: This is broken!
-def profile(args: argparse.Namespace, llvm_mlir: ir.Module, mat: sp.csr_array, vec: np.ndarray):
-    profiler: subprocess.Popen
-
-    profile_cmd = []
-    report = "report.txt"
-    if args.analysis == "toplev":
-        assert is_in_path("toplev")
-        profile_cmd = ["toplev", "-l6", "--nodes", "/Backend_Bound.Memory_Bound*", "--user", "--json",
-                       "-o", f"{report}", "--perf-summary", "perf.csv", "--pid"]
-    elif args.analysis == "vtune":
-        assert is_in_path("vtune")
-        profile_cmd = ["vtune"] + read_config("vtune-config.json", "memory-access") + ["-target-pid"]
-    elif args.analysis == "events":
-        assert is_in_path("perf")
-        events = read_config("perf-events.json", "events")
-        profile_cmd = ["perf", "stat", "-e", ",".join(events), "-j", "-o", f"{report}", "--pid"]
-    else:
-        assert False, f"unknown analysis {args.analysis}"
-
-    @ctypes.CFUNCTYPE(ctypes.c_void_p)
-    def start_cb_for_profile():
-        nonlocal profiler, profile_cmd
-
-        spmv_pid = getpid()
-        profiler = subprocess.Popen(profile_cmd + [f"{spmv_pid}"], start_new_session=True)
-
-        # give ample of time to the profiling tool to boot
-        sleep(15)
-
-        print("kernel start")
-
-    @ctypes.CFUNCTYPE(ctypes.c_void_p, ctypes.c_uint64)
-    def stop_cb_for_profile(dur_ns: int):
-        nonlocal profiler
-
-        dur_ms = round(dur_ns / 1000000, 3)
-        print(f"kernel finish: execution time: {dur_ms} ms")
-
-        killpg(profiler.pid, signal.SIGINT)
-        profiler.wait()
-
-    run_spmv(llvm_mlir, args.rows, mat, vec, start_cb_for_profile, stop_cb_for_profile)
-
-    if args.analysis == "toplev":
-        with open(report, "r") as f:
-            rep = json.loads(f.read())
-    elif args.analysis == "events":
-        rep = parse_perf_stat_json_output(report)
-    else:
-        rep = gen_and_store_reports()
-    append_result_to_db({"report": rep})
+    decorated_run = decorator(exec_engine, args)(run)
+    decorated_run()
 
 
 def main():
@@ -172,11 +87,15 @@ def main():
 
     mat, vec = create_sparse_mat_and_dense_vec(args.rows, args.cols, args.density, form=Encodings.CSR)
 
+    exec_engine = create_exec_engine(llvm_mlir)
+
     with HwprefController(args):
         if args.command == "benchmark":
-            run_spmv(llvm_mlir, args, mat, vec)
+            decorator = benchmark
         elif args.command == "profile":
-            profile(args, llvm_mlir, mat, vec)
+            decorator = profile
+
+        run_spmv(exec_engine, args, mat, vec, decorator=decorator)
 
 
 def parse_args() -> argparse.Namespace:

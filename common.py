@@ -7,7 +7,7 @@ import json
 import numpy as np
 from os import chdir, close, dup, dup2, environ, fsync, makedirs
 from pathlib import Path
-from platform import machine, system
+from platform import system
 from shutil import rmtree, which
 from socket import gethostname
 from subprocess import run
