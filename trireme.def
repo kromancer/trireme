@@ -7,7 +7,7 @@ From: ubuntu:22.04
 %post
     # Install dependencies
     apt update && apt upgrade -y && apt-get install -y \
-        git make gcc-12 g++-12 cmake ninja-build patchelf \
+        git bc make gcc-12 g++-12 cmake ninja-build patchelf \
         libreadline-dev libncursesw5-dev libssl-dev \
         libsqlite3-dev libgdbm-dev libc6-dev libbz2-dev \
         libffi-dev zlib1g-dev \
