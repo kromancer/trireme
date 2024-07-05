@@ -121,22 +121,13 @@ def apply_passes(src: str, kernel: str, pipeline: str, main: Optional[str] = Non
 
 
 def get_csr_encoding() -> st.EncodingAttr:
-    builder = st.EncodingAttr.build_level_type
-    fmt = st.LevelFormat
-    csr = [builder(fmt.dense), builder(fmt.compressed)]
-    ordering = ir.AffineMap.get_permutation([0, 1])
-    bitwidth = 0
-    return st.EncodingAttr.get(csr, ordering, ordering, bitwidth, bitwidth)
+    return st.EncodingAttr.parse(
+        "#sparse_tensor.encoding<{ map = (d0, d1) -> (d0 : dense, d1 : compressed) }>")
 
 
 def get_coo_encoding() -> st.EncodingAttr:
-    builder = st.EncodingAttr.build_level_type
-    fmt = st.LevelFormat
-    prop = st.LevelProperty
-    coo = [builder(fmt.compressed, [prop.non_unique]), builder(fmt.singleton)]
-    ordering = ir.AffineMap.get_permutation([0, 1])
-    bitwidth = 0
-    return st.EncodingAttr.get(coo, ordering, ordering, bitwidth, bitwidth)
+    return st.EncodingAttr.parse(
+        "#sparse_tensor.encoding<{ map = (d0, d1) -> (d0 : compressed(nonunique), d1 : singleton(soa)) }>")
 
 
 get_encoding = {Encodings.CSR: get_csr_encoding,
@@ -258,7 +249,7 @@ def main():
         generate_spmv(args.i, args.j, Encodings.CSR)
     elif args.kernel == "spmm":
         generate_spmm(args.i, args.j, args.k, Encodings.CSR, Encodings.CSR)
-        # generate_spmm(args.i, args.j, args.k, Encodings.COO, Encodings.COO)
+        generate_spmm(args.i, args.j, args.k, Encodings.COO, Encodings.COO)
 
 
 if __name__ == "__main__":
