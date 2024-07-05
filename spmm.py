@@ -37,7 +37,7 @@ def run_spmm(exec_engine: ExecutionEngine, args: argparse.Namespace, B: sp.csr_a
     C2_crd = ctypes.pointer(ctypes.pointer(rt.get_ranked_memref_descriptor(C.indices)))
     C_vals = ctypes.pointer(ctypes.pointer(rt.get_ranked_memref_descriptor(C.data)))
 
-    A = np.zeros((args.rows, args.cols), np.float64)
+    A = np.zeros((args.i, args.k), np.float64)
     A_vals = ctypes.pointer(ctypes.pointer(rt.get_ranked_memref_descriptor(A)))
 
     # Allocate a MemRefDescriptor to receive the output tensor.
@@ -75,16 +75,16 @@ def main():
     make_work_dir_and_cd_to_it(__file__)
 
     enc_B = Encodings.CSR
-    B = create_sparse_mat(args.rows, args.inner_dim_size, args.density, enc_B)
+    B = create_sparse_mat(args.i, args.k, args.density, enc_B)
 
     enc_C = Encodings.CSR
-    C = create_sparse_mat(args.inner_dim_size, args.cols, args.density, enc_C)
+    C = create_sparse_mat(args.k, args.j, args.density, enc_C)
 
     with ir.Context(), ir.Location.unknown():
-        spmm = str(make_spmm_mlir_module(args.rows, args.cols, args.inner_dim_size, enc_B, enc_C))
+        spmm = str(make_spmm_mlir_module(args.i, args.j, args.k, enc_B, enc_C))
         with open(f"spmm.mlir", "w") as f:
             f.write(spmm)
-        main = render_main_template(args.rows, args.cols)
+        main = render_main_template(args.i, args.j)
         llvm_mlir, _ = apply_passes(kernel="spmm", src=spmm, pipeline="pref" if args.enable_prefetches else "no-opt", main=main)
 
     exec_engine = create_exec_engine(llvm_mlir)
