@@ -11,8 +11,9 @@ from mlir import runtime as rt
 from mlir import ir
 from mlir.execution_engine import ExecutionEngine
 
-from decorators import add_parser_for_benchmark, benchmark, profile, RunFuncType
-from common import Encodings, get_spmv_arg_parser, make_work_dir_and_cd_to_it
+from argument_parsers import get_spmv_arg_parser, add_parser_for_benchmark
+from decorators import benchmark, profile, RunFuncType
+from common import Encodings, make_work_dir_and_cd_to_it
 from mlir_exec_engine import create_exec_engine
 from generate_kernel import apply_passes
 from hwpref_controller import HwprefController
@@ -50,7 +51,7 @@ def run_spmv(exec_engine: ExecutionEngine, args: argparse.Namespace, mat: sp.csr
 
     c_vals = ctypes.pointer(ctypes.pointer(rt.get_ranked_memref_descriptor(vec)))
 
-    a = np.zeros(args.rows, np.float64)
+    a = np.zeros(args.i, np.float64)
     a_vals = ctypes.pointer(ctypes.pointer(rt.get_ranked_memref_descriptor(a)))
 
     # Allocate a MemRefDescriptor to receive the output tensor.
@@ -64,13 +65,13 @@ def run_spmv(exec_engine: ExecutionEngine, args: argparse.Namespace, mat: sp.csr
         exec_engine.dump_to_object_file("spmm.o")
 
         # Sanity check on computed result.
-        expected = mat.dot(vec)
-        res = rt.ranked_memref_to_numpy(mem_out[0])
-        assert np.allclose(res, expected), "Wrong output!"
+        if args.enable_output_check:
+            expected = mat.dot(vec)
+            res = rt.ranked_memref_to_numpy(mem_out[0])
+            assert np.allclose(res, expected), "Wrong output!"
 
         # reset output
-        a = np.zeros(args.rows, np.float64)
-        a_vals = ctypes.pointer(ctypes.pointer(rt.get_ranked_memref_descriptor(a)))
+        a.fill(0)
 
     decorated_run = decorator(exec_engine, args)(run)
     decorated_run()
@@ -79,12 +80,12 @@ def run_spmv(exec_engine: ExecutionEngine, args: argparse.Namespace, mat: sp.csr
 def main():
     args = parse_args()
     make_work_dir_and_cd_to_it(__file__)
-    spmv, main = render_templates(args.rows, args.cols, args.optimization, args.prefetch_distance, args.locality_hint)
+    spmv, main = render_templates(args.i, args.j, args.optimization, args.prefetch_distance, args.locality_hint)
 
     with ir.Context(), ir.Location.unknown():
         llvm_mlir, _ = apply_passes(spmv, kernel="spmv", pipeline="vect-vl4" if args.optimization == "vect-vl4" else "no-opt", main=main)
 
-    mat, vec = create_sparse_mat_and_dense_vec(args.rows, args.cols, args.density, form=Encodings.CSR)
+    mat, vec = create_sparse_mat_and_dense_vec(args.i, args.j, args.density, form=Encodings.CSR)
 
     with HwprefController(args):
         if args.command == "benchmark":
@@ -100,7 +101,6 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="(Sparse Matrix)x(Dense Vector) Multiplication (SpMV), "
                                                  "baseline and state-of-the-art sw prefetching, "
                                                  "from manually generated MLIR templates")
-
     subparsers = parser.add_subparsers(dest="command", help="Subcommands")
 
     # common args to all subcommands
@@ -112,7 +112,6 @@ def parse_args() -> argparse.Namespace:
 
     add_parser_for_benchmark(subparsers, parent_parser=common_arg_parser)
 
-    # TODO: re-use fun from common.py
     profile_parser = subparsers.add_parser("profile", parents=[common_arg_parser],
                                            help="Profile the application")
     profile_parser.add_argument("analysis", choices=["toplev", "vtune", "events"],

@@ -12,7 +12,8 @@ from mlir.dialects.linalg.opdsl import lang as dsl
 from mlir.dialects import sparse_tensor as st
 from mlir.passmanager import *
 
-from common import Encodings, get_spmm_arg_parser, get_spmv_arg_parser, make_work_dir_and_cd_to_it
+from argument_parsers import add_dimension_args
+from common import Encodings, make_work_dir_and_cd_to_it
 
 pipelines = {
     "no-opt":
@@ -234,12 +235,17 @@ def generate_spmm(res_rows: int, res_cols: int, inner_dim: int, enc_first: Encod
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Generate mlir, from the linalg to the llvm dialect, for given kernel")
-
     subparsers = parser.add_subparsers(dest="kernel", help="Which kernel to generate")
+
+    spmv_parser = argparse.ArgumentParser(add_help=False)
+    add_dimension_args(spmv_parser, 2)
     subparsers.add_parser("spmv", help="Sparse-Matrix X Dense-Vector (SpMV)",
-                          parents=[get_spmv_arg_parser(with_pd=False, with_loc_hint=False, with_density=False)])
+                          parents=[spmv_parser])
+
+    spmm_parser = argparse.ArgumentParser(add_help=False)
+    add_dimension_args(spmm_parser, 3)
     subparsers.add_parser("spmm", help="Sparse-Matrix X Sparse-Matrix (SpMM)",
-                          parents=[get_spmm_arg_parser(with_density=False)])
+                          parents=[spmm_parser])
 
     return parser.parse_args()
 
@@ -249,10 +255,10 @@ def main():
     make_work_dir_and_cd_to_it(__file__)
 
     if args.kernel == "spmv":
-        generate_spmv(args.rows, args.cols, Encodings.CSR)
+        generate_spmv(args.i, args.j, Encodings.CSR)
     elif args.kernel == "spmm":
-        generate_spmm(args.rows, args.cols, args.inner_dim_size, Encodings.CSR, Encodings.CSR)
-        generate_spmm(args.rows, args.cols, args.inner_dim_size, Encodings.COO, Encodings.COO)
+        generate_spmm(args.i, args.j, args.k, Encodings.CSR, Encodings.CSR)
+        # generate_spmm(args.i, args.j, args.k, Encodings.COO, Encodings.COO)
 
 
 if __name__ == "__main__":

@@ -16,13 +16,6 @@ from vtune import gen_and_store_reports
 RunFuncType = TypeVar("RunFuncType", bound=Callable[...,  None])
 
 
-def add_parser_for_benchmark(subparsers, parent_parser: ArgumentParser):
-    benchmark_parser = subparsers.add_parser("benchmark", parents=[parent_parser],
-                                             help="Benchmark the application.")
-    benchmark_parser.add_argument("--repetitions", type=int, default=5,
-                                  help="Repeat the kernel with the same input. Gather execution times stats")
-
-
 def benchmark(exec_engine: ExecutionEngine, args: Namespace) -> Callable[[RunFuncType], RunFuncType]:
     assert hasattr(args, 'repetitions'), "The args namespace must contain 'repetitions'."
     execution_times = []

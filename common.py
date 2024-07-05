@@ -121,49 +121,6 @@ def timeit(func: Callable) -> Callable:
     return wrapper
 
 
-def get_spmv_arg_parser(with_density: bool = True, with_pd: bool = True, with_loc_hint: bool = True) -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(add_help=False)
-
-    parser.add_argument("-r", "--rows", type=int, default=1024,
-                               help="Number of rows (default=1024)")
-    parser.add_argument("-c", "--cols", type=int, default=1024,
-                               help="Number of columns (default=1024)")
-
-    if with_density:
-        parser.add_argument("-d", "--density", type=float, default=0.05,
-                            help="Density of sparse matrix (default=0.05)")
-
-    if with_pd:
-        parser.add_argument("-pd", "--prefetch-distance", type=int, default=32,
-                                   help="Prefetch distance")
-
-    if with_loc_hint:
-        parser.add_argument("-l", "--locality-hint", type=int, choices=[0, 1, 2, 3], default=3,
-                            help="Temporal locality hint for prefetch instructions, "
-                                 "3 for maximum temporal locality, 0 for no temporal locality. "
-                                 "On x86, value 3 will produce PREFETCHT0, while value 0 will produce PREFETCHNTA")
-
-    return parser
-
-
-def get_spmm_arg_parser(with_density: bool = True) -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(add_help=False)
-
-    parser.add_argument("-i", "--rows", type=int, default=1024,
-                               help="Number of res tensor rows (default=1024)")
-    parser.add_argument("-j", "--cols", type=int, default=1024,
-                               help="Number of res tensor columns (default=1024)")
-    parser.add_argument("-k", "--inner_dim_size", type=int, default=1024,
-                        help="Size of inner (reduction) dimension size(default=1024)")
-    parser.add_argument("--enable-prefetches", action='store_true', help='Enable prefetches')
-
-    if with_density:
-        parser.add_argument("-d", "--density", type=float, default=0.05,
-        help="Density of sparse matrix (default=0.05)")
-
-    return parser
-
-
 def make_work_dir_and_cd_to_it(file_path: str):
     build_path = Path(f"./workdir-{Path(file_path).name}")
 
@@ -254,12 +211,6 @@ def benchmark_spmv(args: argparse.Namespace, shared_lib: Path, mat: sp.csr_array
         assert np.allclose(result, expected), "Wrong result!"
 
     return exec_times
-
-
-def add_parser_for_profile(subparsers, parent_parser):
-    profile_parser = subparsers.add_parser("profile", parents=[parent_parser],
-                                           help="Profile the application using vtune")
-    profile_parser.add_argument("vtune_cfg", type=str, help="Choose an analysis type")
 
 
 def run_spmv_as_foreign_fun(lib_path: Path, mat: sp.csr_array, vec: np.ndarray) -> Tuple[np.ndarray, str, float]:

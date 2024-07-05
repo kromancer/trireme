@@ -10,8 +10,9 @@ from mlir import runtime as rt
 from mlir.execution_engine import *
 from mlir import ir
 
-from decorators import add_parser_for_benchmark, benchmark
-from common import Encodings, get_spmm_arg_parser, make_work_dir_and_cd_to_it
+from argument_parsers import add_parser_for_benchmark, get_spmm_arg_parser
+from decorators import benchmark
+from common import Encodings, make_work_dir_and_cd_to_it
 from matrix_storage_manager import create_sparse_mat
 from mlir_exec_engine import create_exec_engine
 from generate_kernel import apply_passes, make_spmm_mlir_module
@@ -45,19 +46,17 @@ def run_spmm(exec_engine: ExecutionEngine, args: argparse.Namespace, B: sp.csr_a
     mem_out = ctypes.pointer(ctypes.pointer(ref_out))
 
     def run():
-        nonlocal A, A_vals
-
         exec_engine.invoke("main", mem_out, A_vals, B2_pos, B2_crd, B_vals, C2_pos, C2_crd, C_vals)
         exec_engine.dump_to_object_file("spmm.o")
 
         # Sanity check on computed result.
-        expected = B.dot(C).toarray()
-        res = rt.ranked_memref_to_numpy(mem_out[0])
-        assert np.allclose(res, expected), "Wrong output!"
+        if args.enable_output_check:
+            expected = B.dot(C).toarray()
+            res = rt.ranked_memref_to_numpy(mem_out[0])
+            assert np.allclose(res, expected), "Wrong output!"
 
         # reset output
-        A = np.zeros((args.rows, args.cols), np.float64)
-        A_vals = ctypes.pointer(ctypes.pointer(rt.get_ranked_memref_descriptor(A)))
+        A.fill(0)
 
     decorated_run = benchmark(exec_engine, args)(run)
     decorated_run()
