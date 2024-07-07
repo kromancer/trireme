@@ -1,0 +1,23 @@
+import lit.llvm
+from pathlib import Path
+from os import environ
+
+# Initialize LLVM-specific configurations
+lit.llvm.initialize(lit_config, config)
+
+# Ensure the LLVM_PATH environment variable is set
+llvm_bin_path = Path(environ.get('LLVM_PATH', '')) / "bin"
+if not llvm_bin_path.exists():
+    raise FileNotFoundError(f"LLVM bin path does not exist: {llvm_bin_path}")
+
+# Manually add tool substitutions
+tools = ['mlir-opt', 'FileCheck']
+
+for tool in tools:
+    tool_path = llvm_bin_path / tool
+    if not tool_path.exists():
+        raise FileNotFoundError(f"Tool {tool} not found in {llvm_bin_path}")
+    config.substitutions.append((f"%{{{tool}}}", str(tool_path)))
+
+# Delegate to the main configuration file
+lit_config.load_config(config, "./lit.cfg.py")
