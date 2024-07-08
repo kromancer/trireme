@@ -5,12 +5,13 @@
 // CHECK-DAG:  %[[B2_crd:.+]] = sparse_tensor.coordinates %[[B:.+]] {level = 1 : index} : tensor<1024x1024xf64, #sparse> to memref<?xindex>
 
 // Check inner loop for prefetching
-// CHECK:       {{.+}} = scf.for %[[jB:.+]] = %[[B2_pos_i:.+]] to %[[B2_pos_i_plus_1:.+]] step %c1 iter_args({{.+}} = {{.+}}) -> (f64) {
+// CHECK:       %[[UPPERB:.+]] = memref.load %[[B2_pos]][%c1024] : memref<?xindex>
+// CHECK:       {{.+}} = scf.for %[[jB:.+]] = %[[B2_pos_i:.+]] to {{.*}} step %c1 iter_args({{.+}} = {{.+}}) -> (f64) {
 // CHECK-DAG:     %[[jB_plus_64:.+]] = arith.addi %[[jB]], %c64 : index
 // CHECK:         memref.prefetch %[[B2_crd]][%[[jB_plus_64]]], read, locality<0>, data : memref<?xindex>
 // CHECK:         %[[jB_plus_32:.+]] = arith.addi %[[jB]], %c32 : index
-// CHECK:         %[[CMP:.+]] = arith.cmpi ult, %[[jB_plus_32]], %[[B2_pos_i_plus_1]] : index
-// CHECK:         %[[SEL:.+]] = arith.select %[[CMP]], %[[jB_plus_32]], %[[B2_pos_i_plus_1]] : index
+// CHECK:         %[[CMP:.+]] = arith.cmpi ult, %[[jB_plus_32]], %[[UPPERB]] : index
+// CHECK:         %[[SEL:.+]] = arith.select %[[CMP]], %[[jB_plus_32]], %[[UPPERB]] : index
 // CHECK:         %[[PREF:.+]] = memref.load %[[B2_crd]][%[[SEL]]] : memref<?xindex>
 // CHECK:         memref.prefetch %[[C_vals]][%[[PREF]]], read, locality<0>, data : memref<1024xf64>
 

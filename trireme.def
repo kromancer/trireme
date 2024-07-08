@@ -57,7 +57,7 @@ From: ubuntu:22.04
 
     cd llvm-project
 
-    git apply /mlir.sparse.prefetching.patch
+    git checkout d1c911ffe48e && git apply /mlir.sparse.prefetching.patch
 
     /opt/python/bin/python$VERSION_MAJOR -m venv venv
     . ./venv/bin/activate
