@@ -27,7 +27,7 @@ def get_common_arg_parser(with_density=True, with_output_check=True, num_dims=2)
 def get_spmv_arg_parser() -> ArgumentParser:
     parser = get_common_arg_parser(num_dims=2)
     parser.add_argument("-pd", "--prefetch-distance", type=int, default=32, help="Prefetch distance")
-    parser.add_argument("-l", "--locality-hint", type=int, choices=[0, 1, 2, 3], default=3,
+    parser.add_argument("-l", "--locality-hint", type=int, choices=[0, 1, 2, 3], default=0,
                         help="Temporal locality hint for prefetch instructions, "
                              "3 for maximum temporal locality, 0 for no temporal locality. "
                              "On x86, value 3 will produce PREFETCHT0, while value 0 will produce")

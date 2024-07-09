@@ -2,22 +2,22 @@
 
 source /home/paul/venv/bin/activate
 
-ROWS=2000
-COLS=150000000
+# For density 2^-13, the matrix will have ~2.5GB of values, ~36 per row
+# For density 2^-18, the matrix will have ~79MB of values, ~1 per row
+ROWS=300000
 
-python spmv.py benchmark -r $ROWS -c $COLS -d 0.0005 --repetitions 10
-python spmv.py benchmark -o pref-ains -r $ROWS -c $COLS -d 0.0005 --repetitions 10
+# The vector will be around 60MB ~2 x L3 cache
+COLS=9000000
 
-for L2_MSHRS in {1..400}; do
-    python spmv_multistage.py benchmark -r $ROWS -c $COLS --l2-mshrs "$L2_MSHRS" --disable-l1-ipp --disable-l1-npp --disable-l2-stream --disable-l2-amp --disable-llc-stream -d 0.0005 --repetitions 10
-done
+# START and END exponents
+START=-13
+END=-18
 
-ROWS=40000
-COLS=15000000
-
-python spmv.py benchmark -r $ROWS -c $COLS -d 0.0005 --repetitions 10
-python spmv.py benchmark -o pref-ains -r $ROWS -c $COLS -d 0.0005 --repetitions 10
-
-for L2_MSHRS in {1..400}; do
-    python spmv_multistage.py benchmark -r $ROWS -c $COLS --l2-mshrs "$L2_MSHRS" --disable-l1-ipp --disable-l1-npp --disable-l2-stream --disable-l2-amp --disable-llc-stream -d 0.0005 --repetitions 10
+i=$START
+while (( $(echo "$i >= $END" | bc -l) )); do
+    DENS=$(awk "BEGIN {print 2^$i}")
+    python spmv.py benchmark -i $ROWS -j $COLS -d $DENS --repetitions 10
+    python spmv.py benchmark -o pref-ains -i $ROWS -j $COLS -d $DENS --repetitions 10 --disable-l1-ipp --disable-l1-npp --disable-l2-stream --disable-l2-amp --disable-llc-stream
+    python spmv.py benchmark -o pref-mlir -i $ROWS -j $COLS -d $DENS --repetitions 10 --disable-l1-ipp --disable-l1-npp --disable-l2-stream --disable-l2-amp --disable-llc-stream
+    i=$(echo "$i - 0.5" | bc)
 done
