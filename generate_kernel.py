@@ -19,7 +19,7 @@ pipelines = {
     "no-opt":
     ["sparse-assembler",
      "sparse-reinterpret-map",
-     "sparsification{enable-runtime-library=false parallelization-strategy=any-storage-any-loop}",
+     "sparsification{enable-runtime-library=false}",
      "sparse-tensor-codegen",
      "func-bufferize",
      "reconcile-unrealized-casts",
@@ -35,7 +35,7 @@ pipelines = {
     "pref":
     ["sparse-assembler",
      "sparse-reinterpret-map",
-     "sparsification{enable-runtime-library=false parallelization-strategy=any-storage-any-loop enable-prefetches=true}",
+     "sparsification{enable-runtime-library=false enable-prefetches=true}",
      "sparse-tensor-codegen",
      "func-bufferize",
      "reconcile-unrealized-casts",
@@ -51,7 +51,7 @@ pipelines = {
     "vect-vl4":
     ["sparse-assembler",
      "sparse-reinterpret-map",
-     "sparsification{enable-runtime-library=false parallelization-strategy=any-storage-any-loop}",
+     "sparsification{enable-runtime-library=false}",
      "sparse-vectorization{vl=4}",
      "sparse-tensor-codegen",
      "func-bufferize",
