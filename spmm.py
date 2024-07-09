@@ -85,7 +85,8 @@ def main():
         with open(f"spmm.mlir", "w") as f:
             f.write(spmm)
         main = render_main_template(args.i, args.j)
-        llvm_mlir, _ = apply_passes(kernel="spmm", src=spmm, pipeline="pref" if args.enable_prefetches else "no-opt", main=main)
+        llvm_mlir, _ = apply_passes(kernel="spmm", src=spmm,
+                                    pipeline="pref" if args.enable_prefetches else "no-opt", main=main)
 
     exec_engine = create_exec_engine(llvm_mlir)
     if args.command == "benchmark":
