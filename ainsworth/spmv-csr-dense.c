@@ -2,6 +2,7 @@
 // taco "a(i) = B(i,j) * c(j)" -f=B:ds
 
 // Modified to remove references to `taco_tensor_t` by passing everything as func args
+// Removed 0 initialization of a
 
 int compute(double* restrict a_vals,
 	    int num_of_rows,
