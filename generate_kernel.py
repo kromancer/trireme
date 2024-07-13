@@ -215,7 +215,7 @@ def generate(module: ir.Module, kernel_name: str, translate_to_llvm_ir: bool = F
 def generate_spmv(rows: int, cols: int, enc: Encodings):
     with ir.Context() as ctx, ir.Location.unknown():
         module = make_spmv_mlir_module(rows, cols, enc)
-        generate(module, "spmv", translate_to_llvm_ir=True)
+        generate(module, f"spmv_{enc}", translate_to_llvm_ir=True)
 
 
 def generate_spmm(res_rows: int, res_cols: int, inner_dim: int, enc_first: Encodings, enc_other: Encodings):
@@ -230,7 +230,7 @@ def parse_args() -> argparse.Namespace:
 
     spmv_parser = argparse.ArgumentParser(add_help=False)
     add_dimension_args(spmv_parser, 2)
-    subparsers.add_parser("spmv", help="Sparse-Matrix X Dense-Vector (SpMV)",
+    subparsers.add_parser("spmv", help="Sparse-Matrix (CSR) X Dense-Vector (SpMV)",
                           parents=[spmv_parser])
 
     spmm_parser = argparse.ArgumentParser(add_help=False)
@@ -247,6 +247,7 @@ def main():
 
     if args.kernel == "spmv":
         generate_spmv(args.i, args.j, Encodings.CSR)
+        generate_spmv(args.i, args.j, Encodings.COO)
     elif args.kernel == "spmm":
         generate_spmm(args.i, args.j, args.k, Encodings.CSR, Encodings.CSR)
         generate_spmm(args.i, args.j, args.k, Encodings.COO, Encodings.COO)
