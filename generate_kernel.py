@@ -78,6 +78,7 @@ pipelines = {
      "canonicalize{max-iterations=10 max-num-rewrites=-1 region-simplify=normal test-convergence=false top-down=true}",
      "finalizing-bufferize",
      "convert-scf-to-openmp",
+     "convert-scf-to-cf",
      "expand-strided-metadata",
      "finalize-memref-to-llvm{index-bitwidth=0 use-aligned-alloc=false use-generic-functions=false}",
      "convert-func-to-llvm{index-bitwidth=0 use-bare-ptr-memref-call-conv=false}",
