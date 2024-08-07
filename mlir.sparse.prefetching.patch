@@ -1,4 +1,4 @@
-From 3b0e5acb5a6aa04fbbbf5f5119ce848a310d6a8c Mon Sep 17 00:00:00 2001
+From 22752554827eb8e907ccd71087351f8e950e2b8c Mon Sep 17 00:00:00 2001
 From: Konstantinos Sotiropoulos <konstantinos.sotiropoulos@chalmers.se>
 Date: Thu, 27 Jun 2024 11:09:09 +0200
 Subject: [PATCH] [mlir][sparse] Emit prefetches for indirect lds at
@@ -8,17 +8,17 @@ Subject: [PATCH] [mlir][sparse] Emit prefetches for indirect lds at
 - Add `enable-prefetches` opt to `sparsification` pass
 ---
  .../Dialect/SparseTensor/Pipelines/Passes.h   |  2 +-
- .../Dialect/SparseTensor/Transforms/Passes.h  | 11 ++--
+ .../Dialect/SparseTensor/Transforms/Passes.h  | 11 ++-
  .../Dialect/SparseTensor/Transforms/Passes.td |  2 +
  .../Transforms/SparseTensorPasses.cpp         |  3 +-
  .../Transforms/Sparsification.cpp             |  3 +-
  .../Transforms/Utils/CodegenEnv.cpp           |  4 +-
  .../Transforms/Utils/CodegenEnv.h             |  2 +-
- .../Transforms/Utils/LoopEmitter.cpp          | 58 ++++++++++++++++++-
- .../Transforms/Utils/LoopEmitter.h            |  7 ++-
- .../Transforms/Utils/SparseTensorIterator.cpp | 37 ++++++++++++
- .../Transforms/Utils/SparseTensorIterator.h   |  8 +++
- 11 files changed, 122 insertions(+), 15 deletions(-)
+ .../Transforms/Utils/LoopEmitter.cpp          | 77 ++++++++++++++++++-
+ .../Transforms/Utils/LoopEmitter.h            |  7 +-
+ .../Transforms/Utils/SparseTensorIterator.cpp | 41 +++++++++-
+ .../Transforms/Utils/SparseTensorIterator.h   |  6 ++
+ 11 files changed, 142 insertions(+), 16 deletions(-)
 
 diff --git a/mlir/include/mlir/Dialect/SparseTensor/Pipelines/Passes.h b/mlir/include/mlir/Dialect/SparseTensor/Pipelines/Passes.h
 index 90021ffa7c38..a38d53900d01 100644
@@ -148,7 +148,7 @@ index d69ae53fb0f2..eb434429d634 100644
    /// Generates loop boundary statements (entering/exiting loops). The function
    /// passes and updates the passed-in parameters.
 diff --git a/mlir/lib/Dialect/SparseTensor/Transforms/Utils/LoopEmitter.cpp b/mlir/lib/Dialect/SparseTensor/Transforms/Utils/LoopEmitter.cpp
-index 2be0193f0de8..b8ed01d4f899 100644
+index 2be0193f0de8..3f3d6eae657a 100644
 --- a/mlir/lib/Dialect/SparseTensor/Transforms/Utils/LoopEmitter.cpp
 +++ b/mlir/lib/Dialect/SparseTensor/Transforms/Utils/LoopEmitter.cpp
 @@ -116,19 +116,22 @@ static Value tryFoldTensors(Value t) {
@@ -176,7 +176,7 @@ index 2be0193f0de8..b8ed01d4f899 100644
  
    const unsigned numManifestTensors = ts.size();
    const unsigned synTensorId = numManifestTensors;
-@@ -686,9 +689,58 @@ Operation *LoopEmitter::enterCoIterationOverTensorsAtLvls(
+@@ -686,9 +689,77 @@ Operation *LoopEmitter::enterCoIterationOverTensorsAtLvls(
    }
  
    // Enter dense tensor levels.
@@ -196,24 +196,44 @@ index 2be0193f0de8..b8ed01d4f899 100644
 +
 +      const auto crdBuf = loadOp.getMemRef();
 +
-+      const auto stt = getSparseTensorType(tensors[it->tid]);
++      // Find out if the random access iterator corresponds to the last level
++      // of the tensor
++      auto stt = getSparseTensorType(tensors[it->tid]);
 +      const Level lvlRank = stt.getLvlRank();
 +      const bool isLastLvl = it->lvl >= lvlRank - 1;
-+      const unsigned prefDist = isLastLvl ? 32 : 1;
 +
-+      // Prefetch B2_crd[jB + 2 * dist]
-+      auto doubleDist = C_IDX(prefDist * 2);
-+      auto plusDoubleDist = ADDI(indices[0], doubleDist);
-+      builder.create<memref::PrefetchOp>(loc, crdBuf, plusDoubleDist.getResult(), false, 0, true);
++      // Find out if the current loop is the innermost loop
++      // If not, use a prefetch distance of 1.
++      // The numOfLoops of the linalg op is implicit, via the capacity of the
++      // loopStack vector
++      unsigned prefDist =
++          getCurrentDepth() >= loopStack.capacity() - 1 ? 32 : 1;
 +
-+      // Load B2_crd[min(j + dist, j_end)]
-+      auto dist = C_IDX(prefDist);
-+      auto plusDist = ADDI(indices[0], dist);
-+      auto cmp = CMPI(ult, plusDist, upperB);
-+      auto min = SELECT(cmp, plusDist, upperB);
-+      auto prefIdx = sparse_tensor::genIndexLoad(builder, loc, crdBuf, min.getResult());
++      Value loadIdx;
++      const auto spStt =
++          getSparseTensorType(tensors[spIters.front()->tid]);
++      if (!spStt.isUniqueLvl(spIters.front()->lvl) && prefDist == 1) {
++        // Prefetching scheme #1
++        // If the iterator used for generating the current loop
++        // is a DedupIterator then prefDist is segHigh,
++        // and there is no way to know how much is 2 x prefDist
++        loadIdx = spIters.front()->getCursor()[1];
++      } else {
++        // Prefetching scheme #2
++        auto doubleDist = C_IDX(prefDist * 2);
++        auto plusDoubleDist = ADDI(indices[0], doubleDist);
++        builder.create<memref::PrefetchOp>(loc, crdBuf, plusDoubleDist.getResult(), false, 0, true);
 +
-+      // Prefetch c_vals[B2_crd[%B2_crd_jB_plus_dist_or_pB2_end]]
++        auto dist = C_IDX(prefDist);
++        auto plusDist = ADDI(indices[0], dist);
++        auto cmp = CMPI(ult, plusDist, upperB);
++        loadIdx = SELECT(cmp, plusDist, upperB).getResult();
++      }
++
++      // Load A[i]
++      auto prefIdx = sparse_tensor::genIndexLoad(builder, loc, crdBuf, loadIdx);
++
++      // Prefetch B[A[i]]
 +      SmallVector<Value> prefIndices;
 +      bool isWrite = false;
 +      Value posOrValbuf;
@@ -227,9 +247,8 @@ index 2be0193f0de8..b8ed01d4f899 100644
 +        const auto &stl = *lvls[it->tid][it->lvl + 1];
 +        posOrValbuf = stl.getLvlBuffers()[0]; // Pos buffer
 +      }
-+
 +      prefIndices.push_back(prefIdx);
-+      builder.create<memref::PrefetchOp>(loc, posOrValbuf, prefIndices, isWrite, 0, true);
++      builder.create<memref::PrefetchOp>(loc, posOrValbuf, prefIndices, isWrite, 3, true);
 +    }
 +  }
 +
@@ -267,7 +286,7 @@ index 2a884b10e36b..f4a9a7f96708 100644
    //
    // Fields which have `numTensor` many entries.
 diff --git a/mlir/lib/Dialect/SparseTensor/Transforms/Utils/SparseTensorIterator.cpp b/mlir/lib/Dialect/SparseTensor/Transforms/Utils/SparseTensorIterator.cpp
-index ef95fcc84bd9..5c3824cbaba2 100644
+index ef95fcc84bd9..70729575015b 100644
 --- a/mlir/lib/Dialect/SparseTensor/Transforms/Utils/SparseTensorIterator.cpp
 +++ b/mlir/lib/Dialect/SparseTensor/Transforms/Utils/SparseTensorIterator.cpp
 @@ -102,6 +102,11 @@ public:
@@ -294,25 +313,26 @@ index ef95fcc84bd9..5c3824cbaba2 100644
  };
  
  class CompressedLevel : public SparseLevel</*hasPosBuf=*/true> {
-@@ -168,6 +178,17 @@ public:
+@@ -168,6 +178,18 @@ public:
      ValueRange posRange = posRangeIf.getResults();
      return {posRange.front(), posRange.back()};
    }
 +
 +  Value peekMaxPos(OpBuilder &b, Location l,
 +                   const SparseIterator *parent) const override {
-+    assert(parent && "Did not expected a null parent iterator");
++    if (parent == nullptr) {
++      return genIndexLoad(b, l, getPosBuf(), C_IDX(1));
++    }
 +
 +    SmallVector<Value> memCrd(parent->getBatchCrds());
 +    Value posHi = parent->upperBound(b, l);
 +    memCrd.push_back(posHi);
-+    Value maxPos = genIndexLoad(b, l, getPosBuf(), memCrd);
-+    return maxPos;
++    return genIndexLoad(b, l, getPosBuf(), memCrd);
 +  }
  }; // namespace
  
  class LooseCompressedLevel : public SparseLevel</*hasPosBuf=*/true> {
-@@ -190,6 +211,11 @@ public:
+@@ -190,6 +212,11 @@ public:
      Value pHi = genIndexLoad(b, l, getPosBuf(), memCrd);
      return {pLo, pHi};
    }
@@ -324,19 +344,20 @@ index ef95fcc84bd9..5c3824cbaba2 100644
  }; // namespace
  
  class SingletonLevel : public SparseLevel</*hasPosBuf=*/false> {
-@@ -211,6 +237,11 @@ public:
+@@ -211,6 +238,12 @@ public:
      return {p, segHi};
    }
  
 +  Value peekMaxPos(OpBuilder &b, Location l,
 +                   const SparseIterator *parent) const override {
-+    assert(false && "Not implemented");
++    assert(parent && "A singleton level must have a parent");
++    return parent->getMaxPos();
 +  }
 +
    ValuePair
    collapseRangeBetween(OpBuilder &b, Location l, ValueRange batchPrefix,
                         std::pair<Value, Value> parentRange) const override {
-@@ -235,6 +266,11 @@ public:
+@@ -235,6 +268,11 @@ public:
      Value posLo = MULI(parentPos.front(), C_IDX(n));
      return {posLo, ADDI(posLo, C_IDX(n))};
    }
@@ -348,7 +369,16 @@ index ef95fcc84bd9..5c3824cbaba2 100644
  };
  
  } // namespace
-@@ -1314,6 +1350,7 @@ void TrivialIterator::genInitImpl(OpBuilder &b, Location l,
+@@ -460,7 +498,7 @@ public:
+     Value posLo;
+     ValueRange batchPrefix = parent ? parent->getBatchCrds() : ValueRange{};
+     std::tie(posLo, posHi) = stl.peekRangeAt(b, l, batchPrefix, pPos);
+-
++    maxPos = stl.peekMaxPos(b, l, parent);
+     seek({posLo, genSegmentHigh(b, l, posLo)});
+   }
+ 
+@@ -1314,6 +1352,7 @@ void TrivialIterator::genInitImpl(OpBuilder &b, Location l,
  
    ValueRange batchPrefix = parent ? parent->getBatchCrds() : ValueRange{};
    std::tie(posLo, posHi) = stl.peekRangeAt(b, l, batchPrefix, pPos, inPadZone);
@@ -357,7 +387,7 @@ index ef95fcc84bd9..5c3824cbaba2 100644
    seek(posLo);
  }
 diff --git a/mlir/lib/Dialect/SparseTensor/Transforms/Utils/SparseTensorIterator.h b/mlir/lib/Dialect/SparseTensor/Transforms/Utils/SparseTensorIterator.h
-index 91f363db93f1..a862619f46be 100644
+index 91f363db93f1..dfa02a2351d7 100644
 --- a/mlir/lib/Dialect/SparseTensor/Transforms/Utils/SparseTensorIterator.h
 +++ b/mlir/lib/Dialect/SparseTensor/Transforms/Utils/SparseTensorIterator.h
 @@ -53,6 +53,9 @@ public:
@@ -374,21 +404,12 @@ index 91f363db93f1..a862619f46be 100644
    // it != it.end()).
    Value deref(OpBuilder &b, Location l);
  
-+  Value getMaxPos() { return maxPos; }
++  Value getMaxPos() const { return maxPos; }
 +
    // Actual Implementation provided by derived class.
    virtual void genInitImpl(OpBuilder &, Location, const SparseIterator *) = 0;
    virtual ValueRange forwardImpl(OpBuilder &b, Location l) = 0;
-@@ -279,6 +284,8 @@ public:
-   // instead of just one.
-   virtual ValueRange getCurPosition() const { return getCursor(); };
- 
-+  virtual Value getMaxPosition() const { llvm_unreachable("Unsupported"); }
-+
-   // Returns a pair of values for *upper*, *lower* bound respectively.
-   virtual std::pair<Value, Value> genForCond(OpBuilder &b, Location l) {
-     assert(randomAccessible());
-@@ -333,6 +340,7 @@ protected:
+@@ -333,6 +338,7 @@ protected:
  public:
    const IterKind kind;     // For LLVM-style RTTI.
    const unsigned tid, lvl; // tensor level identifier.

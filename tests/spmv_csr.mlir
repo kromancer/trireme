@@ -1,19 +1,19 @@
 // RUN: mlir-opt %s --sparsification=enable-prefetches | FileCheck %s
 
-// CHECK-DAG:  %[[C_vals:.+]] = bufferization.to_memref %arg1 : memref<1024xf64>
-// CHECK-DAG:  %[[B2_pos:.+]] = sparse_tensor.positions %[[B:.+]]   {level = 1 : index} : tensor<1024x1024xf64, #sparse> to memref<?xindex>
-// CHECK-DAG:  %[[B2_crd:.+]] = sparse_tensor.coordinates %[[B:.+]] {level = 1 : index} : tensor<1024x1024xf64, #sparse> to memref<?xindex>
+// CHECK-DAG:  %[[c:.+]] = bufferization.to_memref %arg1
+// CHECK-DAG:  %[[B2_pos:.+]] = sparse_tensor.positions
+// CHECK-DAG:  %[[B2_crd:.+]] = sparse_tensor.coordinates
 
 // Check inner loop for prefetching
-// CHECK:       %[[UPPERB:.+]] = memref.load %[[B2_pos]][%c1024] : memref<?xindex>
-// CHECK:       {{.+}} = scf.for %[[jB:.+]] = %[[B2_pos_i:.+]] to {{.*}} step %c1 iter_args({{.+}} = {{.+}}) -> (f64) {
-// CHECK-DAG:     %[[jB_plus_64:.+]] = arith.addi %[[jB]], %c64 : index
-// CHECK:         memref.prefetch %[[B2_crd]][%[[jB_plus_64]]], read, locality<0>, data : memref<?xindex>
-// CHECK:         %[[jB_plus_32:.+]] = arith.addi %[[jB]], %c32 : index
-// CHECK:         %[[CMP:.+]] = arith.cmpi ult, %[[jB_plus_32]], %[[UPPERB]] : index
-// CHECK:         %[[SEL:.+]] = arith.select %[[CMP]], %[[jB_plus_32]], %[[UPPERB]] : index
-// CHECK:         %[[PREF:.+]] = memref.load %[[B2_crd]][%[[SEL]]] : memref<?xindex>
-// CHECK:         memref.prefetch %[[C_vals]][%[[PREF]]], read, locality<0>, data : memref<1024xf64>
+// CHECK:      %[[upper:.+]] = memref.load %[[B2_pos]][%c1024]
+// CHECK:      {{.+}} = scf.for %[[jB:.+]] = %[[B2_pos_i:.+]] to {{.+}} step %c1 iter_args({{.+}} = {{.+}}) -> (f64) {
+// CHECK:      %[[jB_plus_2dist:.+]] = arith.addi %[[jB]]
+// CHECK-NEXT: memref.prefetch %[[B2_crd]][%[[jB_plus_2dist]]], read, locality<0>, data
+// CHECK-NEXT: %[[jB_plus_dist:.+]] = arith.addi %[[jB]]
+// CHECK-NEXT: %[[cmp:.+]] = arith.cmpi ult, %[[jB_plus_dist]], %[[upper]]
+// CHECK-NEXT: %[[sel:.+]] = arith.select %[[cmp]], %[[jB_plus_dist]], %[[upper]]
+// CHECK-NEXT: %[[pref:.+]] = memref.load %[[B2_crd]][%[[sel]]]
+// CHECK-NEXT: memref.prefetch %[[c]][%[[pref]]], read, locality<3>, data
 
 #map = affine_map<(d0, d1) -> (d0, d1)>
 #map1 = affine_map<(d0, d1) -> (d1)>

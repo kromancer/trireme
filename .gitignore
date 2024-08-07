@@ -18,3 +18,4 @@
 /matrix-storage-manager-config.json
 /graph-config.json
 /tests/output/
+/tests/.lit/
