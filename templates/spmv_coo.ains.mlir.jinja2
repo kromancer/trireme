@@ -1,7 +1,5 @@
 #COO = #sparse_tensor.encoding<{ map = (d0, d1) -> (d0 : compressed(nonunique), d1 : singleton(soa)) }>
 
-module {
-
 // Computes: a(i) = B(i,j) * c(j)
 func.func @spmv(%B: tensor<{{ rows }}x{{ cols }}xf64, #COO>,
                 %c_t: tensor<{{ cols }}xf64>,
@@ -109,5 +107,5 @@ func.func @spmv(%B: tensor<{{ rows }}x{{ cols }}xf64, #COO>,
     } attributes {"Emitted from" = "linalg.generic"}
     %10 = bufferization.to_tensor %a : memref<{{ rows }}xf64>
     return %10 : tensor<{{ rows }}xf64>
-  }
 }
+

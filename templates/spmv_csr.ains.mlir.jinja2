@@ -1,7 +1,5 @@
 #CSR = #sparse_tensor.encoding<{ map = (d0, d1) -> (d0: dense, d1: compressed) }>
 
-module {
-
 // Computes: a(i) = B(i,j) * c(j)
 func.func @spmv(%B: tensor<{{ rows }}x{{ cols }}xf64, #CSR>,
                 %c: tensor<{{ cols }}xf64>,
@@ -66,5 +64,4 @@ func.func @spmv(%B: tensor<{{ rows }}x{{ cols }}xf64, #CSR>,
 
     %5 = bufferization.to_tensor %a_buff restrict : memref<{{ rows }}xf64>
     return %5 : tensor<{{ rows }}xf64>
-}
 }
