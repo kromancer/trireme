@@ -3,28 +3,28 @@
 module {
 
 // Computes: a(i) = B(i,j) * c(j)
-func.func @spmv(%mat: tensor<{{ rows }}x{{ cols }}xf64, #CSR>,
-                %vec: tensor<{{ cols }}xf64>,
-                %res: tensor<{{ rows }}xf64>) -> tensor<{{ rows }}xf64> {
+func.func @spmv(%B: tensor<{{ rows }}x{{ cols }}xf64, #CSR>,
+                %c: tensor<{{ cols }}xf64>,
+                %a: tensor<{{ rows }}xf64>) -> tensor<{{ rows }}xf64> {
 
     %c3 = arith.constant {{ rows }} : index
     %c0 = arith.constant 0 : index
     %c1 = arith.constant 1 : index
     %c2 = arith.constant 2 : index
 
-    %B2_pos = sparse_tensor.positions %mat {level = 1 : index} : tensor<{{ rows }}x{{ cols }}xf64, #CSR> to memref<?xindex>
-    %B2_crd = sparse_tensor.coordinates %mat {level = 1 : index} : tensor<{{ rows }}x{{ cols }}xf64, #CSR> to memref<?xindex>
-    %B_vals = sparse_tensor.values %mat : tensor<{{ rows }}x{{ cols }}xf64, #CSR> to memref<?xf64>
+    %B2_pos = sparse_tensor.positions %B {level = 1 : index} : tensor<{{ rows }}x{{ cols }}xf64, #CSR> to memref<?xindex>
+    %B2_crd = sparse_tensor.coordinates %B {level = 1 : index} : tensor<{{ rows }}x{{ cols }}xf64, #CSR> to memref<?xindex>
+    %B_vals = sparse_tensor.values %B : tensor<{{ rows }}x{{ cols }}xf64, #CSR> to memref<?xf64>
 
-    %c_vals = bufferization.to_memref %vec : memref<{{ cols }}xf64>
-    %res_buff = bufferization.to_memref %res : memref<{{ rows }}xf64>
+    %c_vals = bufferization.to_memref %c : memref<{{ cols }}xf64>
+    %a_buff = bufferization.to_memref %a : memref<{{ rows }}xf64>
 
     // Fixed lookahead distance
     %dist = arith.constant {{ pd }} : index
     %double_dist = arith.muli %dist, %c2 : index
 
     scf.for %i = %c0 to %c3 step %c1 {
-        %6 = memref.load %res_buff[%i] : memref<{{ rows }}xf64>
+        %6 = memref.load %a_buff[%i] : memref<{{ rows }}xf64>
 
         // Load position of B2 segment start
         %pB2 = memref.load %B2_pos[%i] : memref<?xindex>
@@ -33,7 +33,7 @@ func.func @spmv(%mat: tensor<{{ rows }}x{{ cols }}xf64, #CSR>,
         %i_plus_one = arith.addi %i, %c1 : index
         %pB2_end = memref.load %B2_pos[%i_plus_one] : memref<?xindex>
 
-        %res_i = scf.for %jB = %pB2 to %pB2_end step %c1 iter_args(%arg5 = %6) -> (f64) {
+        %a_i = scf.for %jB = %pB2 to %pB2_end step %c1 iter_args(%arg5 = %6) -> (f64) {
 
             // Load B_vals[jB]
             %B_vals_jB = memref.load %B_vals[%jB] : memref<?xf64>
@@ -61,10 +61,10 @@ func.func @spmv(%mat: tensor<{{ rows }}x{{ cols }}xf64, #CSR>,
             scf.yield %15 : f64
         }
 
-        memref.store %res_i, %res_buff[%i] : memref<{{ rows }}xf64>
+        memref.store %a_i, %a_buff[%i] : memref<{{ rows }}xf64>
     }
 
-    %5 = bufferization.to_tensor %res_buff restrict : memref<{{ rows }}xf64>
+    %5 = bufferization.to_tensor %a_buff restrict : memref<{{ rows }}xf64>
     return %5 : tensor<{{ rows }}xf64>
 }
 }

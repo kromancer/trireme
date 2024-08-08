@@ -1,4 +1,4 @@
-from argparse import ArgumentParser, Namespace
+from argparse import Namespace
 import ctypes
 import json
 from os import getpid, killpg
