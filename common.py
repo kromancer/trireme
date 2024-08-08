@@ -20,7 +20,7 @@ from git import Repo
 import scipy.sparse as sp
 
 
-class Encodings(Enum):
+class SparseFormats(Enum):
     CSR = "csr"
     COO = "coo"
 

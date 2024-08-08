@@ -13,7 +13,7 @@ from mlir.dialects import sparse_tensor as st
 from mlir.passmanager import *
 
 from argument_parsers import add_dimension_args
-from common import Encodings, make_work_dir_and_cd_to_it
+from common import SparseFormats, make_work_dir_and_cd_to_it
 
 pipelines = {
     "no-opt":
@@ -131,8 +131,8 @@ def get_coo_encoding() -> st.EncodingAttr:
         "#sparse_tensor.encoding<{ map = (d0, d1) -> (d0 : compressed(nonunique), d1 : singleton(soa)) }>")
 
 
-get_encoding = {Encodings.CSR: get_csr_encoding,
-                Encodings.COO: get_coo_encoding}
+get_encoding = {SparseFormats.CSR: get_csr_encoding,
+                SparseFormats.COO: get_coo_encoding}
 
 
 @dsl.linalg_structured_op
@@ -144,7 +144,7 @@ def spmv_dsl(
     C[dsl.D.i] += A[dsl.D.i, dsl.D.j] * B[dsl.D.j]
 
 
-def make_spmv_mlir_module(rows: int, cols: int, enc: Encodings) -> ir.Module:
+def make_spmv_mlir_module(rows: int, cols: int, enc: SparseFormats) -> ir.Module:
     module = ir.Module.create()
     f64 = ir.F64Type.get()
     a = ir.RankedTensorType.get([rows, cols], f64, get_encoding[enc]())
@@ -169,7 +169,7 @@ def spmm_dsl(
     A[dsl.D.i, dsl.D.j] += B[dsl.D.i, dsl.D.k] * C[dsl.D.k, dsl.D.j]
 
 
-def make_spmm_mlir_module(res_rows: int, res_cols: int, inner_dim: int, enc_first: Encodings, enc_other: Encodings) -> ir.Module:
+def make_spmm_mlir_module(res_rows: int, res_cols: int, inner_dim: int, enc_first: SparseFormats, enc_other: SparseFormats) -> ir.Module:
     module = ir.Module.create()
     f64 = ir.F64Type.get()
     A = ir.RankedTensorType.get([res_rows, res_cols], f64)
@@ -213,13 +213,13 @@ def generate(module: ir.Module, kernel_name: str, translate_to_llvm_ir: bool = F
                 run(translate_cmd, check=True)
 
 
-def generate_spmv(rows: int, cols: int, enc: Encodings):
+def generate_spmv(rows: int, cols: int, enc: SparseFormats):
     with ir.Context() as ctx, ir.Location.unknown():
         module = make_spmv_mlir_module(rows, cols, enc)
         generate(module, f"spmv_{enc}", translate_to_llvm_ir=True)
 
 
-def generate_spmm(res_rows: int, res_cols: int, inner_dim: int, enc_first: Encodings, enc_other: Encodings):
+def generate_spmm(res_rows: int, res_cols: int, inner_dim: int, enc_first: SparseFormats, enc_other: SparseFormats):
     with ir.Context() as ctx, ir.Location.unknown():
         module = make_spmm_mlir_module(res_rows, res_cols, inner_dim, enc_first, enc_other)
         generate(module, f"spmm_{enc_first}_{enc_other}", translate_to_llvm_ir=True)
@@ -247,11 +247,11 @@ def main():
     make_work_dir_and_cd_to_it(__file__)
 
     if args.kernel == "spmv":
-        generate_spmv(args.i, args.j, Encodings.CSR)
-        generate_spmv(args.i, args.j, Encodings.COO)
+        generate_spmv(args.i, args.j, SparseFormats.CSR)
+        generate_spmv(args.i, args.j, SparseFormats.COO)
     elif args.kernel == "spmm":
-        generate_spmm(args.i, args.j, args.k, Encodings.CSR, Encodings.CSR)
-        generate_spmm(args.i, args.j, args.k, Encodings.COO, Encodings.COO)
+        generate_spmm(args.i, args.j, args.k, SparseFormats.CSR, SparseFormats.CSR)
+        generate_spmm(args.i, args.j, args.k, SparseFormats.COO, SparseFormats.COO)
 
 
 if __name__ == "__main__":

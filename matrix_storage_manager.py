@@ -1,20 +1,32 @@
 from pathlib import Path
 import tempfile
-from typing import Tuple, Union
+from typing import List, Tuple, Union
 
 import numpy as np
 import scipy.sparse as sp
 
-from common import Encodings, timeit, print_size, read_config
+from common import SparseFormats, timeit, print_size, read_config
 from singleton_metaclass import SingletonMeta
 
 
-def create_sparse_mat(rows: int, cols: int, density: float, form: Encodings = Encodings.COO) -> sp.sparray:
-    m = MatrixStorageManager()
-    return m.create_sparse_mat(rows, cols, density, form)
+def create_sparse_mat(rows: int, cols: int, density: float, form: SparseFormats = SparseFormats.COO) -> sp.sparray:
+    return MatrixStorageManager().create_sparse_mat(rows, cols, density, form)
 
 
-def create_sparse_mat_and_dense_vec(rows: int, cols: int, density: float, form: Encodings = Encodings.COO) -> Tuple[sp.sparray, np.ndarray]:
+def get_storage_buffers(mat: sp.sparray, format: SparseFormats) -> List[np.array]:
+    if format == SparseFormats.CSR:
+        mat: sp.csr_array
+        return [mat.indptr, mat.indices, mat.data]
+    elif format == SparseFormats.COO:
+        mat: sp.coo_array
+        pos = np.array([0, mat.nnz])
+        return [pos, mat.row, mat.col, mat.data]
+    else:
+        assert False, "Unknown format"
+
+
+def create_sparse_mat_and_dense_vec(rows: int, cols: int, density: float,
+                                    form: SparseFormats = SparseFormats.COO) -> Tuple[sp.sparray, np.ndarray]:
     m = MatrixStorageManager()
     return m.create_sparse_mat(rows, cols, density, form), m.create_dense_vec(cols)
 
@@ -50,21 +62,24 @@ class MatrixStorageManager(metaclass=SingletonMeta):
         return self.directory / f"{prefix}_{params}.npz"
 
     @timeit
-    def create_sparse_mat(self, rows: int, cols: int, density: float, form: Encodings = Encodings.COO) -> Union[sp.coo_array, sp.csr_array]:
+    def create_sparse_mat(self, rows: int, cols: int, density: float, form: SparseFormats = SparseFormats.COO) -> Union[sp.coo_array, sp.csr_array]:
 
         file_path = self._file_path('sparse_matrix', rows=rows, cols=cols, density=density, format=form)
         if file_path.exists() and not self.skip_load:
             return sp.load_npz(file_path)
 
-        sparse_mat = sp.random_array((rows, cols), density=density, dtype=np.float64, format=form.value, random_state=self.rng)
+        m: sp.csr_array = sp.random_array((rows, cols), density=density, dtype=np.float64, format="csr", random_state=self.rng)
+
+        if form == SparseFormats.COO:
+            m = m.tocoo()
 
         if not self.skip_load:
-            sp.save_npz(file_path, sparse_mat)
+            sp.save_npz(file_path, m)
 
         print(f"sparse matrix: non-zero values size: {print_size(rows * cols * density * np.float64().itemsize)}, "
               f"density: {density * 100}%{', saved as' + str(file_path) if not self.skip_load else ''}")
 
-        return sparse_mat
+        return m
 
     @timeit
     def create_dense_vec(self, size: int) -> np.ndarray:

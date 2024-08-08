@@ -12,7 +12,7 @@
 //CHECK:      %[[pref:.+]] = memref.load %[[Bi_crd]][%[[seg_end]]]
 //CHECK-NEXT: memref.prefetch %[[a]][%[[pref]]], write, locality<3>, data
 
-// prefetch for reads on c[Bi_crd[iB]]
+// prefetch for reads on c[Bj_crd[iB]]
 //CHECK:      scf.for %[[iB:.+]] = %[[seg_start]] to %[[seg_end]]
 //CHECK:      %[[iB_plus_2dist:.+]] = arith.addi %[[iB]]
 //CHECK-NEXT: memref.prefetch %[[Bj_crd]][%[[iB_plus_2dist]]], read, locality<0>, data

@@ -12,7 +12,7 @@ from mlir import ir
 
 from argument_parsers import add_parser_for_benchmark, get_spmm_arg_parser
 from decorators import benchmark
-from common import Encodings, make_work_dir_and_cd_to_it
+from common import SparseFormats, make_work_dir_and_cd_to_it
 from matrix_storage_manager import create_sparse_mat
 from mlir_exec_engine import create_exec_engine
 from generate_kernel import apply_passes, make_spmm_mlir_module
@@ -74,10 +74,10 @@ def main():
     args = parse_args()
     make_work_dir_and_cd_to_it(__file__)
 
-    enc_B = Encodings.CSR
+    enc_B = SparseFormats.CSR
     B = create_sparse_mat(args.i, args.k, args.density, enc_B)
 
-    enc_C = Encodings.CSR
+    enc_C = SparseFormats.CSR
     C = create_sparse_mat(args.k, args.j, args.density, enc_C)
 
     with ir.Context(), ir.Location.unknown():
