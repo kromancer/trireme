@@ -1,4 +1,5 @@
 import argparse
+from contextlib import contextmanager
 import ctypes
 from datetime import datetime
 from enum import Enum
@@ -12,7 +13,7 @@ from shutil import rmtree, which
 from socket import gethostname
 from subprocess import run
 import sys
-from tempfile import TemporaryFile
+from tempfile import TemporaryDirectory, TemporaryFile
 from time import time
 from typing import Any, Callable, List, Optional, Tuple, Union
 
@@ -98,7 +99,6 @@ def read_config(file: str, key: str) -> Optional[Union[int, str, List[str]]]:
     cfg = None
     try:
         with open(cfg_file, "r") as f:
-            print(f"Reading config {cfg_file} for {key}")
             cfg = json.load(f)[key]
     except FileNotFoundError:
         print(f"No {file} in {script_dir}")
@@ -234,3 +234,20 @@ def run_spmv_as_foreign_fun(lib_path: Path, mat: sp.csr_array, vec: np.ndarray) 
                                                         mat.indptr, mat.indices, result_buff)
 
     return result_buff, stdout, elapsed_wtime
+
+
+@contextmanager
+def change_dir(destination: Path = None):
+    current_dir = Path.cwd()
+    temp_dir = None
+
+    try:
+        if destination is None:
+            temp_dir = TemporaryDirectory()
+            destination = Path(temp_dir.name)
+        chdir(destination)
+        yield
+    finally:
+        chdir(current_dir)
+        if temp_dir is not None:
+            temp_dir.cleanup()

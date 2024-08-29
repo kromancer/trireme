@@ -6,6 +6,8 @@ from pathlib import Path
 from subprocess import run
 from typing import Optional, Tuple
 
+import numpy as np
+
 from mlir import ir
 from mlir.dialects import func
 from mlir.dialects.linalg.opdsl import lang as dsl
@@ -86,12 +88,25 @@ pipelines = {
      "reconcile-unrealized-casts"]
 }
 
+# defer execution by using lambdas, requires an active MLIR "Context"
+np_to_mlir_type = {
+    np.dtype("float64"): lambda: ir.F64Type.get(),
+    np.dtype("int32"): lambda: ir.IntegerType.get_signed(32),
+    np.dtype("int64"): lambda: ir.IntegerType.get_signed(64)
+}
 
-def apply_passes(src: str, kernel: str, pipeline: str, main: Optional[str] = None) -> Tuple[ir.Module, str]:
+
+def apply_passes(src: str, kernel: str, pipeline: str, main_fun: Optional[str] = None,
+                 index_type: np.dtype = np.dtype("int64")) -> Tuple[ir.Module, str]:
     out_file_name: str
 
     def run_pass(mlir_opt_pass: str):
         nonlocal module
+
+        # Adapt the width of the index type
+        if "index-bitwidth" in mlir_opt_pass:
+            mlir_opt_pass = mlir_opt_pass.replace("index-bitwidth=0",
+                                                  f"index-bitwidth={np_to_mlir_type[index_type]().width}")
 
         run_pass.call_count += 1
         try:
@@ -103,9 +118,9 @@ def apply_passes(src: str, kernel: str, pipeline: str, main: Optional[str] = Non
         out = f"{kernel}.{run_pass.call_count}.{mlir_opt_pass}.mlir"
 
         # Inject main after the "sparse-assembler" pass
-        if mlir_opt_pass == "sparse-assembler" and main is not None:
+        if mlir_opt_pass.startswith("sparse-assembler") and main_fun is not None:
             ops = "".join([str(o.operation) for o in module.operation.regions[0].blocks[0].operations])
-            module = ir.Module.parse(ops + main)
+            module = ir.Module.parse(ops + main_fun)
 
         with open(out, "w") as f:
             f.write(str(module))
@@ -143,12 +158,12 @@ def spmv_dsl(
     C[dsl.D.i] += A[dsl.D.i, dsl.D.j] * B[dsl.D.j]
 
 
-def make_spmv_mlir_module(rows: int, cols: int, enc: SparseFormats) -> ir.Module:
+def make_spmv_mlir_module(rows: int, cols: int, enc: SparseFormats, t: np.dtype = np.dtype("float64")) -> ir.Module:
     module = ir.Module.create()
-    f64 = ir.F64Type.get()
-    a = ir.RankedTensorType.get([rows, cols], f64, get_encoding[enc]())
-    b = ir.RankedTensorType.get([cols], f64)
-    c = ir.RankedTensorType.get([rows], f64)
+    t = np_to_mlir_type[t]()
+    a = ir.RankedTensorType.get([rows, cols], t, get_encoding[enc]())
+    b = ir.RankedTensorType.get([cols], t)
+    c = ir.RankedTensorType.get([rows], t)
     arguments = [a, b, c]
     with ir.InsertionPoint(module.body):
 

@@ -13,7 +13,7 @@ from mlir import ir
 from argument_parsers import add_parser_for_benchmark, get_spmm_arg_parser
 from decorators import benchmark
 from common import SparseFormats, make_work_dir_and_cd_to_it
-from matrix_storage_manager import create_sparse_mat
+from input_manager import create_sparse_mat
 from mlir_exec_engine import create_exec_engine
 from generate_kernel import apply_passes, make_spmm_mlir_module
 
@@ -86,7 +86,7 @@ def main():
             f.write(spmm)
         main = render_main_template(args.i, args.j)
         llvm_mlir, _ = apply_passes(kernel="spmm", src=spmm,
-                                    pipeline="pref" if args.enable_prefetches else "no-opt", main=main)
+                                    pipeline="pref" if args.enable_prefetches else "no-opt", main_fun=main)
 
     exec_engine = create_exec_engine(llvm_mlir)
     if args.command == "benchmark":

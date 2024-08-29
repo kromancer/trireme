@@ -15,7 +15,7 @@
 **/.cache/
 **/build/
 **/.idea/
-/matrix-storage-manager-config.json
+/input-manager-config.json
 /graph-config.json
 /tests/output/
 /tests/.lit/
