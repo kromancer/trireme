@@ -8,3 +8,4 @@ matplotlib
 lit
 requests
 numpy
+tqdm

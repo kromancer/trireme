@@ -22,6 +22,13 @@ from input_manager import InputManager, get_storage_buffers
 from mlir_exec_engine import create_exec_engine
 from np_to_memref import make_nd_memref_descriptor
 
+to_mlir_type = {
+    "float64": "f64",
+    "float32": "f32",
+    "int64": "i64",
+    "int32": "i32"
+}
+
 
 def get_jinja() -> jinja2.Environment:
     template_dir = Path(__file__).parent.resolve() / "templates"
@@ -33,7 +40,7 @@ def render_template_for_main(args: argparse.Namespace) -> str:
 
     # Function "main" will be injected after the sparse-assembler pass
     main_template = jinja.get_template(f"spmv_{args.matrix_format}.main.mlir.jinja2")
-    return main_template.render(rows=args.i, cols=args.j)
+    return main_template.render(rows=args.i, cols=args.j, dtype=to_mlir_type[args.dtype])
 
 
 def render_template_for_spmv(args: argparse.Namespace) -> str:
@@ -44,7 +51,7 @@ def render_template_for_spmv(args: argparse.Namespace) -> str:
     jinja = get_jinja()
     spmv_template = jinja.get_template(template_names[args.optimization])
     spmv_rendered = spmv_template.render(rows=args.i, cols=args.j, pd=args.prefetch_distance,
-                                         loc_hint=args.locality_hint)
+                                         loc_hint=args.locality_hint, dtype=to_mlir_type[args.dtype])
 
     return spmv_rendered
 
@@ -123,9 +130,7 @@ def main():
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="(Sparse Matrix)x(Dense Vector) Multiplication (SpMV), "
-                                                 "baseline and state-of-the-art sw prefetching, "
-                                                 "from manually generated MLIR templates")
+    parser = argparse.ArgumentParser(description="(Sparse Matrix)x(Dense Vector) Multiplication (SpMV) with MLIR")
 
     # common arguments
     parser.add_argument("-o", "--optimization",

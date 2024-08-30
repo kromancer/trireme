@@ -1,11 +1,10 @@
-import os
 from pathlib import Path
+from typing import List
 
 import pandas as pd
 import requests
-from scipy.sparse import coo_matrix
 
-from common import change_dir, read_config
+from common import change_dir
 
 url_base = "https://sparse.tamu.edu"
 
@@ -20,6 +19,11 @@ def get_index() -> pd.DataFrame:
 
     # Load the CSV file into a DataFrame, skipping the first two lines
     return pd.read_csv(url_csv, sep=",", skiprows=2, header=None, names=column_headers)
+
+
+def get_all_suitesparse_matrix_names() -> List[str]:
+    df = get_index()
+    return df["name"].values.tolist()
 
 
 def get_all_suitesparse_matrices(dir: Path):

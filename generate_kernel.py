@@ -91,8 +91,8 @@ pipelines = {
 # defer execution by using lambdas, requires an active MLIR "Context"
 np_to_mlir_type = {
     np.dtype("float64"): lambda: ir.F64Type.get(),
-    np.dtype("int32"): lambda: ir.IntegerType.get_signed(32),
-    np.dtype("int64"): lambda: ir.IntegerType.get_signed(64)
+    np.dtype("int32"): lambda: ir.IntegerType.get_signless(32),
+    np.dtype("int64"): lambda: ir.IntegerType.get_signless(64)
 }
 
 

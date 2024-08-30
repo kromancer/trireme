@@ -33,7 +33,7 @@ class InputManager:
         # non-optional fields will be explicitly set by this module if input is SuiteSparse
         i: int
         j: int
-        val_type: str
+        dtype: str
         density: Optional[float]
         # if input source is from SuiteSparse:
         name: Optional[str]
@@ -77,15 +77,21 @@ class InputManager:
     @timeit
     def create_dense_vec(self) -> np.ndarray:
         size = self.args.j
-        vtype = self.args.val_type
-        file_path = self.file_path('dense_vector', size=size, vtype=vtype)
+        dtype = self.args.dtype
+        file_path = self.file_path('dense_vector', size=size, dtype=dtype)
         if file_path.exists() and not self.skip_load:
             return np.load(file_path)['arr_0']
 
-        dense_vec: np.ndarray = self.rng.random(size, dtype=np.dtype(vtype))
+        if np.issubdtype(dtype, np.integer):
+            dense_vec = self.rng.integers(0, high=100, size=size, dtype=dtype)
+        elif np.issubdtype(dtype, np.floating):
+            # Generate random floats if dtype is a floating-point type
+            dense_vec = self.rng.random(size=size, dtype=dtype)
+        else:
+            raise ValueError(f"Unsupported dtype: {dtype}")
+
         if not self.skip_store:
             np.savez_compressed(file_path, dense_vec)
-
         print(f"vector: size: {print_size(size * np.float64().itemsize)}"
               f"{', saved as' + str(file_path) if not self.skip_store else ''}")
 
@@ -95,7 +101,7 @@ class InputManager:
         i = self.args.i
         j = self.args.j
         dens = self.args.density
-        vtype = self.args.val_type
+        vtype = self.args.dtype
         m_f = SparseFormats(self.args.matrix_format)
         file_path = self.file_path('sparse_matrix', i=i, j=j, dens=dens, form=m_f, vtype=vtype)
         if not self.skip_load and file_path.exists():
@@ -131,7 +137,7 @@ class InputManager:
                 m = sp.coo_array(mmread(mtx_file)).tocsr()
 
         self.args.i, self.args.j = m.shape
-        self.args.val_type = m.dtype.name
+        self.args.dtype = m.dtype.name
         if m_f == SparseFormats.COO:
             m: sp.coo_array = m.tocoo()
         return m
