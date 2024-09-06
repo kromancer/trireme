@@ -79,8 +79,6 @@ def parse_perf_stat_json_output(report: str) -> List[Dict]:
 
 
 def profile(exec_engine: ExecutionEngine, args: Namespace) -> Callable[[RunFuncType], RunFuncType]:
-    assert hasattr(args, 'analysis'), "The args namespace must contain 'analysis'."
-
     profiler: Popen
     profile_cmd = []
     report = "report.txt"

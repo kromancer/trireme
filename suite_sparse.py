@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import List
+from typing import Dict, List
 
 import pandas as pd
 import requests
@@ -24,6 +24,11 @@ def get_index() -> pd.DataFrame:
 def get_all_suitesparse_matrix_names() -> List[str]:
     df = get_index()
     return df["name"].values.tolist()
+
+
+def get_all_suitesparse_matrix_names_with_nnz() -> Dict[str, int]:
+    df = get_index()
+    return dict(zip(df["name"], df["num_of_entries"]))
 
 
 def get_all_suitesparse_matrices(dir: Path):

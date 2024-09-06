@@ -1,5 +1,5 @@
 {
-    "events": [
+    "events_detailed": [
         "cycles:u",
         "mem_inst_retired.all_loads:u",
         "offcore_requests.data_rd:u",
@@ -31,5 +31,9 @@
         "cycle_activity.stalls_l3_miss:u",
         "cycle_activity.stalls_l2_miss:u",
         "cycle_activity.stalls_l1d_miss:u"
+    ],
+    "events": [
+        "cycles:u",
+        "mem_load_retired.l3_miss:u"
     ]
 }

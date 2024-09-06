@@ -17,7 +17,7 @@ def main():
     with tqdm(total=len(matrix_names), desc="spmv on SuiteSparse") as pbar:
         for matrix in matrix_names:
             pbar.set_description(f"spmv on {matrix}")
-            command = ["python", "spmv.py", opt, "--check-output", "--matrix-format", f"{args.matrix_format}",
+            command = ["python", "spmv.py", *opt, "--check-output", "--matrix-format", f"{args.matrix_format}",
                        "benchmark", "--repetitions", "10", "SuiteSparse", matrix]
             run(command, stdout=DEVNULL, text=True)
             pbar.update(1)

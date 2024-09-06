@@ -1,4 +1,3 @@
-import csv
 import json
 from pathlib import Path
 import re
@@ -9,6 +8,7 @@ import matplotlib.pyplot as plt
 
 from common import append_result_to_db
 from vtune import plot_observed_max_bandwidth, plot_event
+from suite_sparse import get_all_suitesparse_matrix_names_with_nnz
 
 
 def filtered_by_median(data) -> List[int]:
@@ -71,19 +71,35 @@ def save_hw_event_report_to_csv(log: str, args_re: str) -> Path:
 
 def plot_mean_exec_times(logs: List[Dict], series: Dict) -> None:
     means = [log['mean_ms'] for log in logs]
-    x_values = list(range(series['x_start'], series['x_start'] + len(means)))
+
+    x_vals = list(range(series['x_start'], series['x_start'] + len(means)))
 
     # Find the minimum value and its index
     min_value = min(means)
     min_index = means.index(min_value)
 
     # Calculate the actual x value for the minimum point
-    min_x_value = x_values[min_index]
+    min_x_value = x_vals[min_index]
 
     # Highlight the minimum point
     plt.scatter(min_x_value, min_value, color='red', s=20, zorder=5)
 
-    plt.plot(x_values, means, label=series['label'] + f", min({min_x_value:.0f}, {min_value:.0f})")
+    plt.plot(x_vals, means, label=series['label'] + f", min({min_x_value:.0f}, {min_value:.0f})")
+
+
+def plot_mean_exec_times_ss(logs: List[Dict], series: Dict) -> None:
+    """
+    Plot mean exec times for SparseSuite matrices
+    X-axis is the number of non-zero elements of the matrix
+    """
+    m_names = [re.search(r'SuiteSparse\s+(\S+)', log['args']).group(1) for log in logs]
+    names_to_nnz = get_all_suitesparse_matrix_names_with_nnz()
+    x_vals = [names_to_nnz[n] for n in m_names]
+
+    means = [log['mean_ms'] for log in logs]
+    plt.scatter(x_vals, means, label=series['label'], s=5)
+    plt.xscale("log")
+    plt.yscale("log")
 
 
 def main():
@@ -102,7 +118,8 @@ def main():
         {
             "plot_mean_exec_times": plot_mean_exec_times,
             "plot_observed_max_bandwidth": plot_observed_max_bandwidth,
-            "plot_event": plot_event
+            "plot_event": plot_event,
+            "plot_mean_exec_times_ss": plot_mean_exec_times_ss
         }[series["plot_method"]](logs, series)
 
     if "baselines" in config:
