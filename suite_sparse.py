@@ -21,8 +21,12 @@ def get_index() -> pd.DataFrame:
     return pd.read_csv(url_csv, sep=",", skiprows=2, header=None, names=column_headers)
 
 
-def get_all_suitesparse_matrix_names() -> List[str]:
+def get_all_suitesparse_matrix_names(is_real: bool = None) -> List[str]:
     df = get_index()
+
+    if is_real is not None:
+        df = df[df["is_real"] == int(is_real)]
+
     return df["name"].values.tolist()
 
 
