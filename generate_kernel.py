@@ -135,6 +135,11 @@ def apply_passes(src: str, kernel: str, pipeline: str, main_fun: Optional[str] =
     return module, out_file_name
 
 
+def get_compressed_vec_encoding() -> st.EncodingAttr:
+    return st.EncodingAttr.parse(
+        "#sparse_tensor.encoding<{ map = (d0) -> (d0 : compressed) }>")
+
+
 def get_csr_encoding() -> st.EncodingAttr:
     return st.EncodingAttr.parse(
         "#sparse_tensor.encoding<{ map = (d0, d1) -> (d0 : dense, d1 : compressed) }>")
@@ -147,6 +152,31 @@ def get_coo_encoding() -> st.EncodingAttr:
 
 get_encoding = {SparseFormats.CSR: get_csr_encoding,
                 SparseFormats.COO: get_coo_encoding}
+
+
+@dsl.linalg_structured_op
+def spvv_dsl(
+    a=dsl.TensorDef(dsl.T, dsl.S.I),
+    b=dsl.TensorDef(dsl.T, dsl.S.I),
+    c=dsl.TensorDef(dsl.T, output=True)
+):
+    c[None] += a[dsl.D.i] * b[dsl.D.i]
+
+
+def make_spvv_mlir_module(size: int, t: np.dtype = np.dtype("float64")) -> ir.Module:
+    module = ir.Module.create()
+    t = np_to_mlir_type[t]()
+    a = ir.RankedTensorType.get([size], t, get_compressed_vec_encoding())
+    b = ir.RankedTensorType.get([size], t, get_compressed_vec_encoding())
+    c = ir.RankedTensorType.get([], t)
+    arguments = [a, b, c]
+    with ir.InsertionPoint(module.body):
+
+        @func.FuncOp.from_py_func(*arguments)
+        def spvv(*args):
+            return spvv_dsl(args[0], args[1], outs=[args[2]])
+
+    return module
 
 
 @dsl.linalg_structured_op
@@ -227,6 +257,12 @@ def generate(module: ir.Module, kernel_name: str, translate_to_llvm_ir: bool = F
                 run(translate_cmd, check=True)
 
 
+def generate_spvv(size: int):
+    with ir.Context() as ctx, ir.Location.unknown():
+        module = make_spvv_mlir_module(size)
+        generate(module, f"spvv", translate_to_llvm_ir=True)
+
+
 def generate_spmv(rows: int, cols: int, enc: SparseFormats):
     with ir.Context() as ctx, ir.Location.unknown():
         module = make_spmv_mlir_module(rows, cols, enc)
@@ -243,9 +279,14 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Generate mlir, from the linalg to the llvm dialect, for given kernel")
     subparsers = parser.add_subparsers(dest="kernel", help="Which kernel to generate")
 
+    spvv_parser = argparse.ArgumentParser(add_help=False)
+    add_dimension_args(spvv_parser, 1)
+    subparsers.add_parser("spvv", help="Sparse-Vector X Sparse-Vector (SpVV)",
+                          parents=[spvv_parser])
+
     spmv_parser = argparse.ArgumentParser(add_help=False)
     add_dimension_args(spmv_parser, 2)
-    subparsers.add_parser("spmv", help="Sparse-Matrix (CSR) X Dense-Vector (SpMV)",
+    subparsers.add_parser("spmv", help="Sparse-Matrix X Dense-Vector (SpMV)",
                           parents=[spmv_parser])
 
     spmm_parser = argparse.ArgumentParser(add_help=False)
@@ -260,6 +301,8 @@ def main():
     args = parse_args()
     make_work_dir_and_cd_to_it(__file__)
 
+    if args.kernel == "spvv":
+        generate_spvv(args.i)
     if args.kernel == "spmv":
         generate_spmv(args.i, args.j, SparseFormats.CSR)
         generate_spmv(args.i, args.j, SparseFormats.COO)
