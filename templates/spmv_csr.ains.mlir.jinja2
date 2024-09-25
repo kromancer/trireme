@@ -1,28 +1,28 @@
 #CSR = #sparse_tensor.encoding<{ map = (d0, d1) -> (d0: dense, d1: compressed) }>
 
 // Computes: a(i) = B(i,j) * c(j)
-func.func @spmv(%B: tensor<{{ rows }}x{{ cols }}xf64, #CSR>,
-                %c: tensor<{{ cols }}xf64>,
-                %a: tensor<{{ rows }}xf64>) -> tensor<{{ rows }}xf64> {
+func.func @spmv(%a: tensor<{{ rows }}x{{ dtype }}>,
+                %B: tensor<{{ rows }}x{{ cols }}x{{ dtype }}, #CSR>,
+                %c: tensor<{{ cols }}x{{ dtype }}>) -> tensor<{{ rows }}x{{ dtype }}> {
 
     %c3 = arith.constant {{ rows }} : index
     %c0 = arith.constant 0 : index
     %c1 = arith.constant 1 : index
     %c2 = arith.constant 2 : index
 
-    %B2_pos = sparse_tensor.positions %B {level = 1 : index} : tensor<{{ rows }}x{{ cols }}xf64, #CSR> to memref<?xindex>
-    %B2_crd = sparse_tensor.coordinates %B {level = 1 : index} : tensor<{{ rows }}x{{ cols }}xf64, #CSR> to memref<?xindex>
-    %B_vals = sparse_tensor.values %B : tensor<{{ rows }}x{{ cols }}xf64, #CSR> to memref<?xf64>
+    %B2_pos = sparse_tensor.positions %B {level = 1 : index} : tensor<{{ rows }}x{{ cols }}x{{ dtype }}, #CSR> to memref<?xindex>
+    %B2_crd = sparse_tensor.coordinates %B {level = 1 : index} : tensor<{{ rows }}x{{ cols }}x{{ dtype }}, #CSR> to memref<?xindex>
+    %B_vals = sparse_tensor.values %B : tensor<{{ rows }}x{{ cols }}x{{ dtype }}, #CSR> to memref<?x{{ dtype }}>
 
-    %c_vals = bufferization.to_memref %c : memref<{{ cols }}xf64>
-    %a_buff = bufferization.to_memref %a : memref<{{ rows }}xf64>
+    %c_vals = bufferization.to_memref %c : memref<{{ cols }}x{{ dtype }}>
+    %a_buff = bufferization.to_memref %a : memref<{{ rows }}x{{ dtype }}>
 
     // Fixed lookahead distance
     %dist = arith.constant {{ pd }} : index
     %double_dist = arith.muli %dist, %c2 : index
 
     scf.for %i = %c0 to %c3 step %c1 {
-        %6 = memref.load %a_buff[%i] : memref<{{ rows }}xf64>
+        %6 = memref.load %a_buff[%i] : memref<{{ rows }}x{{ dtype }}>
 
         // Load position of B2 segment start
         %pB2 = memref.load %B2_pos[%i] : memref<?xindex>
@@ -31,16 +31,16 @@ func.func @spmv(%B: tensor<{{ rows }}x{{ cols }}xf64, #CSR>,
         %i_plus_one = arith.addi %i, %c1 : index
         %pB2_end = memref.load %B2_pos[%i_plus_one] : memref<?xindex>
 
-        %a_i = scf.for %jB = %pB2 to %pB2_end step %c1 iter_args(%arg5 = %6) -> (f64) {
+        %a_i = scf.for %jB = %pB2 to %pB2_end step %c1 iter_args(%arg5 = %6) -> ({{ dtype }}) {
 
             // Load B_vals[jB]
-            %B_vals_jB = memref.load %B_vals[%jB] : memref<?xf64>
+            %B_vals_jB = memref.load %B_vals[%jB] : memref<?x{{ dtype }}>
 
             // Load candidate coordinate j
             %j = memref.load %B2_crd[%jB] : memref<?xindex>
 
             // Load c_vals[j]
-            %c_vals_j = memref.load %c_vals[%j] : memref<{{ cols }}xf64>
+            %c_vals_j = memref.load %c_vals[%j] : memref<{{ cols }}x{{ dtype }}>
 
             // Prefetch B2_crd[jB + 2 * dist]
             %jB_plus_double_dist = arith.addi %jB, %double_dist : index
@@ -52,16 +52,22 @@ func.func @spmv(%B: tensor<{{ rows }}x{{ cols }}xf64, #CSR>,
             %B2_crd_jB_plus_dist_or_pB2_end = memref.load %B2_crd[%jB_plus_dist_or_pB2_end] : memref<?xindex>
 
             // Prefetch c_vals[B2_crd[%B2_crd_jB_plus_dist_or_pB2_end]]
-            memref.prefetch %c_vals[%B2_crd_jB_plus_dist_or_pB2_end], read, locality<{{ loc_hint }}>, data : memref<{{ cols }}xf64>
+            memref.prefetch %c_vals[%B2_crd_jB_plus_dist_or_pB2_end], read, locality<{{ loc_hint }}>, data : memref<{{ cols }}x{{ dtype }}>
 
-            %14 = arith.mulf %B_vals_jB, %c_vals_j : f64
-            %15 = arith.addf %arg5, %14 : f64
-            scf.yield %15 : f64
+            {% if dtype.startswith('f') %}
+                %mul = arith.mulf %B_vals_jB, %c_vals_j : {{ dtype }}
+                %a_i = arith.addf %arg5, %mul : {{ dtype }}
+            {% else %}
+                %mul = arith.muli %B_vals_jB, %c_vals_j : {{ dtype }}
+                %a_i = arith.addi %arg5, %mul : {{ dtype }}
+            {% endif %}
+
+            scf.yield %a_i : {{ dtype }}
         }
 
-        memref.store %a_i, %a_buff[%i] : memref<{{ rows }}xf64>
+        memref.store %a_i, %a_buff[%i] : memref<{{ rows }}x{{ dtype }}>
     }
 
-    %5 = bufferization.to_tensor %a_buff restrict : memref<{{ rows }}xf64>
-    return %5 : tensor<{{ rows }}xf64>
+    %5 = bufferization.to_tensor %a_buff restrict : memref<{{ rows }}x{{ dtype }}>
+    return %5 : tensor<{{ rows }}x{{ dtype }}>
 }

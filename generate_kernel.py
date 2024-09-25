@@ -10,12 +10,12 @@ import numpy as np
 
 from mlir import ir
 from mlir.dialects import func
-from mlir.dialects.linalg.opdsl import lang as dsl
 from mlir.dialects import sparse_tensor as st
 from mlir.passmanager import *
 
 from argument_parsers import add_dimension_args
 from common import SparseFormats, make_work_dir_and_cd_to_it
+from kernels import spmv_dsl, spvv_dsl, spmm_dsl
 
 pipelines = {
     "no-opt":
@@ -114,7 +114,12 @@ def apply_passes(src: str, kernel: str, pipeline: str, main_fun: Optional[str] =
         except ValueError:
             pm = PassManager.parse(f"builtin.module(func.func({mlir_opt_pass}))")
 
-        pm.run(module.operation)
+        try:
+            pm.run(module.operation)
+        except Exception:
+            print(f"Failure in: {kernel}.{run_pass.call_count}.{mlir_opt_pass}")
+            raise
+
         out = f"{kernel}.{run_pass.call_count}.{mlir_opt_pass}.mlir"
 
         # Inject main after the "sparse-assembler" pass
@@ -130,7 +135,11 @@ def apply_passes(src: str, kernel: str, pipeline: str, main_fun: Optional[str] =
     run_pass.call_count = 0
     out_file_name = ""
     for p in pipelines[pipeline]:
-        out_file_name = run_pass(p)
+        try:
+            out_file_name = run_pass(p)
+        except Exception:
+            print(f"Pipeline: {pipeline}")
+            raise
 
     return module, out_file_name
 
@@ -154,63 +163,40 @@ get_encoding = {SparseFormats.CSR: get_csr_encoding,
                 SparseFormats.COO: get_coo_encoding}
 
 
-@dsl.linalg_structured_op
-def spvv_dsl(
-    a=dsl.TensorDef(dsl.T, dsl.S.I),
-    b=dsl.TensorDef(dsl.T, dsl.S.I),
-    c=dsl.TensorDef(dsl.T, output=True)
-):
-    c[None] += a[dsl.D.i] * b[dsl.D.i]
-
-
 def make_spvv_mlir_module(size: int, t: np.dtype = np.dtype("float64")) -> ir.Module:
     module = ir.Module.create()
     t = np_to_mlir_type[t]()
-    a = ir.RankedTensorType.get([size], t, get_compressed_vec_encoding())
+    a = ir.RankedTensorType.get([], t)
     b = ir.RankedTensorType.get([size], t, get_compressed_vec_encoding())
-    c = ir.RankedTensorType.get([], t)
+    c = ir.RankedTensorType.get([size], t, get_compressed_vec_encoding())
     arguments = [a, b, c]
     with ir.InsertionPoint(module.body):
 
         @func.FuncOp.from_py_func(*arguments)
         def spvv(*args):
-            return spvv_dsl(args[0], args[1], outs=[args[2]])
+            return spvv_dsl(args[1], args[2], outs=[args[0]])
 
     return module
 
 
-@dsl.linalg_structured_op
-def spmv_dsl(
-    A=dsl.TensorDef(dsl.T, dsl.S.I, dsl.S.J),
-    B=dsl.TensorDef(dsl.T, dsl.S.J),
-    C=dsl.TensorDef(dsl.T, dsl.S.I, output=True)
-):
-    C[dsl.D.i] += A[dsl.D.i, dsl.D.j] * B[dsl.D.j]
-
-
-def make_spmv_mlir_module(rows: int, cols: int, enc: SparseFormats, t: np.dtype = np.dtype("float64")) -> ir.Module:
+def make_spmv_mlir_module(rows: int, cols: int, enc: SparseFormats, t: np.dtype = np.dtype("float64"),
+                          is_sparse_vec: bool = False) -> ir.Module:
     module = ir.Module.create()
     t = np_to_mlir_type[t]()
-    a = ir.RankedTensorType.get([rows, cols], t, get_encoding[enc]())
-    b = ir.RankedTensorType.get([cols], t)
-    c = ir.RankedTensorType.get([rows], t)
-    arguments = [a, b, c]
+    a = ir.RankedTensorType.get([rows], t)
+    B = ir.RankedTensorType.get([rows, cols], t, get_encoding[enc]())
+    if is_sparse_vec:
+        c = ir.RankedTensorType.get([cols], t, get_compressed_vec_encoding())
+    else:
+        c = ir.RankedTensorType.get([cols], t)
+    arguments = [a, B, c]
     with ir.InsertionPoint(module.body):
 
         @func.FuncOp.from_py_func(*arguments)
         def spmv(*args):
-            return spmv_dsl(args[0], args[1], outs=[args[2]])
+            return spmv_dsl(args[1], args[2], outs=[args[0]])
 
     return module
-
-
-@dsl.linalg_structured_op
-def spmm_dsl(
-    B=dsl.TensorDef(dsl.T, dsl.S.I, dsl.S.K),
-    C=dsl.TensorDef(dsl.T, dsl.S.K, dsl.S.J),
-    A=dsl.TensorDef(dsl.T, dsl.S.I, dsl.S.J, output=True)
-):
-    A[dsl.D.i, dsl.D.j] += B[dsl.D.i, dsl.D.k] * C[dsl.D.k, dsl.D.j]
 
 
 def make_spmm_mlir_module(res_rows: int, res_cols: int, inner_dim: int, enc_first: SparseFormats, enc_other: SparseFormats) -> ir.Module:
@@ -263,10 +249,10 @@ def generate_spvv(size: int):
         generate(module, f"spvv", translate_to_llvm_ir=True)
 
 
-def generate_spmv(rows: int, cols: int, enc: SparseFormats):
+def generate_spmv(rows: int, cols: int, enc: SparseFormats, is_sparse_vec: bool):
     with ir.Context() as ctx, ir.Location.unknown():
-        module = make_spmv_mlir_module(rows, cols, enc)
-        generate(module, f"spmv_{enc}", translate_to_llvm_ir=True)
+        module = make_spmv_mlir_module(rows, cols, enc, is_sparse_vec=is_sparse_vec)
+        generate(module, f"spmv_{enc}" + ("_spvec" if is_sparse_vec else ""), translate_to_llvm_ir=True)
 
 
 def generate_spmm(res_rows: int, res_cols: int, inner_dim: int, enc_first: SparseFormats, enc_other: SparseFormats):
@@ -304,8 +290,10 @@ def main():
     if args.kernel == "spvv":
         generate_spvv(args.i)
     if args.kernel == "spmv":
-        generate_spmv(args.i, args.j, SparseFormats.CSR)
-        generate_spmv(args.i, args.j, SparseFormats.COO)
+        generate_spmv(args.i, args.j, SparseFormats.CSR, is_sparse_vec=False)
+        generate_spmv(args.i, args.j, SparseFormats.COO, is_sparse_vec=False)
+        generate_spmv(args.i, args.j, SparseFormats.CSR, is_sparse_vec=True)
+        generate_spmv(args.i, args.j, SparseFormats.COO, is_sparse_vec=True)
     elif args.kernel == "spmm":
         generate_spmm(args.i, args.j, args.k, SparseFormats.CSR, SparseFormats.CSR)
         generate_spmm(args.i, args.j, args.k, SparseFormats.COO, SparseFormats.COO)

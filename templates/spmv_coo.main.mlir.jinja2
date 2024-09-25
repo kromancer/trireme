@@ -2,18 +2,24 @@ func.func private @start_cb() -> () attributes { llvm.emit_c_interface }
 func.func private @stop_cb(%dur_ns: i64) -> () attributes { llvm.emit_c_interface }
 func.func private @nanoTime() -> i64 attributes { llvm.emit_c_interface }
 
-func.func @main(%Bi_pos: tensor<?xindex>,
+func.func @main(%a: tensor<{{ rows }}x{{ dtype }}>,
+                %Bi_pos: tensor<?xindex>,
                 %Bi_crd: tensor<?xindex>,
                 %Bj_crd: tensor<?xindex>,
                 %B_vals: tensor<?x{{ dtype }}>,
-                %c: tensor<{{ cols }}x{{ dtype }}>,
-                %a: tensor<{{ rows }}x{{ dtype }}>
+                %c: tensor<{{ cols }}x{{ dtype }}>
                 ) -> tensor<{{ rows }}x{{ dtype }}> attributes { llvm.emit_c_interface } {
 
     call @start_cb() : () -> ()
     %time_before = call @nanoTime() : () -> i64
 
-    %0 = call @spmv(%Bi_pos, %Bi_crd, %Bj_crd, %B_vals, %c, %a) : (tensor<?xindex>, tensor<?xindex>, tensor<?xindex>, tensor<?x{{ dtype }}>, tensor<{{ cols }}x{{ dtype }}>, tensor<{{ rows }}x{{ dtype }}>) -> tensor<{{ rows }}x{{ dtype }}>
+    %0 = call @spmv(%a, %Bi_pos, %Bi_crd, %Bj_crd, %B_vals, %c) : (
+        tensor<{{ rows }}x{{ dtype }}>,
+        tensor<?xindex>,
+        tensor<?xindex>,
+        tensor<?xindex>,
+        tensor<?x{{ dtype }}>,
+        tensor<{{ cols }}x{{ dtype }}>) -> tensor<{{ rows }}x{{ dtype }}>
 
     %time_after = call @nanoTime() : () -> i64
     %diff = arith.subi %time_after, %time_before : i64

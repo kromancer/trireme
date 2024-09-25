@@ -2,30 +2,30 @@
 
 module {
 
-  func.func @spmv(%mat: tensor<{{ rows }}x{{ cols }}xf64, #CSR>,
-                  %vec: tensor<{{ cols }}xf64>,
-		          %res: tensor<{{ rows }}xf64>) -> tensor<{{ rows }}xf64> {
+  func.func @spmv(%a: tensor<{{ rows }}x{{ dtype }}>,
+                  %B: tensor<{{ rows }}x{{ cols }}x{{ dtype }}, #CSR>,
+                  %vec: tensor<{{ cols }}x{{ dtype }}>) -> tensor<{{ rows }}x{{ dtype }}> {
 
     %rows = arith.constant {{ rows }} : index
     %c0 = arith.constant 0 : index
     %c1 = arith.constant 1 : index
     %pd = arith.constant {{ pd }} : index
 
-    %positions_buff = sparse_tensor.positions %mat {level = 1 : index} : tensor<{{ rows }}x{{ cols }}xf64, #CSR> to memref<?xindex>
-    %coordinates_buff = sparse_tensor.coordinates %mat {level = 1 : index} : tensor<{{ rows }}x{{ cols }}xf64, #CSR> to memref<?xindex>
-    %values_buff = sparse_tensor.values %mat : tensor<{{ rows }}x{{ cols }}xf64, #CSR> to memref<?xf64>
+    %positions_buff = sparse_tensor.positions %B {level = 1 : index} : tensor<{{ rows }}x{{ cols }}x{{ dtype }}, #CSR> to memref<?xindex>
+    %coordinates_buff = sparse_tensor.coordinates %B {level = 1 : index} : tensor<{{ rows }}x{{ cols }}x{{ dtype }}, #CSR> to memref<?xindex>
+    %values_buff = sparse_tensor.values %B : tensor<{{ rows }}x{{ cols }}x{{ dtype }}, #CSR> to memref<?x{{ dtype }}>
 
-    %vec_buff = bufferization.to_memref %vec : memref<{{ cols }}xf64>
-    %res_buff = bufferization.to_memref %res : memref<{{ rows }}xf64>
+    %vec_buff = bufferization.to_memref %vec : memref<{{ cols }}x{{ dtype }}>
+    %a_buff = bufferization.to_memref %a : memref<{{ rows }}x{{ dtype }}>
 
     scf.for %i = %c0 to %rows step %c1 {
-      %f0 = memref.load %res_buff[%i] : memref<{{ rows }}xf64>
+      %f0 = memref.load %a_buff[%i] : memref<{{ rows }}x{{ dtype }}>
 
       %j_start = memref.load %positions_buff[%i] : memref<?xindex>
       %i_plus_one = arith.addi %i, %c1 : index
       %j_end = memref.load %positions_buff[%i_plus_one] : memref<?xindex>
 
-      %res_i = scf.for %j = %j_start to %j_end step %pd iter_args(%acc1 = %f0) -> f64 {
+      %a_i = scf.for %j = %j_start to %j_end step %pd iter_args(%acc1 = %f0) -> f64 {
 
         // find min(j + pd, j_end)
         %j_plus_pd = arith.addi %j, %pd : index
@@ -34,14 +34,14 @@ module {
         // SPE loop
         scf.for %pre = %j to %j_plus_pd_or_j_end step %c1 {
           %col_idx = memref.load %coordinates_buff[%pre] : memref<?xindex>
-          memref.prefetch %vec_buff[%col_idx], read, locality<{{ loc_hint }}>, data : memref<{{ cols }}xf64>
+          memref.prefetch %vec_buff[%col_idx], read, locality<{{ loc_hint }}>, data : memref<{{ cols }}x{{ dtype }}>
         }
 
         // main loop
         %partial_dot_prod = scf.for %main = %j to %j_plus_pd_or_j_end step %c1 iter_args(%acc2 = %f0) -> f64 {
           %col_idx = memref.load %coordinates_buff[%main] : memref<?xindex>
-          %t_val = memref.load %values_buff[%main] : memref<?xf64>
-          %v_val = memref.load %vec_buff[%col_idx] : memref<{{ cols }}xf64>
+          %t_val = memref.load %values_buff[%main] : memref<?x{{ dtype }}>
+          %v_val = memref.load %vec_buff[%col_idx] : memref<{{ cols }}x{{ dtype }}>
           %14 = arith.mulf %t_val, %v_val : f64
           %15 = arith.addf %acc2, %14 : f64
           scf.yield %15 : f64
@@ -51,10 +51,10 @@ module {
         scf.yield %dot_prod : f64
       }
 
-      memref.store %res_i, %res_buff[%i] : memref<{{ rows }}xf64>
+      memref.store %a_i, %a_buff[%i] : memref<{{ rows }}x{{ dtype }}>
     }
 
-    %5 = bufferization.to_tensor %res_buff restrict : memref<{{ rows }}xf64>
-    return %5 : tensor<{{ rows }}xf64>
+    %5 = bufferization.to_tensor %a_buff restrict : memref<{{ rows }}x{{ dtype }}>
+    return %5 : tensor<{{ rows }}x{{ dtype }}>
   }
 }

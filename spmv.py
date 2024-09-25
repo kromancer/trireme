@@ -80,8 +80,8 @@ def run_spmv(exec_engine: ExecutionEngine, args: argparse.Namespace, mat: Union[
     mem_out = ctypes.pointer(ctypes.pointer(ref_out))
 
     def run():
-        exec_engine.invoke("main", mem_out, *mat_memrefs, vec_memref, ctypes.pointer(ctypes.pointer(res_memref)))
-        exec_engine.dump_to_object_file("spmm.o")
+        exec_engine.invoke("main", mem_out, ctypes.pointer(ctypes.pointer(res_memref)), *mat_memrefs, vec_memref)
+        exec_engine.dump_to_object_file("spmv.o")
 
         # Sanity check on computed result.
         if args.check_output:
