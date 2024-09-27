@@ -50,7 +50,7 @@ def plot_observed_max_bandwidth(logs: List[Dict], series: Dict) -> None:
     plt.plot(x_values, bw, label=series['label'])
 
 
-def plot_event(logs: List[Dict], series: Dict) -> None:
+def plot_events_from_vtune(logs: List[Dict], series: Dict) -> None:
     event_counts = []
     for log in logs:
         csv_file = StringIO(log["vtune-hw-events.csv"])

@@ -7,7 +7,7 @@ from typing import Dict, List
 import matplotlib.pyplot as plt
 
 from common import append_result_to_db
-from vtune import plot_observed_max_bandwidth, plot_event
+from vtune import plot_observed_max_bandwidth, plot_events_from_vtune
 from suite_sparse import get_all_suitesparse_matrix_names_with_nnz
 
 
@@ -102,6 +102,21 @@ def plot_mean_exec_times_ss(logs: List[Dict], series: Dict) -> None:
     plt.yscale("log")
 
 
+def plot_events_perf_ss(logs: List[Dict], series: Dict) -> None:
+    """
+    Plot perf mon events for SparseSuite matrices
+    X-axis is the number of non-zero elements of the matrix
+    """
+    m_names = [re.search(r'SuiteSparse\s+(\S+)', log['args']).group(1) for log in logs]
+    names_to_nnz = get_all_suitesparse_matrix_names_with_nnz()
+    x_vals = [names_to_nnz[n] for n in m_names]
+
+    counter = [float(log['report'][2]['counter-value']) for log in logs]
+    plt.scatter(x_vals, counter, label=series['label'], s=5)
+    plt.xscale("log")
+    plt.yscale("log")
+
+
 def main():
     config_file = './graph-config.json'
     with open(config_file, 'r') as file:
@@ -118,7 +133,8 @@ def main():
         {
             "plot_mean_exec_times": plot_mean_exec_times,
             "plot_observed_max_bandwidth": plot_observed_max_bandwidth,
-            "plot_event": plot_event,
+            "plot_event": plot_events_from_vtune,
+            "plot_event_perf_ss": plot_events_perf_ss,
             "plot_mean_exec_times_ss": plot_mean_exec_times_ss
         }[series["plot_method"]](logs, series)
 
