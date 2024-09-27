@@ -4,7 +4,7 @@ from tqdm import tqdm
 
 from suite_sparse import get_all_suitesparse_matrix_names
 
-from argument_parsers import add_args_for_benchmark, add_sparse_format_arg
+from argument_parsers import add_args_for_benchmark, add_output_check_arg, add_sparse_format_arg
 
 
 def main():
@@ -13,8 +13,9 @@ def main():
     args = parse_args()
 
     opt = ["-o", args.optimization] if args.optimization else []
+    check_output = ["--check-output"] if args.check_output else []
 
-    command = ["python", "spmv.py", *opt, "--check-output", "--matrix-format", f"{args.matrix_format}"]
+    command = ["python", "spmv.py", *check_output, *opt, "--matrix-format", f"{args.matrix_format}"]
 
     if args.action == "profile":
         command += [args.action, args.analysis]
@@ -31,6 +32,7 @@ def main():
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="(Sparse Matrix)x(Dense Vector) Multiplication (SpMV) with MLIR on "
                                                  "all SuiteSparse matrices.")
+    add_output_check_arg(parser)
     parser.add_argument("-o", "--optimization",
                         choices=["vect-vl4", "pref-mlir", "pref-ains", "pref-spe"],
                                    help="Use an optimized version of the kernel")

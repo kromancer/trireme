@@ -34,6 +34,8 @@
     ],
     "events": [
         "cycles:u",
-        "mem_load_retired.l3_miss:u"
+        "mem_load_uops_retired.dram_hit:u",
+        "mem_bound_stalls.load_dram_hit:u",
+        "mem_bound_stalls.load:u"
     ]
 }
