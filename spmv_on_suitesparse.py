@@ -8,6 +8,7 @@ from common import read_config
 from suite_sparse import get_all_suitesparse_matrix_names
 
 from argument_parsers import add_args_for_benchmark, add_output_check_arg, add_sparse_format_arg
+from hwpref_controller import HwprefController
 
 
 def main():
@@ -27,8 +28,8 @@ def main():
         command += ["benchmark", "--repetitions", "10"]
 
     if args.collection == "all":
-        matrix_names = {get_all_suitesparse_matrix_names(is_real=True)}
-        matrix_names -= {read_config("suite-sparse-config.json", "exclude-from-all")}
+        matrix_names = set(get_all_suitesparse_matrix_names(is_real=True))
+        matrix_names -= set(read_config("suite-sparse-config.json", "exclude-from-all"))
     else:
         matrix_names = read_config("suite-sparse-config.json", args.collection)
 
@@ -61,6 +62,8 @@ def parse_args(cfg_file: Path) -> argparse.Namespace:
                         choices=["vect-vl4", "pref-mlir", "pref-ains", "pref-spe"],
                                    help="Use an optimized version of the kernel")
     add_sparse_format_arg(parser, "matrix")
+
+    HwprefController.add_args(parser)
 
     # 1st level subparsers, benchmark or profile
     action_subparser = parser.add_subparsers(dest="action", help="Choose action: benchmark or profile")
