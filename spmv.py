@@ -8,6 +8,7 @@ import numpy as np
 from scipy import sparse as sp
 from scipy.sparse import csr_array
 
+from log_plot import append_placeholder
 from mlir import runtime as rt
 from mlir import ir
 from mlir.execution_engine import ExecutionEngine
@@ -97,6 +98,7 @@ def run_spmv(exec_engine: ExecutionEngine, args: argparse.Namespace, mat: Union[
 
 
 def main():
+    append_placeholder()
     args = parse_args()
     make_work_dir_and_cd_to_it(__file__)
 

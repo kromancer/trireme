@@ -1,13 +1,17 @@
 import json
+import sys
+from _socket import gethostname
+from csv import DictReader
+from datetime import datetime
+from io import StringIO
 from pathlib import Path
 import re
 from statistics import mean, median, stdev
 from typing import Dict, List
 
-import matplotlib.pyplot as plt
+from git import Repo
+from matplotlib import pyplot as plt
 
-from common import append_result_to_db
-from vtune import plot_observed_max_bandwidth, plot_events_from_vtune
 from suite_sparse import get_all_suitesparse_matrix_names_with_nnz
 
 
@@ -42,7 +46,7 @@ def log_execution_times_ns(etimes_ns: List[int]):
     cv = round(std_dev / m, 3) if m != 0 else 0
     print(f"mean execution time: {m} ms")
     print(f"std dev: {std_dev} ms, CV: {cv * 100} %")
-    append_result_to_db({
+    append_result({
         'exec_times_ns': etimes_ns,
         'filtered': filtered,
         'mean_ms': m,
@@ -154,6 +158,108 @@ def main():
     plt.savefig("fig.pdf")
 
     plt.show()
+
+
+def append_placeholder(file_path=None):
+    if file_path is None:
+        # Set default file_path to 'results.json' in the current script's directory
+        file_path = Path(__file__).resolve().parent / "results.json"
+    else:
+        file_path = Path(file_path)
+
+    # Attempt to open the file, create a new one if it does not exist
+    try:
+        with open(file_path, 'r') as file:
+            data = json.load(file)
+    except FileNotFoundError:
+        data = []
+        print(f"Creating: {file_path.resolve()}")
+
+    # Check if data is a list, if not, initialize as a list
+    if not isinstance(data, list):
+        data = []
+
+    placeholder = {
+        "args": " ".join(sys.argv),
+        "time": str(datetime.now()),
+        "host": gethostname(),
+        "git-hash": get_git_commit_hash(),
+        "status": "initializing"
+    }
+
+    # Append the new entry
+    data.append(placeholder)
+
+    # Write the updated list back to the JSON file
+    with open(file_path, 'w') as file:
+        json.dump(data, file, indent=4)
+
+
+def append_result(new_entry, status="complete", file_path=None):
+    if file_path is None:
+        # Set default file_path to 'results.json' in the current script's directory
+        file_path = Path(__file__).resolve().parent / "results.json"
+    else:
+        file_path = Path(file_path)
+
+    with open(file_path, 'r') as file:
+        data = json.load(file)
+
+    data[-1]["status"] = status
+    data[-1].update(new_entry)
+
+    # Write the updated list back to the JSON file
+    with open(file_path, 'w') as file:
+        json.dump(data, file, indent=4)
+
+
+def get_git_commit_hash():
+    # Convert script_path to a Path object to find the repo's root directory
+    repo_path = Path(__file__).resolve().parent
+
+    # Initialize a Repo object using the script's directory
+    repo = Repo(repo_path, search_parent_directories=True)
+
+    # Get the current commit hash
+    commit_hash = repo.head.commit.hexsha
+
+    return commit_hash
+
+
+def plot_events_from_vtune(logs: List[Dict], series: Dict) -> None:
+    event_counts = []
+    for log in logs:
+        csv_file = StringIO(log["vtune-hw-events.csv"])
+        reader = DictReader(csv_file)
+
+        event = "Hardware Event Count:" + series["event"]
+        assert event in reader.fieldnames, f"'{event}' is not a valid column header"
+
+        if "normalize" in series:
+            norm_event = "Hardware Event Count:" + series["normalize"]
+            assert norm_event in reader.fieldnames, f"'{norm_event}' is not a valid column header"
+
+        count = 0
+        norm = 0
+        for row in reader:
+            try:
+                if "source_line" in series:
+                    if int(row["Source Line"]) == series["source_line"]:
+                        count = int(row[event])
+                else:
+                    count += int(row[event])
+
+                if "normalize" in series:
+                    norm += int(row[norm_event])
+
+            except ValueError:  # Handles non-integer and missing values gracefully
+                continue
+
+        event_counts.append(round((100 * count) / (1 if norm == 0 else norm), 4))
+
+    print(event_counts)
+    x_values = list(range(series['x_start'], series['x_start'] + len(event_counts)))
+    plt.plot(x_values, event_counts, label=series['label'])
 
 
 if __name__ == "__main__":

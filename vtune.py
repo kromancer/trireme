@@ -1,5 +1,3 @@
-from csv import DictReader
-from io import StringIO
 from multiprocessing import shared_memory
 from subprocess import run
 import numpy as np
@@ -10,7 +8,8 @@ from typing import Dict, List
 import matplotlib.pyplot as plt
 import scipy.sparse as sp
 
-from common import append_result_to_db, is_in_path, read_config
+from common import is_in_path, read_config
+from log_plot import append_placeholder, append_result
 
 
 def gen_and_store_reports() -> None:
@@ -34,7 +33,7 @@ def gen_and_store_reports() -> None:
         with open(report["output"], "r") as f:
             db_entry[report["output"]] = f.read()
 
-    append_result_to_db(db_entry)
+    append_result(db_entry)
 
 
 def plot_observed_max_bandwidth(logs: List[Dict], series: Dict) -> None:
@@ -48,42 +47,6 @@ def plot_observed_max_bandwidth(logs: List[Dict], series: Dict) -> None:
 
     x_values = list(range(series['x_start'], series['x_start'] + len(bw)))
     plt.plot(x_values, bw, label=series['label'])
-
-
-def plot_events_from_vtune(logs: List[Dict], series: Dict) -> None:
-    event_counts = []
-    for log in logs:
-        csv_file = StringIO(log["vtune-hw-events.csv"])
-        reader = DictReader(csv_file)
-
-        event = "Hardware Event Count:" + series["event"]
-        assert event in reader.fieldnames, f"'{event}' is not a valid column header"
-
-        if "normalize" in series:
-            norm_event = "Hardware Event Count:" + series["normalize"]
-            assert norm_event in reader.fieldnames, f"'{norm_event}' is not a valid column header"
-
-        count = 0
-        norm = 0
-        for row in reader:
-            try:
-                if "source_line" in series:
-                    if int(row["Source Line"]) == series["source_line"]:
-                        count = int(row[event])
-                else:
-                    count += int(row[event])
-
-                if "normalize" in series:
-                    norm += int(row[norm_event])
-
-            except ValueError:  # Handles non-integer and missing values gracefully
-                continue
-
-        event_counts.append(round((100 * count) / (1 if norm == 0 else norm), 4))
-
-    print(event_counts)
-    x_values = list(range(series['x_start'], series['x_start'] + len(event_counts)))
-    plt.plot(x_values, event_counts, label=series['label'])
 
 
 def profile_spmv_with_vtune(exe: Path, mat: sp.csr_array, vec: np.ndarray, vtune_config: str) -> None:

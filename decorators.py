@@ -10,7 +10,7 @@ from typing import Callable, Dict, List, TypeVar
 from mlir.execution_engine import ExecutionEngine
 
 from common import is_in_path, read_config
-from logging_and_graphing import append_result_to_db, log_execution_times_ns
+from log_plot import append_result, log_execution_times_ns
 from vtune import gen_and_store_reports
 
 RunFuncType = TypeVar("RunFuncType", bound=Callable[...,  None])
@@ -119,7 +119,7 @@ def profile(exec_engine: ExecutionEngine, args: Namespace) -> Callable[[RunFuncT
                 rep = parse_perf_stat_json_output(report)
             else:
                 rep = gen_and_store_reports()
-            append_result_to_db({"report": rep})
+            append_result({"report": rep})
 
         return wrapper
 

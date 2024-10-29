@@ -1,7 +1,6 @@
 import argparse
 from contextlib import contextmanager
 import ctypes
-from datetime import datetime
 from enum import Enum
 from functools import wraps
 import json
@@ -10,14 +9,12 @@ from os import chdir, close, dup, dup2, environ, fsync, makedirs
 from pathlib import Path
 from platform import system
 from shutil import rmtree, which
-from socket import gethostname
 from subprocess import run
 import sys
 from tempfile import TemporaryDirectory, TemporaryFile
 from time import time
 from typing import Any, Callable, List, Optional, Tuple, Union
 
-from git import Repo
 import scipy.sparse as sp
 
 
@@ -27,54 +24,6 @@ class SparseFormats(Enum):
 
     def __str__(self):
         return self.value
-
-
-def get_git_commit_hash():
-    # Convert script_path to a Path object to find the repo's root directory
-    repo_path = Path(__file__).resolve().parent
-
-    # Initialize a Repo object using the script's directory
-    repo = Repo(repo_path, search_parent_directories=True)
-
-    # Get the current commit hash
-    commit_hash = repo.head.commit.hexsha
-
-    return commit_hash
-
-
-def append_result_to_db(new_entry, file_path=None):
-    if file_path is None:
-        # Set default file_path to 'results.json' in the current script's directory
-        file_path = Path(__file__).resolve().parent / "results.json"
-    else:
-        file_path = Path(file_path)
-
-    # Get the absolute path of the file
-    abs_file_path = file_path.resolve()
-
-    # Attempt to open the file, create a new one if it does not exist
-    try:
-        with open(file_path, 'r') as file:
-            data = json.load(file)
-    except FileNotFoundError:
-        data = []
-        print(f"Creating: {abs_file_path}")
-
-    # Check if data is a list, if not, initialize as a list
-    if not isinstance(data, list):
-        data = []
-
-    new_entry["args"] = " ".join(sys.argv)
-    new_entry["time"] = str(datetime.now())
-    new_entry["host"] = gethostname()
-    new_entry["git-hash"] = get_git_commit_hash()
-
-    # Append the new entry
-    data.append(new_entry)
-
-    # Write the updated list back to the JSON file
-    with open(file_path, 'w') as file:
-        json.dump(data, file, indent=4)
 
 
 def print_size(size):

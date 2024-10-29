@@ -6,6 +6,7 @@ import jinja2
 import numpy as np
 import scipy.sparse as sp
 
+from log_plot import append_placeholder
 from mlir import runtime as rt
 from mlir.execution_engine import *
 from mlir import ir
@@ -71,6 +72,7 @@ def render_main_template(rows: int, cols: int) -> str:
 
 
 def main():
+    append_placeholder()
     args = parse_args()
     make_work_dir_and_cd_to_it(__file__)
 
