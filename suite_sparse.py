@@ -44,7 +44,11 @@ def get_all_suitesparse_matrices(dir: Path):
 def get_suitesparse_matrix(mtx_name: str, mtx_group: str = None):
     if mtx_group is None:
         df = get_index()
-        mtx_group = df[df["name"] == mtx_name]["group"].values[0]
+        try:
+            mtx_group = df[df["name"] == mtx_name]["group"].values[0]
+        except IndexError:
+            print(f"There is no SuiteSparse named {mtx_name}")
+            exit(1)
 
     # URL of the .tar.gz file
     filename = mtx_name + ".tar.gz"
