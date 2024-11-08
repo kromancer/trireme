@@ -6,7 +6,7 @@ from datetime import datetime
 from io import StringIO
 from pathlib import Path
 import re
-from statistics import mean, median, stdev
+from statistics import harmonic_mean, mean, median, stdev
 from typing import Dict, List
 
 from git import Repo
@@ -101,7 +101,11 @@ def plot_mean_exec_times_ss(logs: List[Dict], series: Dict) -> None:
     x_vals = [names_to_nnz[n] for n in m_names]
 
     means = [log['mean_ms'] for log in logs]
-    plt.scatter(x_vals, means, label=series['label'], s=5)
+
+    rates = [x / m for x, m in zip(x_vals, means) if m > 0]
+    harmonic_mean_of_rates = harmonic_mean(rates)
+
+    plt.scatter(x_vals, means, label=series['label'] + f", HA(nnz/ms): {int(harmonic_mean_of_rates)}", s=5)
     plt.xscale("log")
     plt.yscale("log")
 
@@ -115,49 +119,31 @@ def plot_events_perf_ss(logs: List[Dict], series: Dict) -> None:
     names_to_nnz = get_all_suitesparse_matrix_names_with_nnz()
     x_vals = [names_to_nnz[n] for n in m_names]
 
-    counter = [float(log['report'][2]['counter-value']) for log in logs]
-    plt.scatter(x_vals, counter, label=series['label'], s=5)
+    e_counts = [float(e["counter-value"])
+                for log in logs
+                for e in log["report"] if e["event"] == series["event"]]
+
+    if "normalize" in series:
+        norm_e_counts = [float(e["counter-value"])
+                         for log in logs
+                         for e in log["report"] if e["event"] == series["normalize"]]
+        e_counts = [e / n for e, n in zip(e_counts, norm_e_counts)]
+    plt.scatter(x_vals, e_counts, label=series['label'], s=5)
     plt.xscale("log")
-    plt.yscale("log")
+    # plt.yscale("log")
 
 
-def main():
-    config_file = './graph-config.json'
-    with open(config_file, 'r') as file:
-        config = json.load(file)
+def plot_observed_max_bandwidth(logs: List[Dict], series: Dict) -> None:
+    bw = []
+    for log in logs:
+        # Regular expression to find the line starting with 'DRAM, GB/sec'
+        match = re.search(r'DRAM, GB/sec\s+(\d+)\s+([\d.]+)', log["vtune-summary-txt"])
 
-    base_path = Path(config_file).resolve().parent
+        if match:
+            bw.append(float(match.group(2)))
 
-    for series in config['series']:
-        log = base_path / Path(series['file']).relative_to('.')
-
-        logs = filter_logs(log, series['args_re'])
-
-        # plot series based on specified method
-        {
-            "plot_mean_exec_times": plot_mean_exec_times,
-            "plot_observed_max_bandwidth": plot_observed_max_bandwidth,
-            "plot_event": plot_events_from_vtune,
-            "plot_event_perf_ss": plot_events_perf_ss,
-            "plot_mean_exec_times_ss": plot_mean_exec_times_ss
-        }[series["plot_method"]](logs, series)
-
-    if "baselines" in config:
-        for baseline in config['baselines']:
-            log_path = base_path / Path(baseline['file']).relative_to('.')
-            means = filter_logs(log_path, baseline['args_re'])
-            assert len(means) == 1
-            plt.axhline(y=means[0]["mean_ms"], color=baseline["color"], linestyle=baseline["linestyle"],
-                        label=baseline["label"] + f", {means[0]['mean_ms']:.0f}ms")
-
-    plt.xlabel(config['xlabel'])
-    plt.ylabel(config['ylabel'])
-    plt.title(config['title'], fontsize='small')
-    plt.legend(fontsize='small')
-    plt.grid(True)
-    plt.savefig("fig.pdf")
-
-    plt.show()
+    x_values = list(range(series['x_start'], series['x_start'] + len(bw)))
+    plt.plot(x_values, bw, label=series['label'])
 
 
 def append_placeholder(file_path=None):
@@ -260,6 +246,45 @@ def plot_events_from_vtune(logs: List[Dict], series: Dict) -> None:
     print(event_counts)
     x_values = list(range(series['x_start'], series['x_start'] + len(event_counts)))
     plt.plot(x_values, event_counts, label=series['label'])
+
+
+def main():
+    config_file = './plot-config.json'
+    with open(config_file, 'r') as file:
+        config = json.load(file)
+
+    base_path = Path(config_file).resolve().parent
+
+    for series in config['series']:
+        log = base_path / Path(series['file']).relative_to('.')
+
+        logs = filter_logs(log, series['args_re'])
+
+        # plot series based on specified method
+        {
+            "plot_mean_exec_times": plot_mean_exec_times,
+            "plot_observed_max_bandwidth": plot_observed_max_bandwidth,
+            "plot_event": plot_events_from_vtune,
+            "plot_event_perf_ss": plot_events_perf_ss,
+            "plot_mean_exec_times_ss": plot_mean_exec_times_ss
+        }[series["plot_method"]](logs, series)
+
+    if "baselines" in config:
+        for baseline in config['baselines']:
+            log_path = base_path / Path(baseline['file']).relative_to('.')
+            means = filter_logs(log_path, baseline['args_re'])
+            assert len(means) == 1
+            plt.axhline(y=means[0]["mean_ms"], color=baseline["color"], linestyle=baseline["linestyle"],
+                        label=baseline["label"] + f", {means[0]['mean_ms']:.0f}ms")
+
+    plt.xlabel(config['xlabel'])
+    plt.ylabel(config['ylabel'])
+    plt.title(config['title'], fontsize='small')
+    plt.legend(fontsize='small')
+    plt.grid(True)
+    plt.savefig("fig.pdf")
+
+    plt.show()
 
 
 if __name__ == "__main__":

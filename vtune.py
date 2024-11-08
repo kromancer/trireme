@@ -36,19 +36,6 @@ def gen_and_store_reports() -> None:
     append_result(db_entry)
 
 
-def plot_observed_max_bandwidth(logs: List[Dict], series: Dict) -> None:
-    bw = []
-    for log in logs:
-        # Regular expression to find the line starting with 'DRAM, GB/sec'
-        match = re.search(r'DRAM, GB/sec\s+(\d+)\s+([\d.]+)', log["vtune-summary-txt"])
-
-        if match:
-            bw.append(float(match.group(2)))
-
-    x_values = list(range(series['x_start'], series['x_start'] + len(bw)))
-    plt.plot(x_values, bw, label=series['label'])
-
-
 def profile_spmv_with_vtune(exe: Path, mat: sp.csr_array, vec: np.ndarray, vtune_config: str) -> None:
 
     assert is_in_path("vtune")
