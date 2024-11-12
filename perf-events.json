@@ -34,15 +34,15 @@
     ],
     "events": [
         "cycles:u",
-        "topdown_fe_bound.all:u",
-        "topdown_be_bound.all:u",
-        "topdown_be_bound.reorder_buffer",
-        "topdown_retiring.all:u",
-        "topdown_bad_speculation.mispredict:u",
-        "topdown_bad_speculation.machine_clears:u",
-        "topdown_be_bound.register:u",
-        "topdown_be_bound.mem_scheduler:u",
+        "ld_head.any_at_ret:u",
+        "ld_head.dtlb_miss_at_ret:u",
+        "ld_head.l1_bound_at_ret:u",
+        "ld_head.l1_miss_at_ret:u",
+        "ld_head.other_at_ret:u",
+        "ld_head.pgwalk_at_ret:u",
+        "mem_bound_stalls.load:u",
+        "mem_bound_stalls.load_l2_hit:u",
         "mem_bound_stalls.load_llc_hit:u",
-        "mem_bound_stalls.load_l2_hit:u"
+        "mem_bound_stalls.load_dram_hit:u"
     ]
 }
