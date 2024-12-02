@@ -73,7 +73,8 @@ def render_main_template(args: argparse.Namespace) -> str:
 
     # Function "main" will be injected after the sparse-assembler pass
     main_template = jinja.get_template("spmm_csr_csr.main.mlir.jinja2")
-    main_rendered = main_template.render(rows=args.i, cols=args.j, dtype=to_mlir_type[args.dtype])
+    main_rendered = main_template.render(rows=args.i, cols=args.j, dtype=to_mlir_type[args.dtype],
+                                         dense_output=args.dense_output)
     return main_rendered
 
 
@@ -89,7 +90,7 @@ def main():
 
     with ir.Context(), ir.Location.unknown():
         if not args.optimization or args.optimization == "pref-mlir":
-            spmm = str(make_spmm_mlir_module(args.i, args.j, args.j, mat_format, mat_format, dtype))
+            spmm = str(make_spmm_mlir_module(args.i, args.j, args.j, mat_format, mat_format, dtype, args.dense_output))
             pipeline = "pref" if args.optimization == "pref-mlir" else "no-opt"
         else:
             assert False, "Unsupported optimization"
@@ -120,6 +121,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("-o", "--optimization",
                         choices=["vect-vl4", "pref-mlir", "pref-ains", "pref-spe"],
                         help="Use an optimized version of the kernel")
+    parser.add_argument("--dense-output", action="store_true",
+                        help="If not set the result matrix will be sparse in the CSR format")
     add_sparse_format_arg(parser, "matrix")
     add_output_check_arg(parser)
     HwprefController.add_args(parser)

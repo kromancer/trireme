@@ -2,30 +2,48 @@ func.func private @start_cb() -> () attributes { llvm.emit_c_interface }
 func.func private @stop_cb(%dur_ns: i64) -> () attributes { llvm.emit_c_interface }
 func.func private @nanoTime() -> i64 attributes { llvm.emit_c_interface }
 
-func.func @main(%A: tensor<{{ rows }}x{{ cols }}x{{ dtype }}>,
+#CSR = #sparse_tensor.encoding<{ map = (d0, d1) -> (d0 : dense, d1 : compressed) }>
+
+{% if dense_output %}
+    {% set arg_names = "%A" %}
+    {% set arg_types = "tensor<" + str(rows) + "x" + str(cols) + "x" + dtype + ">" %}
+    {% set arg_names_types = "%A: tensor<" + str(rows) + "x" + str(cols) + "x" + dtype + ">" %}
+    {% set ret = "%0" %}
+    {% set ret_type =  "tensor<" + str(rows) + "x" + str(cols) + "x" + dtype + ">, " %}
+{% else %}
+    {% set arg_names = "%A2_pos, %A2_crd, %A_vals" %}
+    {% set arg_types = "tensor<?xindex>, tensor<?xindex>, tensor<?x" + dtype + ">" %}
+    {% set arg_names_types = "%A2_pos: tensor<?xindex>, %A2_crd: tensor<?xindex>, %A_vals: tensor<?x" + dtype + ">" %}
+    {% set ret = "%pos, %crd, %val" %}
+    {% set ret_type =  "memref<?xindex>, memref<?xindex>, memref<?x" + dtype + ">" %}
+{% endif %}
+
+func.func @main({{ arg_names_types }},
                 %B2_pos: tensor<?xindex>,
                 %B2_crd: tensor<?xindex>,
                 %B_vals: tensor<?x{{ dtype }}>,
                 %C2_pos: tensor<?xindex>,
                 %C2_crd: tensor<?xindex>,
-                %C_vals: tensor<?x{{ dtype }}>
-                ) -> tensor<{{ rows }}x{{ cols }}x{{ dtype }}> attributes { llvm.emit_c_interface } {
+                %C_vals: tensor<?x{{ dtype }}>) -> ({{ ret_type }}) attributes { llvm.emit_c_interface } {
+
+    {% if not dense_output %}
+        %A = sparse_tensor.assemble (%A2_pos, %A2_crd), %A_vals: (tensor<?xindex>, tensor<?xindex>), tensor<?xf64> to tensor<{{ rows }}x{{ cols }}x{{ dtype }}, #CSR>
+        %B = sparse_tensor.assemble (%B2_pos, %B2_crd), %B_vals: (tensor<?xindex>, tensor<?xindex>), tensor<?xf64> to tensor<{{ rows }}x{{ cols }}x{{ dtype }}, #CSR>
+        %C = sparse_tensor.assemble (%C2_pos, %C2_crd), %C_vals: (tensor<?xindex>, tensor<?xindex>), tensor<?xf64> to tensor<{{ rows }}x{{ cols }}x{{ dtype }}, #CSR>
+    {% endif %}
 
     call @start_cb() : () -> ()
     %time_before = call @nanoTime() : () -> i64
 
-    %0 = call @spmm(%A, %B2_pos, %B2_crd, %B_vals, %C2_pos, %C2_crd, %C_vals) : (
-        tensor<{{ rows }}x{{ cols }}x{{ dtype }}>,
-        tensor<?xindex>,
-        tensor<?xindex>,
-        tensor<?x{{ dtype }}>,
-        tensor<?xindex>,
-        tensor<?xindex>,
-        tensor<?x{{ dtype }}>) -> tensor<{{ rows }}x{{ cols }}x{{ dtype }}>
+    {{ ret }} = call @spmm(%A, %B, %C) : (
+    tensor<{{ rows }}x{{ cols }}x{{ dtype }}, #CSR>,
+    tensor<{{ rows }}x{{ cols }}x{{ dtype }}, #CSR>,
+    tensor<{{ rows }}x{{ cols }}x{{ dtype }}, #CSR>
+    ) -> tensor<{{ rows }}x{{ cols }}x{{ dtype }}, #CSR>
 
     %time_after = call @nanoTime() : () -> i64
     %diff = arith.subi %time_after, %time_before : i64
     call @stop_cb(%diff) : (i64) -> ()
 
-    return %0 : tensor<{{ rows }}x{{ cols }}x{{ dtype }}>
+    return {{ ret }}: {{ ret_type }}
 }

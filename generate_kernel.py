@@ -19,7 +19,7 @@ from kernels import spmv_dsl, spvv_dsl, spmm_dsl
 
 pipelines = {
     "no-opt":
-    ["sparse-assembler",
+    ["sparse-assembler{direct-out=true}",
      "sparse-reinterpret-map",
      "sparsification{enable-runtime-library=false}",
      "sparse-tensor-codegen",
@@ -200,10 +200,13 @@ def make_spmv_mlir_module(rows: int, cols: int, enc: SparseFormats, t: np.dtype 
 
 
 def make_spmm_mlir_module(res_rows: int, res_cols: int, inner_dim: int, enc_first: SparseFormats,
-                          enc_other: SparseFormats, t: np.dtype = np.dtype("float64")) -> ir.Module:
+                          enc_other: SparseFormats, t: np.dtype = np.dtype("float64"),
+                          dense_out: bool = False) -> ir.Module:
     module = ir.Module.create()
     t = np_to_mlir_type[t]()
-    A = ir.RankedTensorType.get([res_rows, res_cols], t, get_csr_encoding())
+    A = ir.RankedTensorType.get([res_rows, res_cols], t) \
+        if dense_out else (
+        ir.RankedTensorType.get([res_rows, res_cols], t, get_csr_encoding()))
     B = ir.RankedTensorType.get([res_rows, inner_dim], t, get_encoding[enc_first]())
     C = ir.RankedTensorType.get([inner_dim, res_cols], t, get_encoding[enc_other]())
     arguments = [A, B, C]
