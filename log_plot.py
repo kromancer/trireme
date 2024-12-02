@@ -100,14 +100,20 @@ def plot_mean_exec_times_ss(logs: List[Dict], series: Dict) -> None:
     names_to_nnz = get_all_suitesparse_matrix_names_with_nnz()
     nnz = [names_to_nnz[n] for n in m_names]
 
-    means_all = [log['mean_ms'] for log in logs]
+    means_all = []
+    for log in logs:
+        try:
+            means_all.append(log['mean_ms'])
+        except KeyError:
+            print(f"mean_ms not present in {log}")
+            means_all.append(0)
 
     work_rates_all = [x / m for x, m in zip(nnz, means_all) if m > 0]
-    work_rates_big = [x / m for x, m in zip(nnz, means_all) if x > 10 ** 6 and m > 0]
+    work_rates_big = [x / m for x, m in zip(nnz, means_all) if x > 10 ** 7 and m > 0]
     ha_all = harmonic_mean(work_rates_all)
     ha_big = harmonic_mean(work_rates_big)
 
-    lbl = series['label'] + f", HA_all(nnz/ms): {int(ha_all)}, HA_big(nnz/ms): {int(ha_big)}"
+    lbl = series['label'] + f", HA_all: {int(ha_all)}, HA_big: {int(ha_big)}"
     plt.scatter(nnz, means_all, label=lbl, s=5)
     plt.xscale("log")
     plt.yscale("log")

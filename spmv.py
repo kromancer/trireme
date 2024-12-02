@@ -5,8 +5,7 @@ from typing import Callable, List, Union
 
 import jinja2
 import numpy as np
-from scipy import sparse as sp
-from scipy.sparse import csr_array
+from scipy.sparse import coo_array, csr_array
 
 from log_plot import append_placeholder
 from mlir import runtime as rt
@@ -57,7 +56,7 @@ def render_template_for_spmv(args: argparse.Namespace) -> str:
     return spmv_rendered
 
 
-def run_spmv(exec_engine: ExecutionEngine, args: argparse.Namespace, mat: Union[sp.coo_array, csr_array],
+def run_spmv(exec_engine: ExecutionEngine, args: argparse.Namespace, mat: Union[coo_array, csr_array],
              mat_buffs: List[np.ndarray], vec: np.ndarray, dtype: np.dtype, itype: np.dtype,
              decorator:  Callable[[ExecutionEngine, argparse.Namespace], Callable[[RunFuncType], RunFuncType]]):
 
@@ -118,7 +117,6 @@ def main():
             f.write(spmv)
 
         main_fun = render_template_for_main(args)
-
         llvm_mlir, _ = apply_passes(spmv, kernel="spmv", pipeline=pipeline, main_fun=main_fun, index_type=itype)
 
         with HwprefController(args):
@@ -151,11 +149,11 @@ def parse_args() -> argparse.Namespace:
     action_subparser = parser.add_subparsers(dest="action", help="Choose action: benchmark or profile")
 
     # Subcommand: benchmark
-    benchmark_parser = action_subparser.add_parser("benchmark", help="Benchmark the application")
+    benchmark_parser = action_subparser.add_parser("benchmark")
     add_args_for_benchmark(benchmark_parser)
 
     # Subcommand: profile
-    profile_parser = action_subparser.add_parser("profile", help="Profile the application")
+    profile_parser = action_subparser.add_parser("profile")
     profile_parser.add_argument("analysis", choices=["toplev", "vtune", "events"],
                                 help="Choose an analysis type")
 

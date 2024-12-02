@@ -38,7 +38,7 @@ class InputManager:
         # if input source is from SuiteSparse:
         name: Optional[str]
 
-    def __init__(self, args: ArgsNamespace):
+    def __init__(self, args: Namespace):
         self.args = args
 
         seed = read_config("input-manager-config.json", "seed")
