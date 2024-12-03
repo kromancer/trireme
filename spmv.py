@@ -46,7 +46,8 @@ def render_template_for_main(args: argparse.Namespace) -> str:
 def render_template_for_spmv(args: argparse.Namespace) -> str:
 
     template_names = {"pref-ains": f"spmv_{args.matrix_format}.ains.mlir.jinja2",
-                      "pref-spe": f"spmv_{args.matrix_format}.spe.mlir.jinja2"}
+                      "pref-spe": f"spmv_{args.matrix_format}.spe.mlir.jinja2",
+                      "pref-simple": f"spmv_{args.matrix_format}.simple.mlir.jinja2"}
 
     jinja = get_jinja()
     spmv_template = jinja.get_template(template_names[args.optimization])
@@ -134,13 +135,13 @@ def parse_args() -> argparse.Namespace:
 
     # common arguments
     parser.add_argument("-o", "--optimization",
-                                   choices=["vect-vl4", "pref-mlir", "pref-ains", "pref-spe"],
+                                   choices=["vect-vl4", "pref-mlir", "pref-ains", "pref-spe", "pref-simple"],
                                    help="Use an optimized version of the kernel")
     parser.add_argument("-pd", "--prefetch-distance", type=int, default=32, help="Prefetch distance")
     parser.add_argument("-l", "--locality-hint", type=int, choices=[0, 1, 2, 3], default=3,
                         help="Temporal locality hint for prefetch instructions, "
                              "3 for maximum temporal locality, 0 for no temporal locality. "
-                             "On x86, value 3 will produce PREFETCHT0, while value 0 will produce")
+                             "On x86, value 3 will produce PREFETCHT0, while value 0 will produce PREFETCHNTA")
     add_sparse_format_arg(parser, "matrix")
     add_output_check_arg(parser)
     HwprefController.add_args(parser)
