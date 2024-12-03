@@ -68,8 +68,8 @@ func.func @spmv(%a_t: tensor<{{ rows }}x{{ dtype }}>,
 
           // Load Bj_crd[min(iB + dist, seg_end)]
           %18 = arith.addi %iB, %dist : index
-          %19 = arith.cmpi ult, %18, %c1 : index
-          %20 = arith.select %19, %18, %c1 : index
+          %19 = arith.cmpi ult, %18, %seg_end : index
+          %20 = arith.select %19, %18, %seg_end : index
           %21 = memref.load %Bj_crd[%20] : memref<?xindex>
 
           // Prefetch c[Bj_crd[min(iB + dist, seg_end)]]
