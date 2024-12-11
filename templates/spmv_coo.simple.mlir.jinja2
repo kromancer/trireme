@@ -14,7 +14,6 @@ func.func @spmv(%a_t: tensor<{{ rows }}x{{ dtype }}>,
 
     // Fixed lookahead distance
     %dist = arith.constant {{ pd }} : index
-    %double_dist = arith.muli %dist, %c2 : index
 
     %c = bufferization.to_memref %c_t : memref<{{ cols }}x{{ dtype }}>
     %a = bufferization.to_memref %a_t : memref<{{ rows }}x{{ dtype }}>

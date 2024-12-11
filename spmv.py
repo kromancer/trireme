@@ -26,7 +26,8 @@ to_mlir_type = {
     "float64": "f64",
     "float32": "f32",
     "int64": "i64",
-    "int32": "i32"
+    "int32": "i32",
+    "bool": "i1"
 }
 
 

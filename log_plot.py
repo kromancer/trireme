@@ -12,7 +12,8 @@ from typing import Dict, List
 from git import Repo
 from matplotlib import pyplot as plt
 
-from suite_sparse import get_all_suitesparse_matrix_names_with_nnz
+from input_manager import InputManager
+from suite_sparse import SuiteSparse
 
 
 def filtered_by_median(data) -> List[int]:
@@ -97,7 +98,7 @@ def plot_mean_exec_times_ss(logs: List[Dict], series: Dict) -> None:
     X-axis is the number of non-zero elements of the matrix
     """
     m_names = [re.search(r'SuiteSparse\s+(\S+)', log['args']).group(1) for log in logs]
-    names_to_nnz = get_all_suitesparse_matrix_names_with_nnz()
+    names_to_nnz = SuiteSparse(InputManager.get_working_dir()).get_all_matrix_names_with_nnz()
     nnz = [names_to_nnz[n] for n in m_names]
 
     means_all = []
@@ -125,7 +126,7 @@ def plot_events_perf_ss(logs: List[Dict], series: Dict) -> None:
     X-axis is the number of non-zero elements of the matrix
     """
     m_names = [re.search(r'SuiteSparse\s+(\S+)', log['args']).group(1) for log in logs]
-    names_to_nnz = get_all_suitesparse_matrix_names_with_nnz()
+    names_to_nnz = SuiteSparse(working_dir=InputManager.get_working_dir()).get_all_matrix_names_with_nnz()
     x_vals = [names_to_nnz[n] for n in m_names]
 
     e_counts = [float(e["counter-value"])

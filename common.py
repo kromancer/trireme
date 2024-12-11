@@ -21,6 +21,7 @@ import scipy.sparse as sp
 class SparseFormats(Enum):
     CSR = "csr"
     COO = "coo"
+    CSC = "csc"
 
     def __str__(self):
         return self.value

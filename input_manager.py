@@ -1,14 +1,14 @@
 from argparse import Namespace
 from pathlib import Path
 import tarfile
-from typing import List, Optional, Tuple, Union
+from typing import List, Tuple, Union
 
 import numpy as np
-from scipy.io import mmread
 import scipy.sparse as sp
 
 from common import change_dir, print_size, read_config, SparseFormats, timeit
-from suite_sparse import get_suitesparse_matrix
+from rbio import RBio
+from suite_sparse import SuiteSparse
 
 
 def get_storage_buffers(mat: sp.sparray, m_form: SparseFormats) -> Tuple[List[np.array], np.dtype, np.dtype]:
@@ -25,26 +25,8 @@ def get_storage_buffers(mat: sp.sparray, m_form: SparseFormats) -> Tuple[List[np
 
 class InputManager:
 
-    # For type hinting the "args" property
-    class ArgsNamespace(Namespace):
-        in_source: str
-        matrix_format: SparseFormats
-        # if input source is synthetic:
-        # non-optional fields will be explicitly set by this module if input is SuiteSparse
-        i: int
-        j: int
-        dtype: str
-        density: Optional[float]
-        # if input source is from SuiteSparse:
-        name: Optional[str]
-
     def __init__(self, args: Namespace):
         self.args = args
-
-        seed = read_config("input-manager-config.json", "seed")
-        if seed is None:
-            seed = 5
-        self.rng = np.random.default_rng(seed)
 
         skip_load = read_config("input-manager-config.json", "skip_load")
         if skip_load is None:
@@ -56,12 +38,16 @@ class InputManager:
             skip_store = True
         self.skip_store = skip_store
 
+        self.directory = InputManager.get_working_dir()
+
+    @staticmethod
+    def get_working_dir():
         sdir = read_config("input-manager-config.json", "directory")
         if sdir is None:
             sdir = Path.cwd()
         else:
             sdir = Path(sdir)
-        self.directory = sdir
+        return sdir
 
     def file_path(self, prefix: str, **kwargs) -> Path:
         params = "_".join(f"{key}-{value}" for key, value in kwargs.items())
@@ -76,25 +62,8 @@ class InputManager:
 
     @timeit
     def create_dense_vec(self) -> np.ndarray:
-        size = self.args.j
-        dtype = self.args.dtype
-        file_path = self.file_path('dense_vector', size=size, dtype=dtype)
-        if file_path.exists() and not self.skip_load:
-            return np.load(file_path)['arr_0']
-
-        if np.issubdtype(dtype, np.integer):
-            dense_vec = self.rng.integers(0, high=100, size=size, dtype=dtype)
-        elif np.issubdtype(dtype, np.floating):
-            # Generate random floats if dtype is a floating-point type
-            dense_vec = self.rng.random(size=size, dtype=dtype)
-        else:
-            raise ValueError(f"Unsupported dtype: {dtype}")
-
-        if not self.skip_store:
-            np.savez_compressed(file_path, dense_vec)
-        print(f"vector: size: {print_size(size * np.float64().itemsize)}"
-              f"{', saved as' + str(file_path) if not self.skip_store else ''}")
-
+        dense_vec = np.empty(self.args.j, dtype=self.args.dtype)
+        print(f"vector: size: {print_size(self.args.j * np.dtype(self.args.dtype).itemsize)}")
         return dense_vec
 
     def create_synth_sparse_mat(self) -> Union[sp.coo_array, sp.csr_array]:
@@ -116,31 +85,43 @@ class InputManager:
               f"nnz size: {print_size(m.nnz * m.dtype.itemsize)}{', saved as' + str(file_path) if not self.skip_store else ''}")
         return m
 
-    def get_ss_mat(self) -> sp.coo_array:
+    def get_ss_mat(self) -> sp.csc_array:
+        ss = SuiteSparse(self.directory)
         mtx = self.args.name
-        m_f = SparseFormats(self.args.matrix_format)
         file_path = self.directory / f"{mtx}.tar.gz"
 
         # If skip_store is False, use a temporary dir to download
         download_dir = None if self.skip_store else self.directory
         with change_dir(download_dir):
             if self.skip_load or not file_path.exists():
-                get_suitesparse_matrix(self.args.name)
+                ss.get_matrix(self.args.name)
                 file_path = Path.cwd() / f"{mtx}.tar.gz"
 
             # Always switch to a temporary directory for the extraction
             with change_dir():
                 with tarfile.open(file_path, "r:gz") as tar:
                     tar.extractall()
-                mtx_file = Path(mtx) / (mtx + ".mtx")
-                # The COO read will not have sorted indices, so trigger this by coo -> csr conversion
-                m = sp.coo_array(mmread(mtx_file)).tocsr()
+                mtx_file = Path(mtx) / (mtx + ".rb")
+                assert mtx_file.exists()
 
-        self.args.i, self.args.j = m.shape
-        self.args.dtype = m.dtype.name
-        if m_f == SparseFormats.COO:
-            m: sp.coo_array = m.tocoo()
-        return m
+                # The matrix is read in the CSC format
+                self.args.i, self.args.j, nnz, p_Ap, p_Ai = RBio().read_rb(mtx_file)
+
+        indptr = np.ctypeslib.as_array(p_Ap, shape=(self.args.j + 1,))
+        indices = np.ctypeslib.as_array(p_Ai, shape=(nnz,))
+
+        if ss.is_binary(self.args.name):
+            self.args.dtype = "bool"
+        else:
+            self.args.dtype = "float64"
+        data = np.empty(nnz, dtype=self.args.dtype)
+
+        mat = sp.csc_array((data, indices, indptr), shape=(self.args.i, self.args.j))
+        if self.args.matrix_format == "csr":
+            return mat.tocsr(copy=False)
+        elif self.args.matrix_format == "coo":
+            return mat.tocoo(copy=False)
+        return mat
 
     def create_sparse_mat_and_dense_vec(self) -> Tuple[Union[sp.coo_array, sp.csr_array], np.ndarray]:
         return self.create_sparse_mat(), self.create_dense_vec()

@@ -19,7 +19,7 @@ from kernels import spmv_dsl, spvv_dsl, spmm_dsl
 
 pipelines = {
     "no-opt":
-    ["sparse-assembler{direct-out=true}",
+    ["sparse-assembler",
      "sparse-reinterpret-map",
      "sparsification{enable-runtime-library=false}",
      "sparse-tensor-codegen",
@@ -92,7 +92,8 @@ pipelines = {
 np_to_mlir_type = {
     np.dtype("float64"): lambda: ir.F64Type.get(),
     np.dtype("int32"): lambda: ir.IntegerType.get_signless(32),
-    np.dtype("int64"): lambda: ir.IntegerType.get_signless(64)
+    np.dtype("int64"): lambda: ir.IntegerType.get_signless(64),
+    np.dtype("bool"): lambda: ir.IntegerType.get_signless(1)
 }
 
 

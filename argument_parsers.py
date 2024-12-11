@@ -32,7 +32,7 @@ def add_synth_tensor_arg(parser: ArgumentParser, num_dims=2):
                              "density of 0 means a matrix with no non-zero items")
 
     # ensure that "types" can be converted to np.dtype
-    types = [np.dtype("float64").name, np.dtype("int64").name, np.dtype("int32").name]
+    types = [np.dtype("float64").name, np.dtype("int64").name, np.dtype("int32").name, np.dtype("bool")]
     parser.add_argument("--dtype", type=str, choices=[str(t) for t in types],
                         default=types[0],
                         help="Data type of the generated matrix")

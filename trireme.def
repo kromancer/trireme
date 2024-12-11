@@ -16,7 +16,8 @@ From: ubuntu:22.04
         libelf-dev libnewt-dev libdw-dev libaudit-dev libiberty-dev \
         libunwind-dev libcap-dev libzstd-dev libnuma-dev libssl-dev \
         binutils-dev gcc-multilib liblzma-dev hwloc \
-        libtraceevent-dev libbabeltrace-dev libperl-dev libpfm4-dev pkg-config
+        libtraceevent-dev libbabeltrace-dev libperl-dev libpfm4-dev pkg-config \
+        libopenblas-dev
 
     # Switch to a temporary directory
     # Accepts env variable $TMP
@@ -24,7 +25,32 @@ From: ubuntu:22.04
         TMP=/tmp
     fi
 
+    #############################
+    # Build RBio from SuiteSparse
+    #############################
+    mkdir -p /opt/SuiteSparse
+
+    cd $TMP
+    if [ -d SuiteSparse ]; then
+        echo "SuiteSparse already here!"
+    else
+        git clone https://github.com/DrTimothyAldenDavis/SuiteSparse.git
+    fi
+
+    cd SuiteSparse
+
+    git checkout tags/v7.8.3
+
+    rm -rf build
+    mkdir build
+    cd build
+    cmake -DCMAKE_INSTALL_PREFIX=/opt/SuiteSparse -DCMAKE_CXX_COMPILER=g++-12 -DCMAKE_C_COMPILER=gcc-12 -DSUITESPARSE_ENABLE_PROJECTS="rbio" ..
+    cmake --build .
+    cmake --install .
+
+    ##########################
     # Build Python from source
+    ##########################
     VERSION="3.10.13"
     VERSION_MAJOR=${VERSION%.*}
     PYTHON_DIR="/opt/python"
@@ -100,6 +126,7 @@ From: ubuntu:22.04
     export PYTHONPATH=/opt/llvm/python_packages/mlir_core
     export LLVM_PATH=/opt/llvm
     export OMP_DISPLAY_ENV=true
+    export LD_LIBRARY_PATH=/opt/SuiteSparse/lib
 
 %runscript
     exec /bin/bash "$@"
