@@ -11,7 +11,7 @@ From: ubuntu:22.04
         libreadline-dev libncursesw5-dev libssl-dev \
         libsqlite3-dev libgdbm-dev libc6-dev libbz2-dev \
         libffi-dev zlib1g-dev \
-        lsb-release wget software-properties-common gnupg \
+        lsb-release wget gpg-agent software-properties-common gnupg \
         flex bison \
         libelf-dev libnewt-dev libdw-dev libaudit-dev libiberty-dev \
         libunwind-dev libcap-dev libzstd-dev libnuma-dev libssl-dev \
@@ -24,6 +24,14 @@ From: ubuntu:22.04
     if [ -z "$TMP" ] || [ ! -d "$TMP" ]; then
         TMP=/tmp
     fi
+
+    ###################
+    # Get intel's vtune
+    ###################
+    cd $TMP
+    wget -O- https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB | gpg --dearmor | tee /usr/share/keyrings/oneapi-archive-keyring.gpg > /dev/null
+    echo "deb [signed-by=/usr/share/keyrings/oneapi-archive-keyring.gpg] https://apt.repos.intel.com/oneapi all main" | tee /etc/apt/sources.list.d/oneAPI.list
+    apt update && apt install intel-oneapi-base-toolkit -y
 
     #############################
     # Build RBio from SuiteSparse
@@ -95,14 +103,10 @@ From: ubuntu:22.04
     cmake -G Ninja ../llvm -DLLVM_ENABLE_PROJECTS="clang;openmp;lldb;mlir" -DCMAKE_CXX_COMPILER=g++-12 -DCMAKE_C_COMPILER=gcc-12 -DCMAKE_INSTALL_PREFIX=/opt/llvm -DLLVM_TARGETS_TO_BUILD="Native" -DCMAKE_BUILD_TYPE=RelWithDebInfo -DPython3_EXECUTABLE=python -DMLIR_ENABLE_BINDINGS_PYTHON=ON -DLLVM_USE_PERF=ON
     ninja -j8 install
 
-    # Get intel's vtune
-    cd $TMP
-    wget -O- https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB | gpg --dearmor | tee /usr/share/keyrings/oneapi-archive-keyring.gpg > /dev/null
-    echo "deb [signed-by=/usr/share/keyrings/oneapi-archive-keyring.gpg] https://apt.repos.intel.com/oneapi all main" | tee /etc/apt/sources.list.d/oneAPI.list
-    apt update && apt install intel-oneapi-vtune -y
-
+    #####################################
     # Get the linux kernel and build perf
     # Assumes that the machine building the image will run the container:
+    #####################################
     cd $TMP
     if [ -d linux ]; then
         echo "linux already here!"
@@ -122,11 +126,12 @@ From: ubuntu:22.04
     git clone https://github.com/andikleen/pmu-tools
 
 %environment
-    export PATH=/opt/llvm/bin:/opt/python/bin:/opt/perf/bin:/opt/pmu-tools:/opt/intel/oneapi/vtune/latest/bin64:$PATH
+    export PATH=/opt/llvm/bin:/opt/python/bin:/opt/perf/bin:/opt/pmu-tools:$PATH
     export PYTHONPATH=/opt/llvm/python_packages/mlir_core
     export LLVM_PATH=/opt/llvm
     export OMP_DISPLAY_ENV=true
     export LD_LIBRARY_PATH=/opt/SuiteSparse/lib
+    eval "$(bash /opt/intel/oneapi/setvars.sh)"
 
 %runscript
     exec /bin/bash "$@"
