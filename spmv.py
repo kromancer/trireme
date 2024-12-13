@@ -45,7 +45,6 @@ def render_template_for_main(args: argparse.Namespace) -> str:
 
 
 def render_template_for_spmv(args: argparse.Namespace) -> str:
-
     template_names = {"pref-ains": f"spmv_{args.matrix_format}.ains.mlir.jinja2",
                       "pref-spe": f"spmv_{args.matrix_format}.spe.mlir.jinja2",
                       "pref-simple": f"spmv_{args.matrix_format}.simple.mlir.jinja2"}

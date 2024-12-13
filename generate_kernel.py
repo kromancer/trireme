@@ -6,6 +6,7 @@ from pathlib import Path
 from subprocess import run
 from typing import Optional, Tuple
 
+import jinja2
 import numpy as np
 
 from mlir import ir
@@ -13,9 +14,8 @@ from mlir.dialects import func
 from mlir.dialects import sparse_tensor as st
 from mlir.passmanager import *
 
-from argument_parsers import add_dimension_args
+from argument_parsers import add_dimension_args, add_dtype_arg, add_opt_arg
 from common import SparseFormats, make_work_dir_and_cd_to_it
-from kernels import spmv_dsl, spvv_dsl, spmm_dsl
 
 pipelines = {
     "no-opt":
@@ -73,18 +73,20 @@ pipelines = {
     ["sparse-assembler",
      "sparse-reinterpret-map",
      "sparsification{enable-runtime-library=false parallelization-strategy=any-storage-any-loop}",
+     "convert-scf-to-openmp",
      "sparse-tensor-codegen",
      "func-bufferize",
      "reconcile-unrealized-casts",
      "sparse-storage-specifier-to-llvm",
      "canonicalize{max-iterations=10 max-num-rewrites=-1 region-simplify=normal test-convergence=false top-down=true}",
      "finalizing-bufferize",
-     "convert-scf-to-openmp",
      "convert-scf-to-cf",
      "expand-strided-metadata",
      "finalize-memref-to-llvm{index-bitwidth=0 use-aligned-alloc=false use-generic-functions=false}",
      "convert-func-to-llvm{index-bitwidth=0 use-bare-ptr-memref-call-conv=false}",
+     "convert-cf-to-llvm",
      "convert-openmp-to-llvm",
+     "canonicalize",
      "reconcile-unrealized-casts"]
 }
 
@@ -94,6 +96,14 @@ np_to_mlir_type = {
     np.dtype("int32"): lambda: ir.IntegerType.get_signless(32),
     np.dtype("int64"): lambda: ir.IntegerType.get_signless(64),
     np.dtype("bool"): lambda: ir.IntegerType.get_signless(1)
+}
+
+to_mlir_type = {
+    "float64": "f64",
+    "float32": "f32",
+    "int64": "i64",
+    "int32": "i32",
+    "bool": "i1"
 }
 
 
@@ -145,79 +155,26 @@ def apply_passes(src: str, kernel: str, pipeline: str, main_fun: Optional[str] =
     return module, out_file_name
 
 
-def get_compressed_vec_encoding() -> st.EncodingAttr:
-    return st.EncodingAttr.parse(
-        "#sparse_tensor.encoding<{ map = (d0) -> (d0 : compressed) }>")
+encodings = {SparseFormats.CSR: "#sparse_tensor.encoding<{ map = (d0, d1) -> (d0: dense, d1: compressed) }>",
+             SparseFormats.CSC: "#sparse_tensor.encoding<{ map = (d0, d1) -> (d1: dense, d0: compressed) }>",
+             SparseFormats.COO: "#sparse_tensor.encoding<{ map = (d0, d1) -> (d0: compressed(nonunique), d1: singleton(soa)) }>"}
 
 
-def get_csr_encoding() -> st.EncodingAttr:
-    return st.EncodingAttr.parse(
-        "#sparse_tensor.encoding<{ map = (d0, d1) -> (d0 : dense, d1 : compressed) }>")
+def get_jinja() -> jinja2.Environment:
+    template_dir = Path(__file__).parent.resolve() / "templates"
+    return jinja2.Environment(loader=jinja2.FileSystemLoader(template_dir))
 
 
-def get_coo_encoding() -> st.EncodingAttr:
-    return st.EncodingAttr.parse(
-        "#sparse_tensor.encoding<{ map = (d0, d1) -> (d0 : compressed(nonunique), d1 : singleton(soa)) }>")
-
-
-get_encoding = {SparseFormats.CSR: get_csr_encoding,
-                SparseFormats.COO: get_coo_encoding}
-
-
-def make_spvv_mlir_module(size: int, t: np.dtype = np.dtype("float64")) -> ir.Module:
-    module = ir.Module.create()
-    t = np_to_mlir_type[t]()
-    a = ir.RankedTensorType.get([], t)
-    b = ir.RankedTensorType.get([size], t, get_compressed_vec_encoding())
-    c = ir.RankedTensorType.get([size], t, get_compressed_vec_encoding())
-    arguments = [a, b, c]
-    with ir.InsertionPoint(module.body):
-
-        @func.FuncOp.from_py_func(*arguments)
-        def spvv(*args):
-            return spvv_dsl(args[1], args[2], outs=[args[0]])
-
-    return module
-
-
-def make_spmv_mlir_module(rows: int, cols: int, enc: SparseFormats, t: np.dtype = np.dtype("float64"),
-                          is_sparse_vec: bool = False) -> ir.Module:
-    module = ir.Module.create()
-    t = np_to_mlir_type[t]()
-    a = ir.RankedTensorType.get([rows], t)
-    B = ir.RankedTensorType.get([rows, cols], t, get_encoding[enc]())
-    if is_sparse_vec:
-        c = ir.RankedTensorType.get([cols], t, get_compressed_vec_encoding())
+def render_template_for_spmv(args: argparse.Namespace, encoding: str, is_sparse_vec: bool) -> str:
+    jinja = get_jinja()
+    if args.dtype == "bool":
+        spmv_template = jinja.get_template("spmv_bool_semiring.mlir.jinja2")
     else:
-        c = ir.RankedTensorType.get([cols], t)
-    arguments = [a, B, c]
-    with ir.InsertionPoint(module.body):
+        spmv_template = jinja.get_template("spmv_mult_semiring.mlir.jinja2")
 
-        @func.FuncOp.from_py_func(*arguments)
-        def spmv(*args):
-            return spmv_dsl(args[1], args[2], outs=[args[0]])
-
-    return module
-
-
-def make_spmm_mlir_module(res_rows: int, res_cols: int, inner_dim: int, enc_first: SparseFormats,
-                          enc_other: SparseFormats, t: np.dtype = np.dtype("float64"),
-                          dense_out: bool = False) -> ir.Module:
-    module = ir.Module.create()
-    t = np_to_mlir_type[t]()
-    A = ir.RankedTensorType.get([res_rows, res_cols], t) \
-        if dense_out else (
-        ir.RankedTensorType.get([res_rows, res_cols], t, get_csr_encoding()))
-    B = ir.RankedTensorType.get([res_rows, inner_dim], t, get_encoding[enc_first]())
-    C = ir.RankedTensorType.get([inner_dim, res_cols], t, get_encoding[enc_other]())
-    arguments = [A, B, C]
-    with ir.InsertionPoint(module.body):
-
-        @func.FuncOp.from_py_func(*arguments)
-        def spmm(*args):
-            return spmm_dsl(args[1], args[2], outs=[args[0]])
-
-    return module
+    spmv_rendered = spmv_template.render(rows=args.i, cols=args.j, encoding=encoding, dtype=to_mlir_type[args.dtype],
+                                         is_sparse_vec=is_sparse_vec)
+    return spmv_rendered
 
 
 @contextmanager
@@ -248,26 +205,17 @@ def generate(module: ir.Module, kernel_name: str, translate_to_llvm_ir: bool = F
                 run(translate_cmd, check=True)
 
 
-def generate_spvv(size: int):
+def generate_spmv(args: argparse.Namespace, enc: SparseFormats, is_sparse_vec: bool):
     with ir.Context() as ctx, ir.Location.unknown():
-        module = make_spvv_mlir_module(size)
-        generate(module, f"spvv", translate_to_llvm_ir=True)
-
-
-def generate_spmv(rows: int, cols: int, enc: SparseFormats, is_sparse_vec: bool):
-    with ir.Context() as ctx, ir.Location.unknown():
-        module = make_spmv_mlir_module(rows, cols, enc, is_sparse_vec=is_sparse_vec)
+        module = ir.Module.parse(render_template_for_spmv(args, encodings[enc], is_sparse_vec))
         generate(module, f"spmv_{enc}" + ("_spvec" if is_sparse_vec else ""), translate_to_llvm_ir=True)
-
-
-def generate_spmm(res_rows: int, res_cols: int, inner_dim: int, enc_first: SparseFormats, enc_other: SparseFormats):
-    with ir.Context() as ctx, ir.Location.unknown():
-        module = make_spmm_mlir_module(res_rows, res_cols, inner_dim, enc_first, enc_other)
-        generate(module, f"spmm_{enc_first}_{enc_other}", translate_to_llvm_ir=True)
 
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Generate mlir, from the linalg to the llvm dialect, for given kernel")
+    add_opt_arg(parser)
+    add_dtype_arg(parser)
+
     subparsers = parser.add_subparsers(dest="kernel", help="Which kernel to generate")
 
     spvv_parser = argparse.ArgumentParser(add_help=False)
@@ -293,15 +241,19 @@ def main():
     make_work_dir_and_cd_to_it(__file__)
 
     if args.kernel == "spvv":
-        generate_spvv(args.i)
+        # generate_spvv(args.i)
+        pass
     if args.kernel == "spmv":
-        generate_spmv(args.i, args.j, SparseFormats.CSR, is_sparse_vec=False)
-        generate_spmv(args.i, args.j, SparseFormats.COO, is_sparse_vec=False)
-        generate_spmv(args.i, args.j, SparseFormats.CSR, is_sparse_vec=True)
-        generate_spmv(args.i, args.j, SparseFormats.COO, is_sparse_vec=True)
+        generate_spmv(args, SparseFormats.CSR, is_sparse_vec=False)
+        generate_spmv(args, SparseFormats.COO, is_sparse_vec=False)
+        generate_spmv(args, SparseFormats.CSC, is_sparse_vec=False)
+        generate_spmv(args, SparseFormats.CSR, is_sparse_vec=True)
+        generate_spmv(args, SparseFormats.COO, is_sparse_vec=True)
+        generate_spmv(args, SparseFormats.CSC, is_sparse_vec=True)
     elif args.kernel == "spmm":
-        generate_spmm(args.i, args.j, args.k, SparseFormats.CSR, SparseFormats.CSR)
-        generate_spmm(args.i, args.j, args.k, SparseFormats.COO, SparseFormats.COO)
+        # generate_spmm(args.i, args.j, args.k, SparseFormats.CSR, SparseFormats.CSR)
+        # generate_spmm(args.i, args.j, args.k, SparseFormats.COO, SparseFormats.COO)
+        pass
 
 
 if __name__ == "__main__":

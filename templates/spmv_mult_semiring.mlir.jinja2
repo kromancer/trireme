@@ -1,0 +1,33 @@
+#map = affine_map<(d0, d1) -> (d0, d1)>
+#map1 = affine_map<(d0, d1) -> (d1)>
+#map2 = affine_map<(d0, d1) -> (d0)>
+
+#sparse = {{ encoding }}
+
+{% if is_sparse_vec %}
+    #sparse_vec = {{ "#sparse_tensor.encoding<{ map = (d0) -> (d0 : compressed) }>" }}
+    {% set vtype = "tensor<" ~ cols ~ "x" ~ dtype ~ ", #sparse_vec>"%}
+{%  else %}
+    {% set vtype = "tensor<" ~ cols ~ "x" ~ dtype ~ ">"%}
+{% endif %}
+
+{% set mat_type = "tensor<" ~ rows ~ "x" ~ cols ~ "x" ~ dtype ~ ", #sparse>"%}
+{% set out_type = "tensor<" ~ rows ~ "x" ~ dtype ~ ">"%}
+
+module {
+  func.func @spmv(%arg0: {{ out_type }},
+                  %arg1: {{ mat_type }},
+                  %arg2: {{ vtype }}) -> {{ out_type }} {
+    %0 = linalg.generic {
+        indexing_maps = [#map, #map1, #map2],
+        iterator_types = ["parallel", "reduction"]}
+        ins(%arg1, %arg2 : {{ mat_type }}, {{ vtype }})
+        outs(%arg0 : {{ out_type }}) {
+    ^bb0(%in: {{ dtype }}, %in_0: {{ dtype }}, %out: {{ dtype }}):
+      %1 = arith.mulf %in, %in_0 : {{ dtype }}
+      %2 = arith.addf %out, %1 : {{ dtype }}
+      linalg.yield %2 : {{ dtype }}
+    } -> {{ out_type }}
+    return %0 : {{ out_type }}
+  }
+}

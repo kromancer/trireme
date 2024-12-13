@@ -62,7 +62,7 @@ class InputManager:
 
     @timeit
     def create_dense_vec(self) -> np.ndarray:
-        dense_vec = np.empty(self.args.j, dtype=self.args.dtype)
+        dense_vec = np.ones(self.args.j, dtype=self.args.dtype)
         print(f"vector: size: {print_size(self.args.j * np.dtype(self.args.dtype).itemsize)}")
         return dense_vec
 
@@ -114,7 +114,7 @@ class InputManager:
             self.args.dtype = "bool"
         else:
             self.args.dtype = "float64"
-        data = np.empty(nnz, dtype=self.args.dtype)
+        data = np.ones(nnz, dtype=self.args.dtype)
 
         mat = sp.csc_array((data, indices, indptr), shape=(self.args.i, self.args.j))
         if self.args.matrix_format == "csr":

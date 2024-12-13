@@ -30,13 +30,23 @@ def add_synth_tensor_arg(parser: ArgumentParser, num_dims=2):
     parser.add_argument("-d", "--density", type=float, default=0.05,
                         help="Density of the generated matrix: density equal to one means a full matrix, "
                              "density of 0 means a matrix with no non-zero items")
+    add_dtype_arg(parser)
 
+
+def add_dtype_arg(parser: ArgumentParser):
     # ensure that "types" can be converted to np.dtype
     types = [np.dtype("float64").name, np.dtype("int64").name, np.dtype("int32").name, np.dtype("bool")]
     parser.add_argument("--dtype", type=str, choices=[str(t) for t in types],
                         default=types[0],
                         help="Data type of the generated matrix")
     return parser
+
+
+def add_opt_arg(parser: ArgumentParser):
+    parser.add_argument("-o", "--optimization",
+                        choices=["no-opt", "vect-vl4", "pref-mlir", "pref-ains", "pref-spe", "pref-simple"],
+                        default="no-opt",
+                        help="Use an optimized version of the kernel")
 
 
 def get_spmm_arg_parser() -> ArgumentParser:
