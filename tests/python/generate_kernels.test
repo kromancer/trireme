@@ -1,1 +1,0 @@
-# RUN: python %S/../../generate_kernel.py spmv

@@ -35,7 +35,8 @@ def add_synth_tensor_arg(parser: ArgumentParser, num_dims=2):
 
 def add_dtype_arg(parser: ArgumentParser):
     # ensure that "types" can be converted to np.dtype
-    types = [np.dtype("float64").name, np.dtype("int64").name, np.dtype("int32").name, np.dtype("bool")]
+    types = [np.dtype("float64").name, np.dtype("float32"), np.dtype("int64").name,
+             np.dtype("int32").name, np.dtype("bool")]
     parser.add_argument("--dtype", type=str, choices=[str(t) for t in types],
                         default=types[0],
                         help="Data type of the generated matrix")
@@ -61,3 +62,14 @@ def add_args_for_benchmark(parser: ArgumentParser):
 
 def add_args_for_profile(parser: ArgumentParser):
     parser.add_argument("vtune_cfg", type=str, help="Choose an analysis type")
+
+
+def add_prefetch_distance_arg(parser: ArgumentParser):
+    parser.add_argument("-pd", "--prefetch-distance", type=int, default=32, help="Prefetch distance")
+
+
+def add_locality_hint_arg(parser: ArgumentParser):
+    parser.add_argument("-l", "--locality-hint", type=int, choices=[0, 1, 2, 3], default=3,
+                        help="Temporal locality hint for prefetch instructions, "
+                             "3 for maximum temporal locality, 0 for no temporal locality. "
+                             "On x86, value 3 will produce PREFETCHT0, while value 0 will produce PREFETCHNTA")

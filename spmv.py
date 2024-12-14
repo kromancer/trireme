@@ -16,7 +16,7 @@ from argument_parsers import (add_args_for_benchmark, add_synth_tensor_arg, add_
                               add_sparse_format_arg)
 from common import SparseFormats, make_work_dir_and_cd_to_it
 from decorators import benchmark, profile, RunFuncType
-from generate_kernel import apply_passes, make_spmv_mlir_module
+from generate_kernel import apply_passes, render_template_for_spmv
 from hwpref_controller import HwprefController
 from input_manager import InputManager, get_storage_buffers
 from mlir_exec_engine import create_exec_engine
@@ -42,19 +42,6 @@ def render_template_for_main(args: argparse.Namespace) -> str:
     # Function "main" will be injected after the sparse-assembler pass
     main_template = jinja.get_template(f"spmv_{args.matrix_format}.main.mlir.jinja2")
     return main_template.render(rows=args.i, cols=args.j, dtype=to_mlir_type[args.dtype])
-
-
-def render_template_for_spmv(args: argparse.Namespace) -> str:
-    template_names = {"pref-ains": f"spmv_{args.matrix_format}.ains.mlir.jinja2",
-                      "pref-spe": f"spmv_{args.matrix_format}.spe.mlir.jinja2",
-                      "pref-simple": f"spmv_{args.matrix_format}.simple.mlir.jinja2"}
-
-    jinja = get_jinja()
-    spmv_template = jinja.get_template(template_names[args.optimization])
-    spmv_rendered = spmv_template.render(rows=args.i, cols=args.j, pd=args.prefetch_distance,
-                                         loc_hint=args.locality_hint, dtype=to_mlir_type[args.dtype])
-
-    return spmv_rendered
 
 
 def run_spmv(exec_engine: ExecutionEngine, args: argparse.Namespace, mat: Union[coo_array, csr_array],
@@ -106,18 +93,17 @@ def main():
     mat, vec = in_man.create_sparse_mat_and_dense_vec()
     mat_buffers, dtype, itype = get_storage_buffers(mat, SparseFormats(args.matrix_format))
 
+    spmv = render_template_for_spmv(args)
+    if not args.optimization or args.optimization == "pref-mlir":
+        pipeline = "pref" if args.optimization == "pref-mlir" else "no-opt"
+    else:
+        pipeline = "vect-vl4" if args.optimization == "vect-vl4" else "no-opt"
+    with open("spmv.mlir", "w") as f:
+        f.write(spmv)
+
+    main_fun = render_template_for_main(args)
+
     with ir.Context(), ir.Location.unknown():
-        if not args.optimization or args.optimization == "pref-mlir":
-            spmv = str(make_spmv_mlir_module(args.i, args.j, SparseFormats(args.matrix_format), dtype))
-            pipeline = "pref" if args.optimization == "pref-mlir" else "no-opt"
-        else:
-            spmv = render_template_for_spmv(args)
-            pipeline = "vect-vl4" if args.optimization == "vect-vl4" else "no-opt"
-
-        with open("spmv.mlir", "w") as f:
-            f.write(spmv)
-
-        main_fun = render_template_for_main(args)
         llvm_mlir, _ = apply_passes(spmv, kernel="spmv", pipeline=pipeline, main_fun=main_fun, index_type=itype)
 
         with HwprefController(args):

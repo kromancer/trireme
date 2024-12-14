@@ -1,9 +1,9 @@
-#COO = #sparse_tensor.encoding<{ map = (d0, d1) -> (d0 : compressed(nonunique), d1 : singleton(soa)) }>
+#sparse = {{ encoding }}
 
 // Computes: a(i) = B(i,j) * c(j)
-func.func @spmv(%a_t: tensor<{{ rows }}x{{ dtype }}>,
-                %B: tensor<{{ rows }}x{{ cols }}x{{ dtype }}, #COO>,
-                %c_t: tensor<{{ cols }}x{{ dtype }}>) -> tensor<{{ rows }}x{{ dtype }}> {
+func.func @spmv(%a_t: {{ out_type }},
+                %B: {{ mat_type }},
+                %c_t: {{ vtype }}) -> {{ out_type }} {
 
     %true = arith.constant true
     %false = arith.constant false
@@ -17,10 +17,10 @@ func.func @spmv(%a_t: tensor<{{ rows }}x{{ dtype }}>,
 
     %c = bufferization.to_memref %c_t : memref<{{ cols }}x{{ dtype }}>
     %a = bufferization.to_memref %a_t : memref<{{ rows }}x{{ dtype }}>
-    %Bi_pos = sparse_tensor.positions   %B {level = 0 : index} : tensor<{{ rows }}x{{ cols }}x{{ dtype }}, #COO> to memref<?xindex>
-    %Bi_crd = sparse_tensor.coordinates %B {level = 0 : index} : tensor<{{ rows }}x{{ cols }}x{{ dtype }}, #COO> to memref<?xindex>
-    %Bj_crd = sparse_tensor.coordinates %B {level = 1 : index} : tensor<{{ rows }}x{{ cols }}x{{ dtype }}, #COO> to memref<?xindex>
-    %B_vals = sparse_tensor.values %B : tensor<{{ rows }}x{{ cols }}x{{ dtype }}, #COO> to memref<?x{{ dtype }}>
+    %Bi_pos = sparse_tensor.positions   %B {level = 0 : index} : {{ mat_type }} to memref<?xindex>
+    %Bi_crd = sparse_tensor.coordinates %B {level = 0 : index} : {{ mat_type }} to memref<?xindex>
+    %Bj_crd = sparse_tensor.coordinates %B {level = 1 : index} : {{ mat_type }} to memref<?xindex>
+    %B_vals = sparse_tensor.values %B : {{ mat_type }} to memref<?x{{ dtype }}>
     %6 = memref.load %Bi_pos[%c0] : memref<?xindex>
 
     // Bound for Bi_crd/Bj_crd
@@ -72,14 +72,9 @@ func.func @spmv(%a_t: tensor<{{ rows }}x{{ dtype }}>,
           // Prefetch c[Bj_crd[min(iB + dist, seg_end)]]
           memref.prefetch %c[%21], read, locality<{{ loc_hint }}>, data : memref<{{ cols }}x{{ dtype }}>
 
-          {% if dtype.startswith('f') %}
-              %24 = arith.mulf %22, %23 : {{ dtype }}
-              %25 = arith.addf %arg6, %24 : {{ dtype }}
-          {% else %}
-              %24 = arith.muli %22, %23 : {{ dtype }}
-              %25 = arith.addi %arg6, %24 : {{ dtype }}
-          {% endif %}
 
+          %24 = {{ mul_op }} %22, %23 : {{ dtype }}
+          %25 = {{ add_op }} %arg6, %24 : {{ dtype }}
           scf.yield %25 : {{ dtype }}
         }
         memref.store %15, %a[%11] : memref<{{ rows }}x{{ dtype }}>
@@ -109,6 +104,6 @@ func.func @spmv(%a_t: tensor<{{ rows }}x{{ dtype }}>,
       scf.yield %13#0, %13#1 : index, index
     }
     %10 = bufferization.to_tensor %a : memref<{{ rows }}x{{ dtype }}>
-    return %10 : tensor<{{ rows }}x{{ dtype }}>
+    return %10 : {{ out_type }}
 }
 

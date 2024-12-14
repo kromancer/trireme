@@ -10,11 +10,10 @@ import jinja2
 import numpy as np
 
 from mlir import ir
-from mlir.dialects import func
-from mlir.dialects import sparse_tensor as st
 from mlir.passmanager import *
 
-from argument_parsers import add_dimension_args, add_dtype_arg, add_opt_arg
+from argument_parsers import (add_dimension_args, add_dtype_arg, add_locality_hint_arg, add_opt_arg,
+                              add_prefetch_distance_arg, add_sparse_format_arg)
 from common import SparseFormats, make_work_dir_and_cd_to_it
 
 pipelines = {
@@ -72,7 +71,7 @@ pipelines = {
     "omp":
     ["sparse-assembler",
      "sparse-reinterpret-map",
-     "sparsification{enable-runtime-library=false parallelization-strategy=any-storage-any-loop}",
+     "sparsification{enable-runtime-library=false parallelization-strategy=dense-any-loop}",
      "convert-scf-to-openmp",
      "sparse-tensor-codegen",
      "func-bufferize",
@@ -93,6 +92,7 @@ pipelines = {
 # defer execution by using lambdas, requires an active MLIR "Context"
 np_to_mlir_type = {
     np.dtype("float64"): lambda: ir.F64Type.get(),
+    np.dtype("float32"): lambda: ir.F32Type.get(),
     np.dtype("int32"): lambda: ir.IntegerType.get_signless(32),
     np.dtype("int64"): lambda: ir.IntegerType.get_signless(64),
     np.dtype("bool"): lambda: ir.IntegerType.get_signless(1)
@@ -165,15 +165,45 @@ def get_jinja() -> jinja2.Environment:
     return jinja2.Environment(loader=jinja2.FileSystemLoader(template_dir))
 
 
-def render_template_for_spmv(args: argparse.Namespace, encoding: str, is_sparse_vec: bool) -> str:
+def render_template_for_spmv(args: argparse.Namespace) -> str:
     jinja = get_jinja()
-    if args.dtype == "bool":
-        spmv_template = jinja.get_template("spmv_bool_semiring.mlir.jinja2")
-    else:
-        spmv_template = jinja.get_template("spmv_mult_semiring.mlir.jinja2")
 
-    spmv_rendered = spmv_template.render(rows=args.i, cols=args.j, encoding=encoding, dtype=to_mlir_type[args.dtype],
-                                         is_sparse_vec=is_sparse_vec)
+    # Prepare template parameters
+    encoding = encodings[SparseFormats(args.matrix_format)]
+    dtype = to_mlir_type[args.dtype]
+    if args.sparse_vec:
+        vtype = f"tensor<{args.j}x{dtype}, #sparse_tensor.encoding<{{ map = (d0) -> (d0 : compressed) }}>>"
+    else:
+        vtype = f"tensor<{args.j}x{dtype}>"
+
+    mat_type = f"tensor<{args.i}x{args.j}x{dtype}, #sparse>"
+    out_type = f"tensor<{args.i}x{dtype}>"
+
+    if dtype == "i1":
+        add_op = "arith.ori"
+        mul_op = "arith.andi"
+    elif dtype.startswith("f"):
+        add_op = "arith.addf"
+        mul_op = "arith.mulf"
+    else:
+        add_op = "arith.addi"
+        mul_op = "arith.muli"
+
+    template_names = {"no-opt": f"spmv.mlir.jinja2",
+                      "pref-mlir": f"spmv.mlir.jinja2",
+                      "pref-ains": f"spmv_{args.matrix_format}.ains.mlir.jinja2",
+                      "pref-spe": f"spmv_{args.matrix_format}.spe.mlir.jinja2",
+                      "pref-simple": f"spmv_{args.matrix_format}.simple.mlir.jinja2"}
+
+    spmv_template = jinja.get_template(template_names[args.optimization])
+    if args.optimization in ["no-opt", "pref-mlir"]:
+        spmv_rendered = spmv_template.render(encoding=encoding, mat_type=mat_type, vtype=vtype, out_type=out_type,
+                                             add_op=add_op, mul_op=mul_op, dtype=dtype)
+    else:
+        spmv_rendered = spmv_template.render(encoding=encoding, mat_type=mat_type, vtype=vtype, out_type=out_type,
+                                             add_op=add_op, mul_op=mul_op, dtype=dtype,
+                                             rows=args.i, cols=args.j, pd=args.prefetch_distance,
+                                             loc_hint=args.locality_hint)
     return spmv_rendered
 
 
@@ -205,16 +235,19 @@ def generate(module: ir.Module, kernel_name: str, translate_to_llvm_ir: bool = F
                 run(translate_cmd, check=True)
 
 
-def generate_spmv(args: argparse.Namespace, enc: SparseFormats, is_sparse_vec: bool):
+def generate_spmv(args: argparse.Namespace):
     with ir.Context() as ctx, ir.Location.unknown():
-        module = ir.Module.parse(render_template_for_spmv(args, encodings[enc], is_sparse_vec))
-        generate(module, f"spmv_{enc}" + ("_spvec" if is_sparse_vec else ""), translate_to_llvm_ir=True)
+        module = ir.Module.parse(render_template_for_spmv(args))
+        generate(module, f"spmv_{args.matrix_format}" + ("_spvec" if args.sparse_vec else ""), translate_to_llvm_ir=True)
 
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Generate mlir, from the linalg to the llvm dialect, for given kernel")
+    add_sparse_format_arg(parser, "matrix")
     add_opt_arg(parser)
     add_dtype_arg(parser)
+    add_locality_hint_arg(parser)
+    add_prefetch_distance_arg(parser)
 
     subparsers = parser.add_subparsers(dest="kernel", help="Which kernel to generate")
 
@@ -225,6 +258,7 @@ def parse_args() -> argparse.Namespace:
 
     spmv_parser = argparse.ArgumentParser(add_help=False)
     add_dimension_args(spmv_parser, 2)
+    spmv_parser.add_argument("--sparse-vec", action="store_true", help="Use sparse vector")
     subparsers.add_parser("spmv", help="Sparse-Matrix X Dense-Vector (SpMV)",
                           parents=[spmv_parser])
 
@@ -244,12 +278,7 @@ def main():
         # generate_spvv(args.i)
         pass
     if args.kernel == "spmv":
-        generate_spmv(args, SparseFormats.CSR, is_sparse_vec=False)
-        generate_spmv(args, SparseFormats.COO, is_sparse_vec=False)
-        generate_spmv(args, SparseFormats.CSC, is_sparse_vec=False)
-        generate_spmv(args, SparseFormats.CSR, is_sparse_vec=True)
-        generate_spmv(args, SparseFormats.COO, is_sparse_vec=True)
-        generate_spmv(args, SparseFormats.CSC, is_sparse_vec=True)
+        generate_spmv(args)
     elif args.kernel == "spmm":
         # generate_spmm(args.i, args.j, args.k, SparseFormats.CSR, SparseFormats.CSR)
         # generate_spmm(args.i, args.j, args.k, SparseFormats.COO, SparseFormats.COO)

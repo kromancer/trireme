@@ -1,19 +1,19 @@
-#CSR = #sparse_tensor.encoding<{ map = (d0, d1) -> (d0: dense, d1: compressed) }>
+#sparse = {{ encoding }}
 
 module {
 
-  func.func @spmv(%a: tensor<{{ rows }}x{{ dtype }}>,
-                  %B: tensor<{{ rows }}x{{ cols }}x{{ dtype }}, #CSR>,
-                  %vec: tensor<{{ cols }}x{{ dtype }}>) -> tensor<{{ rows }}x{{ dtype }}> {
+  func.func @spmv(%a: {{ out_type }},
+                  %B: {{ mat_type }},
+                  %vec: {{ vtype }}) -> {{ out_type }} {
 
     %rows = arith.constant {{ rows }} : index
     %c0 = arith.constant 0 : index
     %c1 = arith.constant 1 : index
     %pd = arith.constant {{ pd }} : index
 
-    %positions_buff = sparse_tensor.positions %B {level = 1 : index} : tensor<{{ rows }}x{{ cols }}x{{ dtype }}, #CSR> to memref<?xindex>
-    %coordinates_buff = sparse_tensor.coordinates %B {level = 1 : index} : tensor<{{ rows }}x{{ cols }}x{{ dtype }}, #CSR> to memref<?xindex>
-    %values_buff = sparse_tensor.values %B : tensor<{{ rows }}x{{ cols }}x{{ dtype }}, #CSR> to memref<?x{{ dtype }}>
+    %positions_buff = sparse_tensor.positions %B {level = 1 : index} : {{ mat_type }} to memref<?xindex>
+    %coordinates_buff = sparse_tensor.coordinates %B {level = 1 : index} : {{ mat_type }} to memref<?xindex>
+    %values_buff = sparse_tensor.values %B : {{ mat_type }} to memref<?x{{ dtype }}>
 
     %vec_buff = bufferization.to_memref %vec : memref<{{ cols }}x{{ dtype }}>
     %a_buff = bufferization.to_memref %a : memref<{{ rows }}x{{ dtype }}>
@@ -42,8 +42,8 @@ module {
           %col_idx = memref.load %coordinates_buff[%main] : memref<?xindex>
           %t_val = memref.load %values_buff[%main] : memref<?x{{ dtype }}>
           %v_val = memref.load %vec_buff[%col_idx] : memref<{{ cols }}x{{ dtype }}>
-          %14 = arith.mulf %t_val, %v_val : f64
-          %15 = arith.addf %acc2, %14 : f64
+          %14 = {{ mul_op }} %t_val, %v_val : f64
+          %15 = {{ add_op }} %acc2, %14 : f64
           scf.yield %15 : f64
         }
 
@@ -55,6 +55,6 @@ module {
     }
 
     %5 = bufferization.to_tensor %a_buff restrict : memref<{{ rows }}x{{ dtype }}>
-    return %5 : tensor<{{ rows }}x{{ dtype }}>
+    return %5 : {{ out_type }}
   }
 }
