@@ -12,7 +12,7 @@ from mlir import runtime as rt
 from mlir import ir
 from mlir.execution_engine import ExecutionEngine
 
-from argument_parsers import (add_args_for_benchmark, add_synth_tensor_arg, add_output_check_arg,
+from argument_parsers import (add_args_for_benchmark, add_opt_arg, add_synth_tensor_arg, add_output_check_arg,
                               add_sparse_format_arg)
 from common import SparseFormats, make_work_dir_and_cd_to_it
 from decorators import benchmark, profile, RunFuncType
@@ -119,15 +119,14 @@ def main():
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="(Sparse Matrix)x(Dense Vector) Multiplication (SpMV) with MLIR")
 
-    # common arguments
-    parser.add_argument("-o", "--optimization",
-                                   choices=["vect-vl4", "pref-mlir", "pref-ains", "pref-spe", "pref-simple"],
-                                   help="Use an optimized version of the kernel")
+    # common argumentsn
     parser.add_argument("-pd", "--prefetch-distance", type=int, default=32, help="Prefetch distance")
     parser.add_argument("-l", "--locality-hint", type=int, choices=[0, 1, 2, 3], default=3,
                         help="Temporal locality hint for prefetch instructions, "
                              "3 for maximum temporal locality, 0 for no temporal locality. "
                              "On x86, value 3 will produce PREFETCHT0, while value 0 will produce PREFETCHNTA")
+    parser.add_argument("--sparse-vec", action="store_true", help="Use sparse vector")
+    add_opt_arg(parser)
     add_sparse_format_arg(parser, "matrix")
     add_output_check_arg(parser)
     HwprefController.add_args(parser)

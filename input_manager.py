@@ -28,6 +28,11 @@ class InputManager:
     def __init__(self, args: Namespace):
         self.args = args
 
+        seed = read_config("input-manager-config.json", "seed")
+        if seed is None:
+            seed = 5
+        self.rng = np.random.default_rng(seed)
+
         skip_load = read_config("input-manager-config.json", "skip_load")
         if skip_load is None:
             skip_load = True
