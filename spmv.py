@@ -12,11 +12,12 @@ from mlir import runtime as rt
 from mlir import ir
 from mlir.execution_engine import ExecutionEngine
 
+from advisor import profile_spmv_with_advisor
 from argument_parsers import (add_args_for_benchmark, add_opt_arg, add_synth_tensor_arg, add_output_check_arg,
                               add_sparse_format_arg)
 from common import SparseFormats, make_work_dir_and_cd_to_it
 from decorators import benchmark, profile, RunFuncType
-from generate_kernel import apply_passes, render_template_for_spmv
+from generate_kernel import apply_passes, render_template_for_spmv, translate_to_llvm_ir
 from hwpref_controller import HwprefController
 from input_manager import InputManager, get_storage_buffers
 from mlir_exec_engine import create_exec_engine
@@ -45,8 +46,9 @@ def render_template_for_main(args: argparse.Namespace) -> str:
 
 
 def run_spmv(exec_engine: ExecutionEngine, args: argparse.Namespace, mat: Union[coo_array, csr_array],
-             mat_buffs: List[np.ndarray], vec: np.ndarray, dtype: np.dtype, itype: np.dtype,
-             decorator:  Callable[[ExecutionEngine, argparse.Namespace], Callable[[RunFuncType], RunFuncType]]):
+             mat_buffs: List[np.ndarray], vec: np.ndarray, dtype: np.dtype,
+             decorator:  Callable[[ExecutionEngine, argparse.Namespace], Callable[[RunFuncType], RunFuncType]],
+             itype: np.dtype = np.dtype("int64"),):
 
     mat_memrefs = [ctypes.pointer(ctypes.pointer(rt.get_ranked_memref_descriptor(b))) for b in mat_buffs]
 
@@ -84,6 +86,25 @@ def run_spmv(exec_engine: ExecutionEngine, args: argparse.Namespace, mat: Union[
     decorated_run()
 
 
+def run_with_jit(args: argparse.Namespace, llvm_mlir: ir.Module, mat: Union[coo_array, csr_array], vec: np.ndarray):
+    mat_buffers, dtype, _ = get_storage_buffers(mat, SparseFormats(args.matrix_format))
+
+    if args.action == "benchmark":
+        decorator = benchmark
+    else:
+        decorator = profile
+
+    exec_engine = create_exec_engine(llvm_mlir)
+
+    with HwprefController(args):
+        run_spmv(exec_engine, args, mat, mat_buffers, vec, dtype=dtype, decorator=decorator)
+
+
+def run_with_aot(args: argparse.Namespace, src: Path, mat: Union[coo_array, csr_array], vec: np.ndarray):
+    llvm_ir = translate_to_llvm_ir(src, "spmv")
+    profile_spmv_with_advisor(args, llvm_ir, mat, vec)
+
+
 def main():
     append_placeholder()
     args = parse_args()
@@ -91,35 +112,34 @@ def main():
 
     in_man = InputManager(args)
     mat, vec = in_man.create_sparse_mat_and_dense_vec()
-    mat_buffers, dtype, itype = get_storage_buffers(mat, SparseFormats(args.matrix_format))
 
     spmv = render_template_for_spmv(args)
     if not args.optimization or args.optimization == "pref-mlir":
         pipeline = "pref" if args.optimization == "pref-mlir" else "no-opt"
     else:
         pipeline = "vect-vl4" if args.optimization == "vect-vl4" else "no-opt"
-    with open("spmv.mlir", "w") as f:
+    with open("spmv.0. mlir", "w") as f:
         f.write(spmv)
 
-    main_fun = render_template_for_main(args)
+    uses_aot_compiled_spmv = args.action == "profile" and args.analysis == "advisor"
+    if uses_aot_compiled_spmv:
+        main_fun = None
+    else:
+        main_fun = render_template_for_main(args)
 
     with ir.Context(), ir.Location.unknown():
-        llvm_mlir, _ = apply_passes(spmv, kernel="spmv", pipeline=pipeline, main_fun=main_fun, index_type=itype)
+        llvm_mlir, out = apply_passes(spmv, kernel="spmv", pipeline=pipeline, main_fun=main_fun)
 
-        with HwprefController(args):
-            if args.action == "benchmark":
-                decorator = benchmark
-            elif args.action == "profile":
-                decorator = profile
-
-            exec_engine = create_exec_engine(llvm_mlir)
-            run_spmv(exec_engine, args, mat, mat_buffers, vec, dtype=dtype, itype=itype, decorator=decorator)
+    if uses_aot_compiled_spmv:
+        run_with_aot(args, out, mat, vec)
+    else:
+        run_with_jit(args, llvm_mlir, mat, vec)
 
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="(Sparse Matrix)x(Dense Vector) Multiplication (SpMV) with MLIR")
 
-    # common argumentsn
+    # common arguments
     parser.add_argument("-pd", "--prefetch-distance", type=int, default=32, help="Prefetch distance")
     parser.add_argument("-l", "--locality-hint", type=int, choices=[0, 1, 2, 3], default=3,
                         help="Temporal locality hint for prefetch instructions, "
@@ -140,8 +160,10 @@ def parse_args() -> argparse.Namespace:
 
     # Subcommand: profile
     profile_parser = action_subparser.add_parser("profile")
-    profile_parser.add_argument("analysis", choices=["toplev", "vtune", "events"],
+    profile_parser.add_argument("analysis", choices=["toplev", "vtune", "advisor", "events"],
                                 help="Choose an analysis type")
+    profile_parser.add_argument("config", type=str,
+                                help="Tool's config, read from the corresponding .json")
 
     # 2nd level subparsers, matrix type, synthetic or from SuiteSparse
     for p in benchmark_parser, profile_parser:

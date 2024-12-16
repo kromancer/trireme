@@ -108,7 +108,7 @@ to_mlir_type = {
 
 
 def apply_passes(src: str, kernel: str, pipeline: str, main_fun: Optional[str] = None,
-                 index_type: np.dtype = np.dtype("int64")) -> Tuple[ir.Module, str]:
+                 index_type: np.dtype = np.dtype("int64")) -> Tuple[ir.Module, Path]:
     out_file_name: str
 
     def run_pass(mlir_opt_pass: str):
@@ -152,7 +152,7 @@ def apply_passes(src: str, kernel: str, pipeline: str, main_fun: Optional[str] =
             print(f"Pipeline: {pipeline}")
             raise
 
-    return module, out_file_name
+    return module, Path(out_file_name)
 
 
 encodings = {SparseFormats.CSR: "#sparse_tensor.encoding<{ map = (d0, d1) -> (d0: dense, d1: compressed) }>",
@@ -218,7 +218,17 @@ def make_and_switch_dir(dir):
         chdir(current_dir)
 
 
-def generate(module: ir.Module, kernel_name: str, translate_to_llvm_ir: bool = False):
+def translate_to_llvm_ir(src: Path, out: str) -> Path:
+    mlir_translate = Path(environ['LLVM_PATH']) / "bin/mlir-translate"
+    assert mlir_translate.exists()
+
+    out = Path(f"{out}.ll")
+    translate_cmd = [str(mlir_translate), "--mlir-to-llvmir", src, "-o", out]
+    run(translate_cmd, check=True)
+    return out
+
+
+def generate(module: ir.Module, kernel_name: str, translate: bool = False):
     with make_and_switch_dir(kernel_name):
         with open(f"{kernel_name}.mlir", "w") as f:
             f.write(str(module))
@@ -227,18 +237,14 @@ def generate(module: ir.Module, kernel_name: str, translate_to_llvm_ir: bool = F
             with make_and_switch_dir(p):
                 _, last_output = apply_passes(str(module), kernel_name, p)
 
-            if translate_to_llvm_ir:
-                mlir_translate = Path(environ['LLVM_PATH']) / "bin/mlir-translate"
-                assert mlir_translate.exists()
-
-                translate_cmd = [str(mlir_translate), "--mlir-to-llvmir", Path(p) / last_output, "-o", f"{kernel_name}_{p}.ll"]
-                run(translate_cmd, check=True)
+            if translate:
+                _ = translate_to_llvm_ir(Path(p) / last_output, f"{kernel_name}_{p}")
 
 
 def generate_spmv(args: argparse.Namespace):
     with ir.Context() as ctx, ir.Location.unknown():
         module = ir.Module.parse(render_template_for_spmv(args))
-        generate(module, f"spmv_{args.matrix_format}" + ("_spvec" if args.sparse_vec else ""), translate_to_llvm_ir=True)
+        generate(module, f"spmv_{args.matrix_format}" + ("_spvec" if args.sparse_vec else ""), translate=True)
 
 
 def parse_args() -> argparse.Namespace:

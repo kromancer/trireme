@@ -55,7 +55,7 @@ def get_profile_cmd(args: Namespace, report: str) -> List[str]:
                 "--perf-summary", "perf.csv", "--pid"]
     elif args.analysis == "vtune":
         assert is_in_path("vtune")
-        return ["vtune"] + read_config("vtune-config.json", "memory-access") + ["-target-pid"]
+        return ["vtune"] + read_config("vtune-config.json", args.config) + ["-target-pid"]
     elif args.analysis == "events":
         assert is_in_path("perf")
         events = read_config("perf-events.json", "events")
@@ -117,8 +117,11 @@ def profile(exec_engine: ExecutionEngine, args: Namespace) -> Callable[[RunFuncT
                     rep = json.loads(f.read())
             elif args.analysis == "events":
                 rep = parse_perf_stat_json_output(report)
+            elif args.analysis == "vtune":
+                gen_and_store_reports()
+                rep = ""
             else:
-                rep = gen_and_store_reports()
+                rep = ""
             append_result({"report": rep})
 
         return wrapper

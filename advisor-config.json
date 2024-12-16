@@ -1,0 +1,22 @@
+{
+    "survey": [
+        "--collect", "survey",
+        "--profile-python", "off",
+        "--project-dir", "/home/paul/advi_results",
+        "--auto-finalize"
+    ],
+    "tripcounts": [
+        "--collect", "tripcounts",
+        "--flop",
+        "--no-trip-counts",
+        "--profile-python", "off",
+        "--profile-jit",
+        "--project-dir", "/home/paul/advi_results",
+        "--auto-finalize"
+    ],
+    "roofline": [
+        "--collect", "roofline",
+        "--project-dir", "/home/paul/advi_results",
+        "--auto-finalize"
+    ]
+}

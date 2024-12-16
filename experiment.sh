@@ -1,6 +1,7 @@
 #!/bin/bash
 
 source /home/paul/venv/bin/activate
+source opt/intel/oneapi/setvars.sh
 
 # spmv coo on SparseSuite on E-core 8
 
