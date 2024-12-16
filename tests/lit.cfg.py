@@ -1,4 +1,5 @@
 import os
+import platform
 import lit.formats
 
 config.name = "trireme"
@@ -12,3 +13,9 @@ config.excludes = [".lit"]
 config.environment["PYTHONPATH"] = os.environ["PYTHONPATH"]
 config.environment["LLVM_PATH"] = os.environ["LLVM_PATH"]
 
+if platform.system() == 'Darwin':
+    config.substitutions.append(('%{LIBVAR}', 'DYLD_LIBRARY_PATH'))
+elif platform.system() == 'Linux':
+    config.substitutions.append(('%{LIBVAR}', 'LD_LIBRARY_PATH'))
+else:
+    assert False

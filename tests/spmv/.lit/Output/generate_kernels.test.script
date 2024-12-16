@@ -1,1 +1,0 @@
-set -o pipefail;set -x;{ { set +x; } 2>/dev/null && echo 'RUN: at line 1': 'python /Users/ioanniss/trireme/tests/python/../../generate_kernel.py spmv' >&2 && { set -x; } 2>/dev/null && {   python /Users/ioanniss/trireme/tests/python/../../generate_kernel.py spmv; }; }

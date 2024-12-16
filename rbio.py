@@ -24,16 +24,17 @@ class RBio:
             lib_name = 'librbio.so'
             env_var = 'LD_LIBRARY_PATH'
         else:
-            print("Unsupported OS")
-            return
+            assert False, "Unsupported OS"
 
         try:
             # Attempt to load the library
             return ctypes.CDLL(lib_name)
         except OSError as e:
             # Handle failure to load the library
+            print(e)
             print(f"Failed to load {lib_name}.")
             print(f"Make sure the library exists in your system and the directory containing it is added to {env_var}.")
+            exit(1)
 
     def _initialize_suite_sparse(self):
         suite_sparse_start = self.lib.SuiteSparse_start
