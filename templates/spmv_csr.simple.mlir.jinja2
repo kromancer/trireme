@@ -1,0 +1,64 @@
+#sparse = {{ encoding }}
+
+// Computes: a(i) = B(i,j) * c(j)
+func.func @spmv(%a_t: {{ out_type }},
+                %B: {{ mat_type }},
+                %c_t: {{ vtype }}) -> {{ out_type }} {
+
+    %c3 = arith.constant {{ rows }} : index
+    %c0 = arith.constant 0 : index
+    %c1 = arith.constant 1 : index
+    %c2 = arith.constant 2 : index
+
+    %B2_pos = sparse_tensor.positions %B {level = 1 : index} : {{ mat_type }} to memref<?xindex>
+    %B2_crd = sparse_tensor.coordinates %B {level = 1 : index} : {{ mat_type }} to memref<?xindex>
+    %B_vals = sparse_tensor.values %B : {{ mat_type }} to memref<?x{{ dtype }}>
+
+    %bound = memref.load %B2_pos[%c3] : memref<?xindex>
+
+    %c_vals = bufferization.to_memref %c_t : memref<{{ cols }}x{{ dtype }}>
+    %a_buff = bufferization.to_memref %a_t : memref<{{ rows }}x{{ dtype }}>
+
+    // Fixed lookahead distance
+    %dist = arith.constant {{ pd }} : index
+
+    scf.for %i = %c0 to %c3 step %c1 {
+        %6 = memref.load %a_buff[%i] : memref<{{ rows }}x{{ dtype }}>
+
+        // Load position of B2 segment start
+        %pB2 = memref.load %B2_pos[%i] : memref<?xindex>
+
+        // Load position of B2 segment end
+        %i_plus_one = arith.addi %i, %c1 : index
+        %pB2_end = memref.load %B2_pos[%i_plus_one] : memref<?xindex>
+
+        %a_i = scf.for %jB = %pB2 to %pB2_end step %c1 iter_args(%arg5 = %6) -> ({{ dtype }}) {
+
+            // Load B_vals[jB]
+            %B_vals_jB = memref.load %B_vals[%jB] : memref<?x{{ dtype }}>
+
+            // Load candidate coordinate j
+            %j = memref.load %B2_crd[%jB] : memref<?xindex>
+
+            // Load c_vals[j]
+            %c_vals_j = memref.load %c_vals[%j] : memref<{{ cols }}x{{ dtype }}>
+
+            // Load B2_crd[min(j + dist, j_end)]
+            %jB_plus_dist = arith.addi %jB, %dist : index
+            %jB_plus_dist_or_bound = arith.minui %jB_plus_dist, %bound : index
+            %B2_crd_jB_plus_dist_or_bound = memref.load %B2_crd[%jB_plus_dist_or_bound] : memref<?xindex>
+
+            // Prefetch c_vals[B2_crd[%B2_crd_jB_plus_dist_or_pB2_end]]
+            memref.prefetch %c_vals[%B2_crd_jB_plus_dist_or_bound], read, locality<{{ loc_hint }}>, data : memref<{{ cols }}x{{ dtype }}>
+
+            %mul = {{ mul_op }} %B_vals_jB, %c_vals_j : {{ dtype }}
+            %a_i = {{ add_op }} %arg5, %mul : {{ dtype }}
+            scf.yield %a_i : {{ dtype }}
+        }
+
+        memref.store %a_i, %a_buff[%i] : memref<{{ rows }}x{{ dtype }}>
+    }
+
+    %5 = bufferization.to_tensor %a_buff restrict : memref<{{ rows }}x{{ dtype }}>
+    return %5 : {{ out_type }}
+}
