@@ -190,6 +190,7 @@ def render_template_for_spmv(args: argparse.Namespace) -> str:
         mul_op = "arith.muli"
 
     template_names = {"no-opt": f"spmv.mlir.jinja2",
+                      "vect-vl4": f"spmv.mlir.jinja2",
                       "pref-mlir": f"spmv.mlir.jinja2",
                       "pref-ains": f"spmv_{args.matrix_format}.ains.mlir.jinja2",
                       "pref-spe": f"spmv_{args.matrix_format}.spe.mlir.jinja2",

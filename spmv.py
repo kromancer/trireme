@@ -140,8 +140,8 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="(Sparse Matrix)x(Dense Vector) Multiplication (SpMV) with MLIR")
 
     # common arguments
-    parser.add_argument("-pd", "--prefetch-distance", type=int, default=32, help="Prefetch distance")
-    parser.add_argument("-l", "--locality-hint", type=int, choices=[0, 1, 2, 3], default=3,
+    parser.add_argument("-pd", "--prefetch-distance", type=int, default=42, help="Prefetch distance")
+    parser.add_argument("-l", "--locality-hint", type=int, choices=[0, 1, 2, 3], default=2,
                         help="Temporal locality hint for prefetch instructions, "
                              "3 for maximum temporal locality, 0 for no temporal locality. "
                              "On x86, value 3 will produce PREFETCHT0, while value 0 will produce PREFETCHNTA")
