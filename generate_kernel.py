@@ -49,6 +49,24 @@ pipelines = {
      "convert-func-to-llvm{index-bitwidth=0 use-bare-ptr-memref-call-conv=false}",
      "reconcile-unrealized-casts"],
 
+    "pref-omp":
+    ["sparse-assembler",
+     "sparse-reinterpret-map",
+     "sparsification{enable-runtime-library=false enable-prefetches=true parallelization-strategy=dense-any-loop}",
+     "convert-scf-to-openmp",
+     "sparse-tensor-codegen",
+     "func-bufferize",
+     "reconcile-unrealized-casts",
+     "sparse-storage-specifier-to-llvm",
+     "canonicalize{max-iterations=10 max-num-rewrites=-1 region-simplify=normal test-convergence=false top-down=true}",
+     "finalizing-bufferize",
+     "convert-scf-to-cf",
+     "expand-strided-metadata",
+     "finalize-memref-to-llvm{index-bitwidth=0 use-aligned-alloc=false use-generic-functions=false}",
+     "convert-func-to-llvm{index-bitwidth=0 use-bare-ptr-memref-call-conv=false}",
+     "convert-openmp-to-llvm",
+     "reconcile-unrealized-casts"],
+
     "vect-vl4":
     ["sparse-assembler",
      "sparse-reinterpret-map",
@@ -191,7 +209,9 @@ def render_template_for_spmv(args: argparse.Namespace) -> str:
 
     template_names = {"no-opt": f"spmv.mlir.jinja2",
                       "vect-vl4": f"spmv.mlir.jinja2",
+                      "omp": f"spmv.mlir.jinja2",
                       "pref-mlir": f"spmv.mlir.jinja2",
+                      "pref-mlir-omp": f"spmv.mlir.jinja2",
                       "pref-ains": f"spmv_{args.matrix_format}.ains.mlir.jinja2",
                       "pref-spe": f"spmv_{args.matrix_format}.spe.mlir.jinja2",
                       "pref-simple": f"spmv_{args.matrix_format}.simple.mlir.jinja2"}

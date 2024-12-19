@@ -45,7 +45,8 @@ def add_dtype_arg(parser: ArgumentParser):
 
 def add_opt_arg(parser: ArgumentParser):
     parser.add_argument("-o", "--optimization",
-                        choices=["no-opt", "vect-vl4", "pref-mlir", "pref-ains", "pref-spe", "pref-simple"],
+                        choices=["no-opt", "omp", "vect-vl4", "pref-mlir", "pref-mlir-omp",
+                                 "pref-ains", "pref-spe", "pref-simple"],
                         default="no-opt",
                         help="Use an optimized version of the kernel")
 

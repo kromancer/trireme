@@ -114,12 +114,19 @@ def main():
     mat, vec = in_man.create_sparse_mat_and_dense_vec()
 
     spmv = render_template_for_spmv(args)
-    if not args.optimization or args.optimization == "pref-mlir":
-        pipeline = "pref" if args.optimization == "pref-mlir" else "no-opt"
-    else:
-        pipeline = "vect-vl4" if args.optimization == "vect-vl4" else "no-opt"
     with open("spmv.0. mlir", "w") as f:
         f.write(spmv)
+
+    if args.optimization == "pref-mlir":
+        pipeline = "pref"
+    elif args.optimization == "pref-mlir-omp":
+        pipeline = "pref-omp"
+    elif args.optimization == "vect-vl4":
+        pipeline = "vect-vl4"
+    elif args.optimization == "omp":
+        pipeline = "omp"
+    else:
+        pipeline = "no-opt"
 
     uses_aot_compiled_spmv = args.action == "profile" and args.analysis == "advisor"
     if uses_aot_compiled_spmv:

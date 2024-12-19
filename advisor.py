@@ -1,6 +1,8 @@
 from argparse import Namespace
 from multiprocessing import shared_memory
+from os import environ
 from pathlib import Path
+from platform import machine
 from subprocess import run
 
 from common import is_in_path, read_config
@@ -9,13 +11,15 @@ import scipy.sparse as sp
 
 
 def compile_exe(spmv_ll: Path):
-    assert is_in_path("clang")
+    clang = Path(environ['LLVM_PATH']) / "bin/clang"
+    assert clang.exists()
 
-    compile_spmv_cmd = ["clang", "-O3", "-Wno-override-module", "-c", str(spmv_ll), "-o", "spmv.o"]
+    compile_spmv_cmd = [str(clang), "-O3", "-mavx2" if machine() == 'x86_64' else "",
+                        "-Wno-override-module", "-c", str(spmv_ll), "-o", "spmv.o"]
     run(compile_spmv_cmd, check=True)
 
     main_fun = Path(__file__).parent.resolve() / "templates" / "spmv_csr.main.c"
-    compile_exe_cmd = ["clang", "-O0", "-g", str(main_fun), "spmv.o", "-o" "spmv"]
+    compile_exe_cmd = [str(clang), "-O0", "-fopenmp", "-g", str(main_fun), "spmv.o", "-o" "spmv"]
     run(compile_exe_cmd, check=True)
 
 
