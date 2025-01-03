@@ -1,4 +1,6 @@
-// RUN: mlir-opt %s --sparsification=enable-prefetches --cse | FileCheck %s
+// RUN: mlir-opt %s --sparsification=pd=32 --cse | FileCheck %s
+
+//CHECK:      %[[pd:.+]] = arith.constant 32 : index
 
 //CHECK-DAG: %[[a:.+]] = bufferization.to_memref %arg2
 //CHECK-DAG: %[[c:.+]] = bufferization.to_memref %arg1
@@ -8,19 +10,18 @@
 //CHECK-DAG: %[[Bi_pos_1:.+]] = memref.load %[[Bi_pos]][%c1]
 
 // prefetch for writes on a[Bi_crd[]]
-//CHECK:      scf.while (%[[seg_start:.+]] = {{.+}}, %[[seg_end:.+]] = {{.+}})
-//CHECK:      %[[pref:.+]] = memref.load %[[Bi_crd]][%[[seg_end]]]
-//CHECK-NEXT: memref.prefetch %[[a]][%[[pref]]], write, locality<3>, data
+//CHECK: scf.while (%[[seg_start:.+]] = {{.+}}, %[[seg_end:.+]] = {{.+}}) : (index, index) -> (index, index)
+//CHECK:      arith.select
+//CHECK-NEXT: %[[pref:.+]] = memref.load %[[Bi_crd]]
+//CHECK-NEXT: memref.prefetch %[[a]][%[[pref]]], write, locality<2>, data
 
 // prefetch for reads on c[Bj_crd[iB]]
-//CHECK:      scf.for %[[iB:.+]] = %[[seg_start]] to %[[seg_end]]
-//CHECK:      %[[iB_plus_2dist:.+]] = arith.addi %[[iB]]
-//CHECK-NEXT: memref.prefetch %[[Bj_crd]][%[[iB_plus_2dist]]], read, locality<0>, data
-//CHECK-NEXT: %[[iB_plus_dist:.+]] = arith.addi %[[iB]]
-//CHECK-NEXT: %[[cmp:.+]] = arith.cmpi ult, %[[iB_plus_dist]], %[[Bi_pos_1]]
-//CHECK-NEXT: %[[sel:.+]] = arith.select %[[cmp]], %[[iB_plus_dist]], %[[Bi_pos_1]]
-//CHECK-NEXT: %[[pref:.+]] = memref.load %[[Bj_crd]][%[[sel]]]
-//CHECK-NEXT: memref.prefetch %[[c]][%[[pref]]], read, locality<3>, data
+//CHECK: scf.for %[[iB:.+]] = %[[seg_start]] to %[[seg_end]]
+//CHECK: %[[iB_plus_pd:.+]] = arith.addi %[[iB]], %[[pd]]
+//CHECK: %[[cmp:.+]] = arith.cmpi ult, %[[iB_plus_pd]], %[[Bi_pos_1]]
+//CHECK: %[[sel:.+]] = arith.select %[[cmp]], %[[iB_plus_pd]], %[[Bi_pos_1]]
+//CHECK: %[[pref:.+]] = memref.load %[[Bj_crd]][%[[sel]]]
+//CHECK: memref.prefetch %[[c]][%[[pref]]], read, locality<2>, data
 
 #map = affine_map<(d0, d1) -> (d0, d1)>
 #map1 = affine_map<(d0, d1) -> (d1)>

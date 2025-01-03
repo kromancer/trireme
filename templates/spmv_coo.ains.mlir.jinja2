@@ -16,8 +16,8 @@ func.func @spmv(%a_t: {{ out_type }},
     %dist = arith.constant {{ pd }} : index
     %double_dist = arith.muli %dist, %c2 : index
 
-    %c = bufferization.to_memref %c_t : memref<{{ cols }}x{{ dtype }}>
-    %a = bufferization.to_memref %a_t : memref<{{ rows }}x{{ dtype }}>
+    %c = bufferization.to_memref %c_t : {{ vtype }} to memref<{{ cols }}x{{ dtype }}>
+    %a = bufferization.to_memref %a_t : {{ out_type }} to memref<{{ rows }}x{{ dtype }}>
     %Bi_pos = sparse_tensor.positions   %B {level = 0 : index} : {{ mat_type }} to memref<?xindex>
     %Bi_crd = sparse_tensor.coordinates %B {level = 0 : index} : {{ mat_type }} to memref<?xindex>
     %Bj_crd = sparse_tensor.coordinates %B {level = 1 : index} : {{ mat_type }} to memref<?xindex>
@@ -105,7 +105,7 @@ func.func @spmv(%a_t: {{ out_type }},
       }
       scf.yield %13#0, %13#1 : index, index
     }
-    %10 = bufferization.to_tensor %a : memref<{{ rows }}x{{ dtype }}>
+    %10 = bufferization.to_tensor %a restrict : memref<{{ rows }}x{{ dtype }}> to {{ out_type }}
     return %10 : {{ out_type }}
 }
 

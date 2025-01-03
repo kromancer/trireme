@@ -2,7 +2,7 @@ Bootstrap: docker
 From: ubuntu:22.04
 
 %files
-    mlir.sparse.prefetching.patch /mlir.sparse.prefetching.patch
+    llvm-patches /llvm-patches
 
 %post
     # Install dependencies
@@ -95,7 +95,10 @@ From: ubuntu:22.04
 
     cd llvm-project
 
-    git checkout d1c911ffe48e && git apply /mlir.sparse.prefetching.patch
+    # Set git user info for applying the patches
+    git config user.email "apptainer@build.com"
+    git config user.name "apptainer-build"
+    git checkout ad192f9f20ad && git am /llvm-patches/*.patch
 
     /opt/python/bin/python$VERSION_MAJOR -m venv venv
     . ./venv/bin/activate
@@ -107,10 +110,10 @@ From: ubuntu:22.04
     cmake -G Ninja ../llvm -DLLVM_ENABLE_PROJECTS="clang;openmp;lldb;mlir" -DCMAKE_CXX_COMPILER=g++-12 -DCMAKE_C_COMPILER=gcc-12 -DCMAKE_INSTALL_PREFIX=/opt/llvm -DLLVM_TARGETS_TO_BUILD="Native" -DLLVM_INSTALL_UTILS=ON -DCMAKE_BUILD_TYPE=RelWithDebInfo -DPython3_EXECUTABLE=python -DMLIR_ENABLE_BINDINGS_PYTHON=ON -DLLVM_USE_PERF=ON
     ninja -j8 install
 
-    #####################################
+    #####################################################################
     # Get the linux kernel and build perf
     # Assumes that the machine building the image will run the container:
-    #####################################
+    #####################################################################
     cd $TMP
     if [ -d linux ]; then
         echo "linux already here!"
@@ -134,7 +137,7 @@ From: ubuntu:22.04
     export PYTHONPATH=/opt/llvm/python_packages/mlir_core
     export LLVM_PATH=/opt/llvm
     export OMP_DISPLAY_ENV=true
-    export LD_LIBRARY_PATH=/opt/SuiteSparse/lib
+    export LD_LIBRARY_PATH=/opt/llvm/lib:/opt/llvm/lib/x86_64-unknown-linux-gnu:/opt/SuiteSparse/lib
 
 %runscript
     exec /bin/bash "$@"

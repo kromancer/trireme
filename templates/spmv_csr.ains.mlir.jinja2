@@ -14,8 +14,8 @@ func.func @spmv(%a_t: {{ out_type }},
     %B2_crd = sparse_tensor.coordinates %B {level = 1 : index} : {{ mat_type }} to memref<?xindex>
     %B_vals = sparse_tensor.values %B : {{ mat_type }} to memref<?x{{ dtype }}>
 
-    %c_vals = bufferization.to_memref %c_t : memref<{{ cols }}x{{ dtype }}>
-    %a_buff = bufferization.to_memref %a_t : memref<{{ rows }}x{{ dtype }}>
+    %c_vals = bufferization.to_memref %c_t : {{ vtype }} to memref<{{ cols }}x{{ dtype }}>
+    %a_buff = bufferization.to_memref %a_t : {{ out_type }} to memref<{{ rows }}x{{ dtype }}>
 
     // Fixed lookahead distance
     %dist = arith.constant {{ pd }} : index
@@ -63,6 +63,6 @@ func.func @spmv(%a_t: {{ out_type }},
         memref.store %a_i, %a_buff[%i] : memref<{{ rows }}x{{ dtype }}>
     }
 
-    %5 = bufferization.to_tensor %a_buff restrict : memref<{{ rows }}x{{ dtype }}>
+    %5 = bufferization.to_tensor %a_buff restrict : memref<{{ rows }}x{{ dtype }}> to {{ out_type }}
     return %5 : {{ out_type }}
 }

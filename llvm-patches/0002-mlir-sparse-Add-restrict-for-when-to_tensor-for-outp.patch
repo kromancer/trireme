@@ -1,0 +1,36 @@
+From c7abcdb4e19a943aebfc11848431716fdf463ed3 Mon Sep 17 00:00:00 2001
+From: Konstantinos Sotiropoulos <konstantinos.sotiropoulos@chalmers.se>
+Date: Fri, 3 Jan 2025 10:43:03 +0100
+Subject: [PATCH 2/3] [mlir][sparse] Add `restrict` for when `to_tensor` for
+ output
+
+---
+ mlir/lib/Dialect/SparseTensor/Transforms/Sparsification.cpp | 5 +++--
+ 1 file changed, 3 insertions(+), 2 deletions(-)
+
+diff --git a/mlir/lib/Dialect/SparseTensor/Transforms/Sparsification.cpp b/mlir/lib/Dialect/SparseTensor/Transforms/Sparsification.cpp
+index bf12dc8ae05c..30599635b4bd 100644
+--- a/mlir/lib/Dialect/SparseTensor/Transforms/Sparsification.cpp
++++ b/mlir/lib/Dialect/SparseTensor/Transforms/Sparsification.cpp
+@@ -1380,7 +1380,7 @@ static void genResult(CodegenEnv &env, RewriterBase &rewriter) {
+     // To rematerialize an non-annotated tensor, simply load it
+     // from the bufferized value.
+     Value val = env.emitter().getValBuffer()[env.merger().getOutTensorID()];
+-    rewriter.replaceOpWithNewOp<bufferization::ToTensorOp>(op, resType, val);
++    rewriter.replaceOpWithNewOp<bufferization::ToTensorOp>(op, resType, val, true);
+   }
+ }
+ 
+@@ -1463,7 +1463,8 @@ public:
+       return failure();
+ 
+     // Recursively generates code if admissible.
+-    env.startEmit(options.sparseEmitStrategy);
++    env.startEmit(options.sparseEmitStrategy,
++                  options.prefetchDistance);
+     genBuffers(env, rewriter);
+     // TODO: Constant affine expression should be handled differently when using
+     // slice-based codegen, it does not matter now because we already reject the
+-- 
+2.47.0
+

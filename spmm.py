@@ -102,7 +102,8 @@ def main():
         with open(f"main.mlir", "w") as f:
             f.write(main_fun)
 
-        llvm_mlir, _ = apply_passes(kernel="spmm", src=spmm, pipeline=pipeline, main_fun=main_fun, index_type=itype)
+        llvm_mlir, _ = apply_passes(args=args, src=spmm, kernel="spmm", pipeline=pipeline, main_fun=main_fun,
+                                    index_type=itype)
 
         with HwprefController(args):
             if args.action == "benchmark":

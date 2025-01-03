@@ -22,11 +22,8 @@ pipelines = {
      "sparse-reinterpret-map",
      "sparsification{enable-runtime-library=false}",
      "sparse-tensor-codegen",
-     "func-bufferize",
-     "reconcile-unrealized-casts",
      "sparse-storage-specifier-to-llvm",
-     "canonicalize{max-iterations=10 max-num-rewrites=-1 region-simplify=normal test-convergence=false top-down=true}",
-     "finalizing-bufferize",
+     "one-shot-bufferize{bufferize-function-boundaries function-boundary-type-conversion=identity-layout-map}",
      "convert-scf-to-cf",
      "expand-strided-metadata",
      "finalize-memref-to-llvm{index-bitwidth=0 use-aligned-alloc=false use-generic-functions=false}",
@@ -36,13 +33,10 @@ pipelines = {
     "pref":
     ["sparse-assembler",
      "sparse-reinterpret-map",
-     "sparsification{enable-runtime-library=false enable-prefetches=true}",
+     "sparsification{enable-runtime-library=false pd=0}",
      "sparse-tensor-codegen",
-     "func-bufferize",
-     "reconcile-unrealized-casts",
      "sparse-storage-specifier-to-llvm",
-     "canonicalize{max-iterations=10 max-num-rewrites=-1 region-simplify=normal test-convergence=false top-down=true}",
-     "finalizing-bufferize",
+     "one-shot-bufferize{bufferize-function-boundaries function-boundary-type-conversion=identity-layout-map}",
      "convert-scf-to-cf",
      "expand-strided-metadata",
      "finalize-memref-to-llvm{index-bitwidth=0 use-aligned-alloc=false use-generic-functions=false}",
@@ -52,14 +46,12 @@ pipelines = {
     "pref-omp":
     ["sparse-assembler",
      "sparse-reinterpret-map",
-     "sparsification{enable-runtime-library=false enable-prefetches=true parallelization-strategy=dense-any-loop}",
+     "sparsification{enable-runtime-library=false pd=0 parallelization-strategy=dense-any-loop}",
      "convert-scf-to-openmp",
      "sparse-tensor-codegen",
-     "func-bufferize",
-     "reconcile-unrealized-casts",
      "sparse-storage-specifier-to-llvm",
+     "one-shot-bufferize{bufferize-function-boundaries function-boundary-type-conversion=identity-layout-map}",
      "canonicalize{max-iterations=10 max-num-rewrites=-1 region-simplify=normal test-convergence=false top-down=true}",
-     "finalizing-bufferize",
      "convert-scf-to-cf",
      "expand-strided-metadata",
      "finalize-memref-to-llvm{index-bitwidth=0 use-aligned-alloc=false use-generic-functions=false}",
@@ -73,11 +65,8 @@ pipelines = {
      "sparsification{enable-runtime-library=false}",
      "sparse-vectorization{vl=4}",
      "sparse-tensor-codegen",
-     "func-bufferize",
-     "reconcile-unrealized-casts",
      "sparse-storage-specifier-to-llvm",
-     "canonicalize{max-iterations=10 max-num-rewrites=-1 region-simplify=normal test-convergence=false top-down=true}",
-     "finalizing-bufferize",
+     "one-shot-bufferize{bufferize-function-boundaries function-boundary-type-conversion=identity-layout-map}",
      "convert-scf-to-cf",
      "expand-strided-metadata",
      "lower-affine",
@@ -92,11 +81,9 @@ pipelines = {
      "sparsification{enable-runtime-library=false parallelization-strategy=dense-any-loop}",
      "convert-scf-to-openmp",
      "sparse-tensor-codegen",
-     "func-bufferize",
-     "reconcile-unrealized-casts",
      "sparse-storage-specifier-to-llvm",
+     "one-shot-bufferize{bufferize-function-boundaries function-boundary-type-conversion=identity-layout-map}",
      "canonicalize{max-iterations=10 max-num-rewrites=-1 region-simplify=normal test-convergence=false top-down=true}",
-     "finalizing-bufferize",
      "convert-scf-to-cf",
      "expand-strided-metadata",
      "finalize-memref-to-llvm{index-bitwidth=0 use-aligned-alloc=false use-generic-functions=false}",
@@ -125,7 +112,7 @@ to_mlir_type = {
 }
 
 
-def apply_passes(src: str, kernel: str, pipeline: str, main_fun: Optional[str] = None,
+def apply_passes(args: argparse.Namespace, src: str, kernel: str, pipeline: str, main_fun: Optional[str] = None,
                  index_type: np.dtype = np.dtype("int64")) -> Tuple[ir.Module, Path]:
     out_file_name: str
 
@@ -136,6 +123,11 @@ def apply_passes(src: str, kernel: str, pipeline: str, main_fun: Optional[str] =
         if "index-bitwidth" in mlir_opt_pass:
             mlir_opt_pass = mlir_opt_pass.replace("index-bitwidth=0",
                                                   f"index-bitwidth={np_to_mlir_type[index_type]().width}")
+
+        # Adapt the prefetch distance
+        if "pd" in mlir_opt_pass:
+            mlir_opt_pass = mlir_opt_pass.replace("pd=0",
+                                                  f"pd={args.prefetch_distance}")
 
         run_pass.call_count += 1
         try:
@@ -213,8 +205,7 @@ def render_template_for_spmv(args: argparse.Namespace) -> str:
                       "pref-mlir": f"spmv.mlir.jinja2",
                       "pref-mlir-omp": f"spmv.mlir.jinja2",
                       "pref-ains": f"spmv_{args.matrix_format}.ains.mlir.jinja2",
-                      "pref-spe": f"spmv_{args.matrix_format}.spe.mlir.jinja2",
-                      "pref-simple": f"spmv_{args.matrix_format}.simple.mlir.jinja2"}
+                      "pref-spe": f"spmv_{args.matrix_format}.spe.mlir.jinja2"}
 
     spmv_template = jinja.get_template(template_names[args.optimization])
     if args.optimization in ["no-opt", "pref-mlir"]:
@@ -249,14 +240,14 @@ def translate_to_llvm_ir(src: Path, out: str) -> Path:
     return out
 
 
-def generate(module: ir.Module, kernel_name: str, translate: bool = False):
+def generate(args: argparse.Namespace, module: ir.Module, kernel_name: str, translate: bool = False):
     with make_and_switch_dir(kernel_name):
         with open(f"{kernel_name}.mlir", "w") as f:
             f.write(str(module))
 
         for p in pipelines:
             with make_and_switch_dir(p):
-                _, last_output = apply_passes(str(module), kernel_name, p)
+                _, last_output = apply_passes(args, str(module), kernel_name, p)
 
             if translate:
                 _ = translate_to_llvm_ir(Path(p) / last_output, f"{kernel_name}_{p}")
@@ -265,7 +256,7 @@ def generate(module: ir.Module, kernel_name: str, translate: bool = False):
 def generate_spmv(args: argparse.Namespace):
     with ir.Context() as ctx, ir.Location.unknown():
         module = ir.Module.parse(render_template_for_spmv(args))
-        generate(module, f"spmv_{args.matrix_format}" + ("_spvec" if args.sparse_vec else ""), translate=True)
+        generate(args, module, f"spmv_{args.matrix_format}" + ("_spvec" if args.sparse_vec else ""), translate=True)
 
 
 def parse_args() -> argparse.Namespace:

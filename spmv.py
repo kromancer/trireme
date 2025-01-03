@@ -135,7 +135,7 @@ def main():
         main_fun = render_template_for_main(args)
 
     with ir.Context(), ir.Location.unknown():
-        llvm_mlir, out = apply_passes(spmv, kernel="spmv", pipeline=pipeline, main_fun=main_fun)
+        llvm_mlir, out = apply_passes(args=args, src=spmv, kernel="spmv", pipeline=pipeline, main_fun=main_fun)
 
     if uses_aot_compiled_spmv:
         run_with_aot(args, out, mat, vec)

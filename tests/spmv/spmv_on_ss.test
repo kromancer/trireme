@@ -1,5 +1,4 @@
 # RUN: env %{LIBVAR}=/opt/SuiteSparse/lib python %S/../../spmv.py --check-output --matrix-format coo benchmark --repetitions 3 SuiteSparse GD01_b
-# RUN: env %{LIBVAR}=/opt/SuiteSparse/lib python %S/../../spmv.py -o pref-simple --check-output --matrix-format coo benchmark --repetitions 3 SuiteSparse GD01_b
 # RUN: env %{LIBVAR}=/opt/SuiteSparse/lib python %S/../../spmv.py -o pref-mlir --check-output --matrix-format coo benchmark --repetitions 3 SuiteSparse GD01_b
 # RUN: env %{LIBVAR}=/opt/SuiteSparse/lib python %S/../../spmv.py -o pref-ains --check-output --matrix-format coo benchmark --repetitions 3 SuiteSparse GD01_b
 # RUN: env %{LIBVAR}=/opt/SuiteSparse/lib python %S/../../spmv.py --check-output --matrix-format csr benchmark --repetitions 3 SuiteSparse 1138_bus

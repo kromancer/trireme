@@ -1,0 +1,77 @@
+From 269407fd577608c76a18172dff56420f4bfd03e1 Mon Sep 17 00:00:00 2001
+From: Konstantinos Sotiropoulos <konstantinos.sotiropoulos@chalmers.se>
+Date: Fri, 3 Jan 2025 10:45:19 +0100
+Subject: [PATCH 3/3] [mlir][memref] Add transformation for chaning loc hint in
+ prefs
+
+---
+ .../MemRef/TransformOps/MemRefTransformOps.td | 17 ++++++++++++
+ .../TransformOps/MemRefTransformOps.cpp       | 26 +++++++++++++++++++
+ 2 files changed, 43 insertions(+)
+
+diff --git a/mlir/include/mlir/Dialect/MemRef/TransformOps/MemRefTransformOps.td b/mlir/include/mlir/Dialect/MemRef/TransformOps/MemRefTransformOps.td
+index 2d060f3c2da6..2da66fd0144e 100644
+--- a/mlir/include/mlir/Dialect/MemRef/TransformOps/MemRefTransformOps.td
++++ b/mlir/include/mlir/Dialect/MemRef/TransformOps/MemRefTransformOps.td
+@@ -317,4 +317,21 @@ def MemRefMakeLoopIndependentOp
+   }];
+ }
+ 
++def Transform_MemRefPrefetch : Transform_ConcreteOpType<"memref.prefetch">;
++
++def MemRefSetPrefetchLocalityHint
++    : Op<Transform_Dialect, "memref.set_prefetch_locality_hint",
++         [DeclareOpInterfaceMethods<TransformOpInterface>,
++          DeclareOpInterfaceMethods<MemoryEffectsOpInterface>]> {
++  let description = [{
++    Set the prefetch locality hint of the given memref.prefetch instruction
++  }];
++
++  let arguments = (ins
++      Transform_MemRefPrefetch:$prefetch,
++      ConfinedAttr<I32Attr, [IntMinValue<0>, IntMaxValue<3>]>:$localityHint);
++
++  let results = (outs);
++}
++
+ #endif // MEMREF_TRANSFORM_OPS
+diff --git a/mlir/lib/Dialect/MemRef/TransformOps/MemRefTransformOps.cpp b/mlir/lib/Dialect/MemRef/TransformOps/MemRefTransformOps.cpp
+index 89640ac323b6..69a0a0813e89 100644
+--- a/mlir/lib/Dialect/MemRef/TransformOps/MemRefTransformOps.cpp
++++ b/mlir/lib/Dialect/MemRef/TransformOps/MemRefTransformOps.cpp
+@@ -300,6 +300,32 @@ DiagnosedSilenceableFailure transform::MemRefMakeLoopIndependentOp::applyToOne(
+   return DiagnosedSilenceableFailure::success();
+ }
+ 
++//===----------------------------------------------------------------------===//
++// MemRefSetPrefetchLocalityHint
++//===----------------------------------------------------------------------===//
++
++DiagnosedSilenceableFailure transform::MemRefSetPrefetchLocalityHint::apply(
++    transform::TransformRewriter &rewriter,
++    transform::TransformResults &transformResults,
++    transform::TransformState &state) {
++
++  auto payload = state.getPayloadOps(getPrefetch());
++  auto localityHint = getLocalityHint();
++
++  for (Operation *op : payload) {
++    auto target = cast<memref::PrefetchOp>(op);
++    target.setLocalityHint(localityHint);
++  }
++
++  return DiagnosedSilenceableFailure::success();
++}
++
++void transform::MemRefSetPrefetchLocalityHint::getEffects(
++    SmallVectorImpl<MemoryEffects::EffectInstance> &effects) {
++  transform::onlyReadsHandle(getPrefetchMutable(), effects);
++  transform::modifiesPayload(effects);
++}
++
+ //===----------------------------------------------------------------------===//
+ // Transform op registration
+ //===----------------------------------------------------------------------===//
+-- 
+2.47.0
+
