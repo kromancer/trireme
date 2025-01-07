@@ -12,12 +12,11 @@ int compute(double* restrict a_vals,
 	    double* restrict c_vals) {
 
   for (int i = 0; i < num_of_rows; i++) {
-    double tja_val = 0.0;
-    for (int jB = pos[i]; jB < pos[(i + 1)]; jB++) {
-      int j = crd[jB];
-      tja_val += B_vals[jB] * c_vals[j];
+    double res = 0.0;
+    for (int jj = pos[i]; jj < pos[i + 1]; jj++) {
+      res += B_vals[jj] * c_vals[crd[jj]];
     }
-    a_vals[i] = tja_val;
+    a_vals[i] = res;
   }
   return 0;
 }

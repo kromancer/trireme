@@ -14,7 +14,7 @@ from mlir.execution_engine import ExecutionEngine
 
 from advisor import profile_spmv_with_advisor
 from argument_parsers import (add_args_for_benchmark, add_opt_arg, add_synth_tensor_arg, add_output_check_arg,
-                              add_sparse_format_arg)
+                              add_sparse_format_arg, add_prefetch_distance_arg, add_locality_hint_arg)
 from common import SparseFormats, make_work_dir_and_cd_to_it
 from decorators import benchmark, profile, RunFuncType
 from generate_kernel import apply_passes, render_template_for_spmv, translate_to_llvm_ir
@@ -147,11 +147,8 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="(Sparse Matrix)x(Dense Vector) Multiplication (SpMV) with MLIR")
 
     # common arguments
-    parser.add_argument("-pd", "--prefetch-distance", type=int, default=42, help="Prefetch distance")
-    parser.add_argument("-l", "--locality-hint", type=int, choices=[0, 1, 2, 3], default=2,
-                        help="Temporal locality hint for prefetch instructions, "
-                             "3 for maximum temporal locality, 0 for no temporal locality. "
-                             "On x86, value 3 will produce PREFETCHT0, while value 0 will produce PREFETCHNTA")
+    add_prefetch_distance_arg(parser)
+    add_locality_hint_arg(parser)
     parser.add_argument("--sparse-vec", action="store_true", help="Use sparse vector")
     add_opt_arg(parser)
     add_sparse_format_arg(parser, "matrix")

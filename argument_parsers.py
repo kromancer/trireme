@@ -46,7 +46,7 @@ def add_dtype_arg(parser: ArgumentParser):
 def add_opt_arg(parser: ArgumentParser):
     parser.add_argument("-o", "--optimization",
                         choices=["no-opt", "omp", "vect-vl4", "pref-mlir", "pref-mlir-omp",
-                                 "pref-ains", "pref-spe"],
+                                 "pref-ains", "pref-spe", "pref-split"],
                         default="no-opt",
                         help="Use an optimized version of the kernel")
 
@@ -70,7 +70,7 @@ def add_prefetch_distance_arg(parser: ArgumentParser):
 
 
 def add_locality_hint_arg(parser: ArgumentParser):
-    parser.add_argument("-l", "--locality-hint", type=int, choices=[0, 1, 2, 3], default=3,
+    parser.add_argument("-l", "--locality-hint", type=int, choices=[0, 1, 2, 3], default=2,
                         help="Temporal locality hint for prefetch instructions, "
                              "3 for maximum temporal locality, 0 for no temporal locality. "
                              "On x86, value 3 will produce PREFETCHT0, while value 0 will produce PREFETCHNTA")

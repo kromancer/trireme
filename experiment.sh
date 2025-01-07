@@ -1,23 +1,15 @@
 #!/bin/bash
 
 source /home/paul/venv/bin/activate
-source /opt/intel/oneapi/setvars.sh
-
-export OMP_NUM_THREADS=5
-export LD_LIBRARY_PATH=/opt/llvm/lib:/opt/llvm/lib/x86_64-unknown-linux-gnu:$LD_LIBRARY_PATH
 
 ROWS=200000
-PROJ_DIR="/home/paul/advi_results"
+COLS=100000000
 
-SNAPSHOT="/home/paul/baseline_omp_5"
-N_PROJ_DIR="/home/paul/advi_baseline_omp_5"
-python spmv.py -o omp --matrix-format csr profile advisor roofline synthetic -i $ROWS -j 100000000 --dtype float64 --density 0.00005
-advisor --snapshot --pack --cache-sources --cache-binaries --project-dir=$PROJ_DIR -- $SNAPSHOT
-mv $PROJ_DIR $N_PROJ_DIR
+python spmv.py -o no-opt --matrix-format csr benchmark --repetitions 10 synthetic -i $ROWS -j $COLS --dtype float64 --density 0.00005
 
-
-SNAPSHOT="/home/paul/mlir_pref_omp_5"
-N_PROJ_DIR="/home/paul/advi_mlir_pref_omp_5"
-python spmv.py -o pref-mlir-omp --matrix-format csr profile advisor roofline synthetic -i $ROWS -j 100000000 --dtype float64 --density 0.00005
-advisor --snapshot --pack --cache-sources --cache-binaries --project-dir=$PROJ_DIR -- $SNAPSHOT
-mv $PROJ_DIR $N_PROJ_DIR
+for i in {15..64}
+do
+    python spmv.py -o pref-ains  -pd $i --matrix-format csr benchmark --repetitions 10 synthetic -i $ROWS -j $COLS --dtype float64 --density 0.00005
+    python spmv.py -o pref-mlir  -pd $i --matrix-format csr benchmark --repetitions 10 synthetic -i $ROWS -j $COLS --dtype float64 --density 0.00005
+    python spmv.py -o pref-split -pd $i --matrix-format csr benchmark --repetitions 10 synthetic -i $ROWS -j $COLS --dtype float64 --density 0.00005
+done

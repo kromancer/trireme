@@ -28,6 +28,9 @@ pipelines = {
      "expand-strided-metadata",
      "finalize-memref-to-llvm{index-bitwidth=0 use-aligned-alloc=false use-generic-functions=false}",
      "convert-func-to-llvm{index-bitwidth=0 use-bare-ptr-memref-call-conv=false}",
+     "convert-arith-to-llvm{index-bitwidth=0}",
+     "convert-index-to-llvm{index-bitwidth=0}",
+     "convert-cf-to-llvm{index-bitwidth=0}",
      "reconcile-unrealized-casts"],
 
     "pref":
@@ -41,6 +44,8 @@ pipelines = {
      "expand-strided-metadata",
      "finalize-memref-to-llvm{index-bitwidth=0 use-aligned-alloc=false use-generic-functions=false}",
      "convert-func-to-llvm{index-bitwidth=0 use-bare-ptr-memref-call-conv=false}",
+     "convert-arith-to-llvm{index-bitwidth=0}",
+     "convert-cf-to-llvm{index-bitwidth=0}",
      "reconcile-unrealized-casts"],
 
     "pref-omp":
@@ -56,6 +61,7 @@ pipelines = {
      "expand-strided-metadata",
      "finalize-memref-to-llvm{index-bitwidth=0 use-aligned-alloc=false use-generic-functions=false}",
      "convert-func-to-llvm{index-bitwidth=0 use-bare-ptr-memref-call-conv=false}",
+     "convert-arith-to-llvm{index-bitwidth=0}",
      "convert-openmp-to-llvm",
      "reconcile-unrealized-casts"],
 
@@ -73,6 +79,9 @@ pipelines = {
      "finalize-memref-to-llvm{index-bitwidth=0 use-aligned-alloc=false use-generic-functions=false}",
      f"convert-vector-to-llvm{{{'enable-x86vector' if machine() == 'x86_64' else 'enable-arm-neon'}}}",
      "convert-func-to-llvm{index-bitwidth=0 use-bare-ptr-memref-call-conv=false}",
+     "convert-arith-to-llvm{index-bitwidth=0}",
+     "convert-index-to-llvm{index-bitwidth=0}",
+     "convert-cf-to-llvm{index-bitwidth=0}",
      "reconcile-unrealized-casts"],
 
     "omp":
@@ -88,6 +97,8 @@ pipelines = {
      "expand-strided-metadata",
      "finalize-memref-to-llvm{index-bitwidth=0 use-aligned-alloc=false use-generic-functions=false}",
      "convert-func-to-llvm{index-bitwidth=0 use-bare-ptr-memref-call-conv=false}",
+     "convert-arith-to-llvm{index-bitwidth=0}",
+     "convert-index-to-llvm{index-bitwidth=0}",
      "convert-cf-to-llvm",
      "convert-openmp-to-llvm",
      "canonicalize",
@@ -204,6 +215,7 @@ def render_template_for_spmv(args: argparse.Namespace) -> str:
                       "omp": f"spmv.mlir.jinja2",
                       "pref-mlir": f"spmv.mlir.jinja2",
                       "pref-mlir-omp": f"spmv.mlir.jinja2",
+                      "pref-split": f"spmv_{args.matrix_format}.split.mlir.jinja2",
                       "pref-ains": f"spmv_{args.matrix_format}.ains.mlir.jinja2",
                       "pref-spe": f"spmv_{args.matrix_format}.spe.mlir.jinja2"}
 
@@ -241,11 +253,17 @@ def translate_to_llvm_ir(src: Path, out: str) -> Path:
 
 
 def generate(args: argparse.Namespace, module: ir.Module, kernel_name: str, translate: bool = False):
+
+    if args.optimization in ["pref-ains", "pref-spe", "pref-split"]:
+        pipes = [x for x in pipelines if x not in ["pref", "pref-omp"]]
+    else:
+        pipes = pipelines
+
     with make_and_switch_dir(kernel_name):
         with open(f"{kernel_name}.mlir", "w") as f:
             f.write(str(module))
 
-        for p in pipelines:
+        for p in pipes:
             with make_and_switch_dir(p):
                 _, last_output = apply_passes(args, str(module), kernel_name, p)
 

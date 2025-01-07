@@ -1,7 +1,7 @@
 ; ModuleID = 'spmv-csr-dense.c'
 source_filename = "spmv-csr-dense.c"
 target datalayout = "e-m:o-p:32:32-Fi8-f64:32:64-v64:32:64-v128:32:128-a:0:32-n32-S32"
-target triple = "armv4t-apple-macosx10.19.0"
+target triple = "armv4t-apple-macosx10.20.0"
 
 ; Function Attrs: noinline nounwind ssp
 define i32 @compute(double* noalias %a_vals, i32 %num_of_rows, i32* noalias %pos, i32* noalias %crd, double* noalias %B_vals, double* noalias %c_vals) #0 {
@@ -13,9 +13,8 @@ entry:
   %B_vals.addr = alloca double*, align 4
   %c_vals.addr = alloca double*, align 4
   %i = alloca i32, align 4
-  %tja_val = alloca double, align 8
-  %jB = alloca i32, align 4
-  %j = alloca i32, align 4
+  %res = alloca double, align 8
+  %jj = alloca i32, align 4
   store double* %a_vals, double** %a_vals.addr, align 4
   store i32 %num_of_rows, i32* %num_of_rows.addr, align 4
   store i32* %pos, i32** %pos.addr, align 4
@@ -32,16 +31,16 @@ for.cond:                                         ; preds = %for.inc10, %entry
   br i1 %cmp, label %for.body, label %for.end12
 
 for.body:                                         ; preds = %for.cond
-  store double 0.000000e+00, double* %tja_val, align 8
+  store double 0.000000e+00, double* %res, align 8
   %2 = load i32*, i32** %pos.addr, align 4
   %3 = load i32, i32* %i, align 4
   %arrayidx = getelementptr inbounds i32, i32* %2, i32 %3
   %4 = load i32, i32* %arrayidx, align 4
-  store i32 %4, i32* %jB, align 4
+  store i32 %4, i32* %jj, align 4
   br label %for.cond1
 
 for.cond1:                                        ; preds = %for.inc, %for.body
-  %5 = load i32, i32* %jB, align 4
+  %5 = load i32, i32* %jj, align 4
   %6 = load i32*, i32** %pos.addr, align 4
   %7 = load i32, i32* %i, align 4
   %add = add nsw i32 %7, 1
@@ -51,42 +50,40 @@ for.cond1:                                        ; preds = %for.inc, %for.body
   br i1 %cmp3, label %for.body4, label %for.end
 
 for.body4:                                        ; preds = %for.cond1
-  %9 = load i32*, i32** %crd.addr, align 4
-  %10 = load i32, i32* %jB, align 4
-  %arrayidx5 = getelementptr inbounds i32, i32* %9, i32 %10
-  %11 = load i32, i32* %arrayidx5, align 4
-  store i32 %11, i32* %j, align 4
-  %12 = load double*, double** %B_vals.addr, align 4
-  %13 = load i32, i32* %jB, align 4
-  %arrayidx6 = getelementptr inbounds double, double* %12, i32 %13
-  %14 = load double, double* %arrayidx6, align 4
-  %15 = load double*, double** %c_vals.addr, align 4
-  %16 = load i32, i32* %j, align 4
-  %arrayidx7 = getelementptr inbounds double, double* %15, i32 %16
-  %17 = load double, double* %arrayidx7, align 4
-  %mul = fmul double %14, %17
-  %18 = load double, double* %tja_val, align 8
-  %add8 = fadd double %18, %mul
-  store double %add8, double* %tja_val, align 8
+  %9 = load double*, double** %B_vals.addr, align 4
+  %10 = load i32, i32* %jj, align 4
+  %arrayidx5 = getelementptr inbounds double, double* %9, i32 %10
+  %11 = load double, double* %arrayidx5, align 4
+  %12 = load double*, double** %c_vals.addr, align 4
+  %13 = load i32*, i32** %crd.addr, align 4
+  %14 = load i32, i32* %jj, align 4
+  %arrayidx6 = getelementptr inbounds i32, i32* %13, i32 %14
+  %15 = load i32, i32* %arrayidx6, align 4
+  %arrayidx7 = getelementptr inbounds double, double* %12, i32 %15
+  %16 = load double, double* %arrayidx7, align 4
+  %mul = fmul double %11, %16
+  %17 = load double, double* %res, align 8
+  %add8 = fadd double %17, %mul
+  store double %add8, double* %res, align 8
   br label %for.inc
 
 for.inc:                                          ; preds = %for.body4
-  %19 = load i32, i32* %jB, align 4
-  %inc = add nsw i32 %19, 1
-  store i32 %inc, i32* %jB, align 4
+  %18 = load i32, i32* %jj, align 4
+  %inc = add nsw i32 %18, 1
+  store i32 %inc, i32* %jj, align 4
   br label %for.cond1
 
 for.end:                                          ; preds = %for.cond1
-  %20 = load double, double* %tja_val, align 8
-  %21 = load double*, double** %a_vals.addr, align 4
-  %22 = load i32, i32* %i, align 4
-  %arrayidx9 = getelementptr inbounds double, double* %21, i32 %22
-  store double %20, double* %arrayidx9, align 4
+  %19 = load double, double* %res, align 8
+  %20 = load double*, double** %a_vals.addr, align 4
+  %21 = load i32, i32* %i, align 4
+  %arrayidx9 = getelementptr inbounds double, double* %20, i32 %21
+  store double %19, double* %arrayidx9, align 4
   br label %for.inc10
 
 for.inc10:                                        ; preds = %for.end
-  %23 = load i32, i32* %i, align 4
-  %inc11 = add nsw i32 %23, 1
+  %22 = load i32, i32* %i, align 4
+  %inc11 = add nsw i32 %22, 1
   store i32 %inc11, i32* %i, align 4
   br label %for.cond
 

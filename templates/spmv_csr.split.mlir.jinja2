@@ -1,0 +1,101 @@
+#sparse = {{ encoding }}
+
+// Computes: a(i) = B(i,j) * c(j)
+func.func @spmv(%a_t: {{ out_type }},
+                %B: {{ mat_type }},
+                %c_t: {{ vtype }}) -> {{ out_type }} {
+
+    %pos = sparse_tensor.positions %B {level = 1 : index} : {{ mat_type }} to memref<?xindex>
+    %crd = sparse_tensor.coordinates %B {level = 1 : index} : {{ mat_type }} to memref<?xindex>
+    %vals = sparse_tensor.values %B : {{ mat_type }} to memref<?x{{ dtype }}>
+
+    %c = bufferization.to_memref %c_t : {{ vtype }} to memref<{{ cols }}x{{ dtype }}>
+    %a = bufferization.to_memref %a_t : {{ out_type }} to memref<{{ rows }}x{{ dtype }}>
+
+    // Fixed lookahead distance
+    %pd = index.constant {{ pd }}
+
+    // Find splitting k
+    %N = index.constant {{ rows }}
+    %max_jj = memref.load %pos[%N] : memref<?xindex>
+    %c1 = index.constant 1
+    %N_minus_1 = index.sub %N, %c1
+    %max_i_plus_1 = scf.while(%k = %N_minus_1) : (index) -> (index) {
+        %pos_k = memref.load %pos[%k] : memref<?xindex>
+        %pos_k_p_pd = index.add %pos_k, %pd
+        %continue = index.cmp uge(%pos_k_p_pd, %max_jj)
+        scf.condition(%continue) %k : index
+    } do {
+        ^bb0(%k_ : index):
+            %k_m_1 = index.sub %k_, %c1
+            scf.yield %k_m_1 : index
+    }
+
+    %c0 = index.constant 0
+
+    scf.for %i = %c0 to %max_i_plus_1 step %c1 {
+        %6 = memref.load %a[%i] : memref<{{ rows }}x{{ dtype }}>
+
+        // Load jj_start
+        %jj_start = memref.load %pos[%i] : memref<?xindex>
+
+        // Load jj_end
+        %i_plus_one = index.add %i, %c1
+        %jj_end = memref.load %pos[%i_plus_one] : memref<?xindex>
+
+        %a_i = scf.for %jj = %jj_start to %jj_end step %c1 iter_args(%arg5 = %6) -> ({{ dtype }}) {
+
+            // Load vals[jj]
+            %vals_jj = memref.load %vals[%jj] : memref<?x{{ dtype }}>
+
+            // Load j
+            %j = memref.load %crd[%jj] : memref<?xindex>
+
+            // Load c[j]
+            %c_j = memref.load %c[%j] : memref<{{ cols }}x{{ dtype }}>
+
+            // Prefetch c[crd[%jj_plus_pd]]
+            %jj_plus_pd = index.add %jj, %pd
+            %pref_j = memref.load %crd[%jj_plus_pd] : memref<?xindex>
+            memref.prefetch %c[%pref_j], read, locality<{{ loc_hint }}>, data : memref<{{ cols }}x{{ dtype }}>
+
+            %mul = {{ mul_op }} %vals_jj, %c_j : {{ dtype }}
+            %a_i = {{ add_op }} %arg5, %mul : {{ dtype }}
+            scf.yield %a_i : {{ dtype }}
+        }
+
+        memref.store %a_i, %a[%i] : memref<{{ rows }}x{{ dtype }}>
+    }
+
+    scf.for %i = %max_i_plus_1 to %N step %c1 {
+        %6 = memref.load %a[%i] : memref<{{ rows }}x{{ dtype }}>
+
+        // Load jj_start
+        %jj_start = memref.load %pos[%i] : memref<?xindex>
+
+        // Load jj_end
+        %i_plus_one = index.add %i, %c1
+        %jj_end = memref.load %pos[%i_plus_one] : memref<?xindex>
+
+        %a_i = scf.for %jj = %jj_start to %jj_end step %c1 iter_args(%arg5 = %6) -> ({{ dtype }}) {
+
+            // Load vals[jj]
+            %vals_jj = memref.load %vals[%jj] : memref<?x{{ dtype }}>
+
+            // Load j
+            %j = memref.load %crd[%jj] : memref<?xindex>
+
+            // Load c[j]
+            %c_j = memref.load %c[%j] : memref<{{ cols }}x{{ dtype }}>
+
+            %mul = {{ mul_op }} %vals_jj, %c_j : {{ dtype }}
+            %a_i = {{ add_op }} %arg5, %mul : {{ dtype }}
+            scf.yield %a_i : {{ dtype }}
+        }
+
+        memref.store %a_i, %a[%i] : memref<{{ rows }}x{{ dtype }}>
+    }
+
+    %5 = bufferization.to_tensor %a restrict : memref<{{ rows }}x{{ dtype }}> to {{ out_type }}
+    return %5 : {{ out_type }}
+}
