@@ -12,7 +12,7 @@ from mlir import runtime as rt
 from mlir import ir
 from mlir.execution_engine import ExecutionEngine
 
-from advisor import profile_spmv_with_advisor
+from profile import profile_spmv
 from argument_parsers import (add_args_for_benchmark, add_opt_arg, add_synth_tensor_arg, add_output_check_arg,
                               add_sparse_format_arg, add_prefetch_distance_arg, add_locality_hint_arg)
 from common import SparseFormats, make_work_dir_and_cd_to_it
@@ -102,7 +102,7 @@ def run_with_jit(args: argparse.Namespace, llvm_mlir: ir.Module, mat: Union[coo_
 
 def run_with_aot(args: argparse.Namespace, src: Path, mat: Union[coo_array, csr_array], vec: np.ndarray):
     llvm_ir = translate_to_llvm_ir(src, "spmv")
-    profile_spmv_with_advisor(args, llvm_ir, mat, vec)
+    profile_spmv(args, llvm_ir, mat, vec)
 
 
 def main():
@@ -128,7 +128,7 @@ def main():
     else:
         pipeline = "no-opt"
 
-    uses_aot_compiled_spmv = args.action == "profile" and args.analysis == "advisor"
+    uses_aot_compiled_spmv = args.action == "profile"
     if uses_aot_compiled_spmv:
         main_fun = None
     else:

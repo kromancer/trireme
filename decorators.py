@@ -11,7 +11,6 @@ from mlir.execution_engine import ExecutionEngine
 
 from common import is_in_path, read_config
 from log_plot import append_result, log_execution_times_ns
-from vtune import gen_and_store_reports
 
 RunFuncType = TypeVar("RunFuncType", bound=Callable[...,  None])
 

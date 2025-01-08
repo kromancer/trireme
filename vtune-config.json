@@ -2,7 +2,6 @@
     "uarch-exploration": [
         "-collect", "uarch-exploration",
         "-data-limit=0",
-        "-start-paused",
         "-knob", "sampling-interval=0.01",
         "-knob", "collect-memory-bandwidth=true",
         "-knob", "collect-bad-speculation=false"
@@ -10,20 +9,17 @@
     "hotspots": [
         "-collect", "hotspots",
         "-data-limit=0",
-        "-start-paused",
         "-knob", "sampling-interval=0.01",
         "-knob", "sampling-mode=hw",
         "-knob", "enable-stack-collection=true"
     ],
     "threading": [
         "-collect", "threading",
-        "-data-limit=0",
-        "-start-paused"
+        "-data-limit=0"
     ],
     "memory-access": [
         "-collect", "memory-access",
         "-data-limit=0",
-        "-start-paused",
         "-knob", "sampling-interval=0.01",
         "-knob", "dram-bandwidth-limits=true",
         "-knob", "analyze-openmp=false"
@@ -31,8 +27,7 @@
     "events": [
         "-collect-with", "runsa",
         "-data-limit=0",
-        "-start-paused",
-        "-knob", "event-config=CPU_CLK_UNHALTED.CORE,OCR.DEMAND_DATA_RD.L3_MISS,LD_HEAD.ANY_AT_RET,LD_HEAD.L1_BOUND_AT_RET,LD_HEAD.OTHER_AT_RET,LD_HEAD.PGWALK_AT_RET,LD_HEAD.DTLB_MISS_AT_RET,LD_HEAD.L1_MISS_AT_RET",
+        "-knob", "event-config=MEM_UOPS_RETIRED.ALL_LOADS,MEM_LOAD_UOPS_RETIRED.L1_HIT,MEM_LOAD_UOPS_RETIRED.L2_HIT,MEM_LOAD_UOPS_RETIRED.DRAM_HIT",
         "-knob", "enable-pebs-collection=true",
         "-knob", "enable-lbr-collection=true",
         "-knob", "dram-bandwidth-limits=true",
