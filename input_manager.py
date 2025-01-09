@@ -68,10 +68,15 @@ class InputManager:
     @timeit
     def create_dense_vec(self) -> np.ndarray:
         dense_vec = np.ones(self.args.j, dtype=self.args.dtype)
-        print(f"vector: size: {print_size(self.args.j * np.dtype(self.args.dtype).itemsize)}")
+        print(f"vector size: {print_size(self.args.j * np.dtype(self.args.dtype).itemsize)}")
         return dense_vec
 
     def create_synth_sparse_mat(self) -> Union[sp.coo_array, sp.csr_array]:
+        def print_sparse_mat_info(m):
+            print(f"sparse matrix nnz: {m.nnz}, "
+                  f"nnz size: {print_size(m.nnz * m.dtype.itemsize)}"
+                  f"{', saved as' + str(file_path) if not self.skip_store else ''}")
+
         i = self.args.i
         j = self.args.j
         dens = self.args.density
@@ -79,15 +84,16 @@ class InputManager:
         m_f = SparseFormats(self.args.matrix_format)
         file_path = self.file_path('sparse_matrix', i=i, j=j, dens=dens, form=m_f, vtype=vtype)
         if not self.skip_load and file_path.exists():
-            return sp.load_npz(file_path)
+            m = sp.load_npz(file_path)
+            print_sparse_mat_info(m)
+            return m
         m: sp.csr_array = sp.random_array((i, j), density=dens, dtype=np.dtype(vtype),
                                           format="csr", random_state=self.rng)
+        print_sparse_mat_info(m)
         if m_f == SparseFormats.COO:
             m: sp.coo_array = m.tocoo()
         if not self.skip_store:
             sp.save_npz(file_path, m)
-        print(f"sparse matrix: nnz: {m.nnz}, "
-              f"nnz size: {print_size(m.nnz * m.dtype.itemsize)}{', saved as' + str(file_path) if not self.skip_store else ''}")
         return m
 
     def get_ss_mat(self) -> sp.csc_array:

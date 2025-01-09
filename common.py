@@ -13,7 +13,7 @@ from subprocess import run
 import sys
 from tempfile import TemporaryDirectory, TemporaryFile
 from time import time
-from typing import Any, Callable, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import scipy.sparse as sp
 
@@ -42,7 +42,7 @@ def print_size(size):
         return f"{size} Bytes"
 
 
-def read_config(file: str, key: str) -> Optional[Union[int, str, List[str]]]:
+def read_config(file: str, key: str) -> Optional[Union[int, str, List[str], Dict]]:
     script_dir = Path(__file__).parent.resolve()
     cfg_file = script_dir / file
 

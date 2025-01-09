@@ -1,9 +1,11 @@
 from argparse import Namespace
+import json
 from multiprocessing import shared_memory
 from os import environ
 from pathlib import Path
 from platform import machine
 from subprocess import run
+from typing import Dict, List
 
 from common import is_in_path, read_config
 import numpy as np
@@ -47,6 +49,24 @@ def gen_and_store_reports() -> None:
             db_entry[report["output"]] = f.read()
 
     append_result(db_entry)
+
+
+def parse_perf_stat_json_output() -> List[Dict]:
+    events = []  # To hold the successfully parsed dictionaries
+    with open("perf-stat.json", "r") as f:
+        for line in f:
+            try:
+                # Attempt to parse the line as JSON
+                json_object = json.loads(line.strip())  # strip() to remove leading/trailing whitespace
+                events.append(json_object)
+            except json.JSONDecodeError:
+                # If json.loads() raises an error, skip this line
+                continue
+    return events
+
+
+def create_shm_block(nbytes: int):
+    pass
 
 
 def profile_spmv(args: Namespace, spmv_ll: Path, mat: sp.csr_array, vec: np.ndarray):
@@ -100,8 +120,17 @@ def profile_spmv(args: Namespace, spmv_ll: Path, mat: sp.csr_array, vec: np.ndar
             assert is_in_path("vtune")
             cmd = ["vtune"] + read_config("vtune-config.json", args.config) + ["--"] + spmv_cmd
             post_run_action = gen_and_store_reports
+        elif args.analysis == "perf":
+            assert is_in_path("perf")
+            cmd = ["perf"] + read_config("perf-config.json", args.config) + ["--"] + spmv_cmd
+        elif args.analysis == "toplev":
+            assert is_in_path("toplev")
+            cmd = ["toplev", "-l6", "--nodes", "/Backend_Bound.Memory_Bound*", "--user", "--json", "-o", "toplev.json",
+                   "--perf-summary", "perf.csv", "--pid"] + spmv_cmd
+            post_run_action = parse_perf_stat_json_output
         else:
-            assert False, "Not supported"
+            print("Dry run")
+            cmd = spmv_cmd
 
         with HwprefController(args):
             run(cmd, check=True)

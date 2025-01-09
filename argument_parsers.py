@@ -62,7 +62,10 @@ def add_args_for_benchmark(parser: ArgumentParser):
 
 
 def add_args_for_profile(parser: ArgumentParser):
-    parser.add_argument("vtune_cfg", type=str, help="Choose an analysis type")
+    parser.add_argument("analysis", choices=["toplev", "vtune", "advisor", "perf", "dry-run"],
+                        help="Choose an analysis type")
+    parser.add_argument("config", type=str,
+                        help="Tool's config, read from the corresponding .json")
 
 
 def add_prefetch_distance_arg(parser: ArgumentParser):

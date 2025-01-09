@@ -27,7 +27,7 @@
     "events": [
         "-collect-with", "runsa",
         "-data-limit=0",
-        "-knob", "event-config=MEM_UOPS_RETIRED.ALL_LOADS,MEM_LOAD_UOPS_RETIRED.L1_HIT,MEM_LOAD_UOPS_RETIRED.L2_HIT,MEM_LOAD_UOPS_RETIRED.DRAM_HIT",
+        "-knob", "event-config=MEM_UOPS_RETIRED.ALL_LOADS,MEM_LOAD_UOPS_RETIRED.DRAM_HIT",
         "-knob", "enable-pebs-collection=true",
         "-knob", "enable-lbr-collection=true",
         "-knob", "dram-bandwidth-limits=true",

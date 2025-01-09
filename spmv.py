@@ -12,11 +12,12 @@ from mlir import runtime as rt
 from mlir import ir
 from mlir.execution_engine import ExecutionEngine
 
-from profile import profile_spmv
+from prof import profile_spmv
 from argument_parsers import (add_args_for_benchmark, add_opt_arg, add_synth_tensor_arg, add_output_check_arg,
-                              add_sparse_format_arg, add_prefetch_distance_arg, add_locality_hint_arg)
+                              add_sparse_format_arg, add_prefetch_distance_arg, add_locality_hint_arg,
+                              add_args_for_profile)
 from common import SparseFormats, make_work_dir_and_cd_to_it
-from decorators import benchmark, profile, RunFuncType
+from benchmark import benchmark, RunFuncType
 from generate_kernel import apply_passes, render_template_for_spmv, translate_to_llvm_ir
 from hwpref_controller import HwprefController
 from input_manager import InputManager, get_storage_buffers
@@ -89,15 +90,10 @@ def run_spmv(exec_engine: ExecutionEngine, args: argparse.Namespace, mat: Union[
 def run_with_jit(args: argparse.Namespace, llvm_mlir: ir.Module, mat: Union[coo_array, csr_array], vec: np.ndarray):
     mat_buffers, dtype, _ = get_storage_buffers(mat, SparseFormats(args.matrix_format))
 
-    if args.action == "benchmark":
-        decorator = benchmark
-    else:
-        decorator = profile
-
     exec_engine = create_exec_engine(llvm_mlir)
 
     with HwprefController(args):
-        run_spmv(exec_engine, args, mat, mat_buffers, vec, dtype=dtype, decorator=decorator)
+        run_spmv(exec_engine, args, mat, mat_buffers, vec, dtype=dtype, decorator=benchmark)
 
 
 def run_with_aot(args: argparse.Namespace, src: Path, mat: Union[coo_array, csr_array], vec: np.ndarray):
@@ -164,10 +160,7 @@ def parse_args() -> argparse.Namespace:
 
     # Subcommand: profile
     profile_parser = action_subparser.add_parser("profile")
-    profile_parser.add_argument("analysis", choices=["toplev", "vtune", "advisor", "events"],
-                                help="Choose an analysis type")
-    profile_parser.add_argument("config", type=str,
-                                help="Tool's config, read from the corresponding .json")
+    add_args_for_profile(profile_parser)
 
     # 2nd level subparsers, matrix type, synthetic or from SuiteSparse
     for p in benchmark_parser, profile_parser:
