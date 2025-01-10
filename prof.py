@@ -28,7 +28,7 @@ def compile_exe(spmv_ll: Path):
     run(compile_exe_cmd, check=True)
 
 
-def gen_and_store_reports() -> None:
+def gen_and_store_vtune_reports() -> None:
     reports = [
         {
             "args": ["hw-events", "-format=csv", "-csv-delimiter=comma", "-group-by=source-line"],
@@ -65,8 +65,10 @@ def parse_perf_stat_json_output() -> List[Dict]:
     return events
 
 
-def create_shm_block(nbytes: int):
-    pass
+def gen_and_store_perf_report() -> None:
+    cmd = ["perf", "report", "--stdio"]
+    report = run(cmd, check=True, text=True, capture_output=True)
+    append_result({"perf-report": report.stdout})
 
 
 def profile_spmv(args: Namespace, spmv_ll: Path, mat: sp.csr_array, vec: np.ndarray):
@@ -119,10 +121,11 @@ def profile_spmv(args: Namespace, spmv_ll: Path, mat: sp.csr_array, vec: np.ndar
         elif args.analysis == "vtune":
             assert is_in_path("vtune")
             cmd = ["vtune"] + read_config("vtune-config.json", args.config) + ["--"] + spmv_cmd
-            post_run_action = gen_and_store_reports
+            post_run_action = gen_and_store_vtune_reports
         elif args.analysis == "perf":
             assert is_in_path("perf")
             cmd = ["perf"] + read_config("perf-config.json", args.config) + ["--"] + spmv_cmd
+            post_run_action = gen_and_store_perf_report
         elif args.analysis == "toplev":
             assert is_in_path("toplev")
             cmd = ["toplev", "-l6", "--nodes", "/Backend_Bound.Memory_Bound*", "--user", "--json", "-o", "toplev.json",
