@@ -1,0 +1,12 @@
+{
+
+
+
+    "drilldown": [
+        "--drilldown",
+        "--no-multiplex",
+        "--user",
+        "--cputype", "atom",
+        "--level", "6"
+    ]
+}

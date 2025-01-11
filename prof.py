@@ -128,9 +128,7 @@ def profile_spmv(args: Namespace, spmv_ll: Path, mat: sp.csr_array, vec: np.ndar
             post_run_action = gen_and_store_perf_report
         elif args.analysis == "toplev":
             assert is_in_path("toplev")
-            cmd = ["toplev", "-l6", "--nodes", "/Backend_Bound.Memory_Bound*", "--user", "--json", "-o", "toplev.json",
-                   "--perf-summary", "perf.csv", "--pid"] + spmv_cmd
-            post_run_action = parse_perf_stat_json_output
+            cmd = ["toplev"] + read_config("toplev-config.json", args.config) + spmv_cmd
         else:
             print("Dry run")
             cmd = spmv_cmd
