@@ -1,11 +1,12 @@
 from argparse import Namespace
 import json
+import mmap
 from multiprocessing import shared_memory
-from os import environ
+import os
 from pathlib import Path
 from platform import machine
 from subprocess import run
-from typing import Dict, List
+from typing import Dict, List, Tuple
 
 from common import is_in_path, read_config
 import numpy as np
@@ -16,7 +17,7 @@ from log_plot import append_result
 
 
 def compile_exe(spmv_ll: Path):
-    clang = Path(environ['LLVM_PATH']) / "bin/clang"
+    clang = Path(os.environ['LLVM_PATH']) / "bin/clang"
     assert clang.exists()
 
     compile_spmv_cmd = [str(clang), "-O3", "-mavx2" if machine() == 'x86_64' else "",
@@ -71,13 +72,28 @@ def gen_and_store_perf_report() -> None:
     append_result({"perf-report": report.stdout})
 
 
+def create_shmem_backed_by_1g_page(size: int) -> Tuple[mmap.mmap, str, int]:
+    shm_path = "/mnt/huge_1g/vec"
+
+    with open(shm_path, "wb") as f:
+        f.truncate(size)
+
+    # Open the file descriptor
+    fd = os.open(shm_path, os.O_RDWR)
+
+    # Memory-map the file
+    shm = mmap.mmap(fd, size, access=mmap.ACCESS_WRITE)
+
+    return shm, shm_path, fd
+
+
 def profile_spmv(args: Namespace, spmv_ll: Path, mat: sp.csr_array, vec: np.ndarray):
     compile_exe(spmv_ll)
 
     # copy vec to a shared mem block
     cols = vec.shape[0]
-    vec_shm = shared_memory.SharedMemory(create=True, size=vec.nbytes)
-    shared_vec = np.ndarray(vec.shape, dtype=vec.dtype, buffer=vec_shm.buf)
+    vec_shm, vec_path, vec_fd = create_shmem_backed_by_1g_page(size=vec.nbytes)
+    shared_vec = np.ndarray(vec.shape, dtype=vec.dtype, buffer=vec_shm)
     np.copyto(shared_vec, vec)
 
     # copy mat.data
@@ -107,7 +123,7 @@ def profile_spmv(args: Namespace, spmv_ll: Path, mat: sp.csr_array, vec: np.ndar
                 str(rows),
                 str(cols),
                 str(nnz),
-                "/" + vec_shm.name,
+                vec_path,
                 "/" + mat_data_shm.name,
                 "/" + mat_indptr_shm.name,
                 "/" + mat_indices_shm.name,
@@ -140,7 +156,9 @@ def profile_spmv(args: Namespace, spmv_ll: Path, mat: sp.csr_array, vec: np.ndar
             expected = mat.dot(vec)
             assert np.allclose(res, expected), "Wrong output!"
     finally:
-        vec_shm.unlink()
+        vec_shm.close()
+        os.close(vec_fd)
+
         mat_data_shm.unlink()
         mat_indptr_shm.unlink()
         mat_indices_shm.unlink()
