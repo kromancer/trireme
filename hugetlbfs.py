@@ -53,24 +53,12 @@ class HugeTLBFS:
             self.num_pages = self._calculate_total_pages()
 
     def _calculate_total_pages(self):
-        """
-        Calculate the total number of pages required to accommodate all provided numpy arrays.
-
-        Parameters:
-        - page_size (int): The page size in bytes.
-        - *arrays (np.ndarray): Arbitrary number of numpy arrays.
-
-        Returns:
-        - int: Total number of pages required.
-        """
-        total_pages = 0
-
-        for array in self.buffers:
-            if not isinstance(array, np.ndarray):
+        for buff in self.buffers:
+            if not isinstance(buff, np.ndarray):
                 raise ValueError("All provided buffers must be of type numpy.ndarray.")
 
             # Calculate size of the array in bytes
-            buffer_size_in_bytes = array.nbytes
+            buffer_size_in_bytes = buff.nbytes
 
             # Calculate the number of pages required for this buffer (round up)
             pages_needed = (buffer_size_in_bytes + self.page_size_bytes - 1) // self.page_size_bytes

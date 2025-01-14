@@ -16,7 +16,7 @@ from mlir.execution_engine import ExecutionEngine
 from prof import profile_spmv
 from argument_parsers import (add_args_for_benchmark, add_opt_arg, add_synth_tensor_arg, add_output_check_arg,
                               add_sparse_format_arg, add_prefetch_distance_arg, add_locality_hint_arg,
-                              add_args_for_profile, add_huge_page_size_arg)
+                              add_args_for_profile)
 from common import SparseFormats, make_work_dir_and_cd_to_it
 from benchmark import benchmark, RunFuncType
 from generate_kernel import apply_passes, render_template_for_spmv, translate_to_llvm_ir
@@ -104,8 +104,8 @@ def run_with_aot(args: argparse.Namespace, src: Path, mat: Union[coo_array, csr_
     if args.check_output:
         expected = mat.dot(vec)
 
-    with (HugeTLBFS(args.huge_page_size, vec,
-                    get_storage_buffers(mat, SparseFormats(args.matrix_format)), res) as hugentlbfs,
+    mat_buffs, _, _ = get_storage_buffers(mat, SparseFormats(args.matrix_format))
+    with (HugeTLBFS(args.huge_page_size, vec, mat_buffs, res) as hugentlbfs,
           HwprefController(args)):
         profile_spmv(args, llvm_ir, mat.nnz, hugentlbfs.buffer_paths)
 
