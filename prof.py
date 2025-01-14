@@ -1,5 +1,6 @@
 from argparse import Namespace
 import json
+from math import ceil
 import mmap
 from multiprocessing import shared_memory
 import os
@@ -72,11 +73,15 @@ def gen_and_store_perf_report() -> None:
     append_result({"perf-report": report.stdout})
 
 
-def create_shmem_backed_by_1g_page(size: int) -> Tuple[mmap.mmap, str, int]:
-    shm_path = "/mnt/huge_1g/vec"
+def create_shmem_backed_by_1g_page(size: int, file_name: str) -> Tuple[mmap.mmap, str, int]:
+    shm_path = read_config("input-manager-config.json.json", "hugetlbfs") + file_name
+
+    # Round up size to nearest 1GB
+    ONE_GB = 1024 * 1024 * 1024
+    aligned_size = ceil(size / ONE_GB) * ONE_GB
 
     with open(shm_path, "wb") as f:
-        f.truncate(size)
+        f.truncate(aligned_size)
 
     # Open the file descriptor
     fd = os.open(shm_path, os.O_RDWR)
@@ -92,9 +97,10 @@ def profile_spmv(args: Namespace, spmv_ll: Path, mat: sp.csr_array, vec: np.ndar
 
     # copy vec to a shared mem block
     cols = vec.shape[0]
-    vec_shm, vec_path, vec_fd = create_shmem_backed_by_1g_page(size=vec.nbytes)
+    vec_shm, vec_path, vec_fd = create_shmem_backed_by_1g_page(vec.nbytes, "vec")
     shared_vec = np.ndarray(vec.shape, dtype=vec.dtype, buffer=vec_shm)
     np.copyto(shared_vec, vec)
+    del vec
 
     # copy mat.data
     nnz = mat.data.shape[0]

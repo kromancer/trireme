@@ -35,7 +35,7 @@ struct shm_info open_and_map_shm(const char *shm, bool is_read_only, bool is_hug
 
     // Open the shared memory object
     if (is_hugetlbfs) {
-       shm_fd = open(shm_path, O_RDWR);
+       shm_fd = open(shm, O_RDWR);
        if (shm_fd == -1) {
            perror("open");
            exit(EXIT_FAILURE);
