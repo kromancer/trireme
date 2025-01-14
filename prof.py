@@ -14,6 +14,7 @@ import numpy as np
 import scipy.sparse as sp
 
 from hwpref_controller import HwprefController
+from hugetlbfs import HugeTLBFS
 from log_plot import append_result
 
 
@@ -73,102 +74,31 @@ def gen_and_store_perf_report() -> None:
     append_result({"perf-report": report.stdout})
 
 
-def create_shmem_backed_by_1g_page(size: int, file_name: str) -> Tuple[mmap.mmap, str, int]:
-    shm_path = read_config("input-manager-config.json.json", "hugetlbfs") + file_name
-
-    # Round up size to nearest 1GB
-    ONE_GB = 1024 * 1024 * 1024
-    aligned_size = ceil(size / ONE_GB) * ONE_GB
-
-    with open(shm_path, "wb") as f:
-        f.truncate(aligned_size)
-
-    # Open the file descriptor
-    fd = os.open(shm_path, os.O_RDWR)
-
-    # Memory-map the file
-    shm = mmap.mmap(fd, size, access=mmap.ACCESS_WRITE)
-
-    return shm, shm_path, fd
-
-
-def profile_spmv(args: Namespace, spmv_ll: Path, mat: sp.csr_array, vec: np.ndarray):
+def profile_spmv(args: Namespace, spmv_ll: Path, nnz: int, *buffers):
     compile_exe(spmv_ll)
 
-    # copy vec to a shared mem block
-    cols = vec.shape[0]
-    vec_shm, vec_path, vec_fd = create_shmem_backed_by_1g_page(vec.nbytes, "vec")
-    shared_vec = np.ndarray(vec.shape, dtype=vec.dtype, buffer=vec_shm)
-    np.copyto(shared_vec, vec)
-    del vec
-
-    # copy mat.data
-    nnz = mat.data.shape[0]
-    mat_data_shm = shared_memory.SharedMemory(create=True, size=mat.data.nbytes)
-    shared_mat_data = np.ndarray(mat.data.shape, dtype=mat.data.dtype, buffer=mat_data_shm.buf)
-    np.copyto(shared_mat_data, mat.data)
-
-    # copy mat.indices
-    mat_indices_shm = shared_memory.SharedMemory(create=True, size=mat.indices.nbytes)
-    shared_mat_indices = np.ndarray(mat.indices.shape, dtype=mat.indices.dtype, buffer=mat_indices_shm.buf)
-    np.copyto(shared_mat_indices, mat.indices)
-
-    # copy mat.indptr
-    mat_indptr_shm = shared_memory.SharedMemory(create=True, size=mat.indptr.nbytes)
-    shared_mat_indptr = np.ndarray(mat.indptr.shape, dtype=mat.indptr.dtype, buffer=mat_indptr_shm.buf)
-    np.copyto(shared_mat_indptr, mat.indptr)
-
-    # create res buffer
-    rows = mat.shape[0]
-    all_zeroes = np.zeros(rows, dtype=mat.data.dtype)
-    res_shm = shared_memory.SharedMemory(create=True, size=all_zeroes.nbytes)
-    res = np.ndarray(all_zeroes.shape, dtype=mat.data.dtype, buffer=res_shm.buf)
-    np.copyto(res, all_zeroes)
-
-    spmv_cmd = ["./spmv",
-                str(rows),
-                str(cols),
-                str(nnz),
-                vec_path,
-                "/" + mat_data_shm.name,
-                "/" + mat_indptr_shm.name,
-                "/" + mat_indices_shm.name,
-                "/" + res_shm.name]
+    spmv_cmd = ["./spmv", str(args.i), str(args.j), str(nnz), *buffers]
 
     post_run_action = None
-    try:
-        if args.analysis == "advisor":
-            assert is_in_path("advisor")
-            cmd = ["advisor"] + read_config("advisor-config.json", args.config) + ["--"] + spmv_cmd
-        elif args.analysis == "vtune":
-            assert is_in_path("vtune")
-            cmd = ["vtune"] + read_config("vtune-config.json", args.config) + ["--"] + spmv_cmd
-            post_run_action = gen_and_store_vtune_reports
-        elif args.analysis == "perf":
-            assert is_in_path("perf")
-            cmd = ["perf"] + read_config("perf-config.json", args.config) + ["--"] + spmv_cmd
-            post_run_action = gen_and_store_perf_report
-        elif args.analysis == "toplev":
-            assert is_in_path("toplev")
-            cmd = ["toplev"] + read_config("toplev-config.json", args.config) + spmv_cmd
-        else:
-            print("Dry run")
-            cmd = spmv_cmd
+    if args.analysis == "advisor":
+        assert is_in_path("advisor")
+        cmd = ["advisor"] + read_config("advisor-config.json", args.config) + ["--"] + spmv_cmd
+    elif args.analysis == "vtune":
+        assert is_in_path("vtune")
+        cmd = ["vtune"] + read_config("vtune-config.json", args.config) + ["--"] + spmv_cmd
+        post_run_action = gen_and_store_vtune_reports
+    elif args.analysis == "perf":
+        assert is_in_path("perf")
+        cmd = ["perf"] + read_config("perf-config.json", args.config) + ["--"] + spmv_cmd
+        post_run_action = gen_and_store_perf_report
+    elif args.analysis == "toplev":
+        assert is_in_path("toplev")
+        cmd = ["toplev"] + read_config("toplev-config.json", args.config) + spmv_cmd
+    else:
+        print("Dry run")
+        cmd = spmv_cmd
 
-        with HwprefController(args):
-            run(cmd, check=True)
-
-        if args.check_output:
-            expected = mat.dot(vec)
-            assert np.allclose(res, expected), "Wrong output!"
-    finally:
-        vec_shm.close()
-        os.close(vec_fd)
-
-        mat_data_shm.unlink()
-        mat_indptr_shm.unlink()
-        mat_indices_shm.unlink()
-        res_shm.unlink()
+    run(cmd, check=True)
 
     if post_run_action is not None:
         post_run_action()

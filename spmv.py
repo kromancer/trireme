@@ -7,6 +7,7 @@ import jinja2
 import numpy as np
 from scipy.sparse import coo_array, csr_array
 
+from hugetlbfs import HugeTLBFS
 from log_plot import append_placeholder
 from mlir import runtime as rt
 from mlir import ir
@@ -98,7 +99,17 @@ def run_with_jit(args: argparse.Namespace, llvm_mlir: ir.Module, mat: Union[coo_
 
 def run_with_aot(args: argparse.Namespace, src: Path, mat: Union[coo_array, csr_array], vec: np.ndarray):
     llvm_ir = translate_to_llvm_ir(src, "spmv")
-    profile_spmv(args, llvm_ir, mat, vec)
+
+    res = np.zeros(args.i, dtype=mat.data.dtype)
+    if args.check_output:
+        expected = mat.dot(vec)
+
+    with (HugeTLBFS("2MB", vec, get_storage_buffers(mat, args.matrix_format), res) as hugentlbfs,
+          HwprefController(args)):
+        profile_spmv(args, llvm_ir, mat.nnz, hugentlbfs.buffer_paths)
+
+        if args.check_output:
+            assert np.allclose(res, hugentlbfs.buffers[-1]), "Wrong output!"
 
 
 def main():

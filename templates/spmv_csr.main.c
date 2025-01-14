@@ -30,23 +30,14 @@ struct shm_info {
     struct stat sb;
 };
 
-struct shm_info open_and_map_shm(const char *shm, bool is_read_only, bool is_hugetlbfs) {
+struct shm_info open_and_map_shm(const char *shm, bool is_read_only) {
     int shm_fd = -1;
 
     // Open the shared memory object
-    if (is_hugetlbfs) {
-       shm_fd = open(shm, O_RDWR);
-       if (shm_fd == -1) {
-           perror("open");
-           exit(EXIT_FAILURE);
-    }
-    }
-    else {
-        shm_fd = shm_open(shm, is_read_only ? O_RDONLY : O_RDWR, 0666);
-        if (shm_fd == -1) {
-            perror("shm_open");
-            exit(EXIT_FAILURE);
-        }
+    shm_fd = open(shm, O_RDWR);
+    if (shm_fd == -1) {
+        perror("open");
+        exit(EXIT_FAILURE);
     }
 
     // Map the shared memory object
@@ -104,12 +95,11 @@ int main(int argc, char **argv) {
     uint64_t rows = get_uint64(argv[1]);
     uint64_t cols = get_uint64(argv[2]);
     uint64_t nnz = get_uint64(argv[3]);
-    struct shm_info vec = open_and_map_shm(argv[4], true, true);
-    struct shm_info mat_data = open_and_map_shm(argv[5], true, false);
-    struct shm_info mat_indptr = open_and_map_shm(argv[6], true, false);
-    struct shm_info mat_indices = open_and_map_shm(argv[7], true, false);
-    struct shm_info res = open_and_map_shm(argv[8], false, false);
-
+    struct shm_info vec = open_and_map_shm(argv[4], true);
+    struct shm_info mat_indptr = open_and_map_shm(argv[5], true);
+    struct shm_info mat_indices = open_and_map_shm(argv[6], true);
+    struct shm_info mat_data = open_and_map_shm(argv[7], true);
+    struct shm_info res = open_and_map_shm(argv[8], false);
 
     memref_descriptor_t res_d = {
         .allocated = res.ptr,
