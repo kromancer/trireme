@@ -1,3 +1,4 @@
+from argparse import ArgumentParser
 import mmap
 import numpy as np
 import os
@@ -10,6 +11,10 @@ class HugeTLBFS:
     A class to manage HugeTLBFS, providing a context manager for easier setup and cleanup.
     When not running on Linux, the class does nothing.
     """
+    @staticmethod
+    def add_args(parser: ArgumentParser):
+        parser.add_argument("-hp", "--huge-page-size", choices=["2MB", "1GB"], default="2MB",
+                            help="Huge page size")
 
     def __init__(self, pagesize, *buffers):
         """
@@ -68,7 +73,7 @@ class HugeTLBFS:
             buffer_size_in_bytes = array.nbytes
 
             # Calculate the number of pages required for this buffer (round up)
-            pages_needed = (buffer_size_in_bytes + self.pagesize - 1) // self.pagesize
+            pages_needed = (buffer_size_in_bytes + self.page_size_bytes - 1) // self.page_size_bytes
             self.buffer_sizes_in_pages.append(pages_needed)
 
         self.num_pages = sum(self.buffer_sizes_in_pages)

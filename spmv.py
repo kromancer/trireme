@@ -16,7 +16,7 @@ from mlir.execution_engine import ExecutionEngine
 from prof import profile_spmv
 from argument_parsers import (add_args_for_benchmark, add_opt_arg, add_synth_tensor_arg, add_output_check_arg,
                               add_sparse_format_arg, add_prefetch_distance_arg, add_locality_hint_arg,
-                              add_args_for_profile)
+                              add_args_for_profile, add_huge_page_size_arg)
 from common import SparseFormats, make_work_dir_and_cd_to_it
 from benchmark import benchmark, RunFuncType
 from generate_kernel import apply_passes, render_template_for_spmv, translate_to_llvm_ir
@@ -104,12 +104,13 @@ def run_with_aot(args: argparse.Namespace, src: Path, mat: Union[coo_array, csr_
     if args.check_output:
         expected = mat.dot(vec)
 
-    with (HugeTLBFS("2MB", vec, get_storage_buffers(mat, args.matrix_format), res) as hugentlbfs,
+    with (HugeTLBFS(args.huge_page_size, vec,
+                    get_storage_buffers(mat, SparseFormats(args.matrix_format)), res) as hugentlbfs,
           HwprefController(args)):
         profile_spmv(args, llvm_ir, mat.nnz, hugentlbfs.buffer_paths)
 
         if args.check_output:
-            assert np.allclose(res, hugentlbfs.buffers[-1]), "Wrong output!"
+            assert np.allclose(expected, hugentlbfs.buffers[-1]), "Wrong output!"
 
 
 def main():
@@ -160,6 +161,7 @@ def parse_args() -> argparse.Namespace:
     add_opt_arg(parser)
     add_sparse_format_arg(parser, "matrix")
     add_output_check_arg(parser)
+    HugeTLBFS.add_args(parser)
     HwprefController.add_args(parser)
 
     # 1st level subparsers, benchmark or profile
