@@ -1,20 +1,12 @@
 from argparse import Namespace
 import json
-from math import ceil
-import mmap
-from multiprocessing import shared_memory
 import os
 from pathlib import Path
 from platform import machine
 from subprocess import run
-from typing import Dict, List, Tuple
+from typing import Dict, List
 
 from common import is_in_path, read_config
-import numpy as np
-import scipy.sparse as sp
-
-from hwpref_controller import HwprefController
-from hugetlbfs import HugeTLBFS
 from log_plot import append_result
 
 

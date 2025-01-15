@@ -32,8 +32,9 @@ class HugeTLBFS:
         self.buffers = buffers
         self.buffer_sizes_in_pages = []
         self.buffer_paths = []
-        self.pagesize_kb = None  # Converted page size in kilobytes
-        self.num_pages = 0  # Total pages to be allocated
+        self.pagesize_kb = None
+        self.num_pages = 0
+        self.mmaped = []
 
         # Check if running on Linux
         self._is_linux = platform.system() == "Linux"
@@ -139,6 +140,7 @@ class HugeTLBFS:
             # Memory-map the file
             with open(mmap_path, "r+b") as f:
                 mmapped = mmap.mmap(f.fileno(), aligned_size, access=mmap.ACCESS_WRITE)
+                self.mmaped.append(mmapped)
 
                 # Create a new ndarray backed by the memory-map
                 new_buf = np.ndarray(shape=buf.shape, dtype=buf.dtype, buffer=mmapped)
@@ -170,6 +172,9 @@ class HugeTLBFS:
         """
         Exit the context: Unmount and release resources.
         """
+        for mmapped in self.mmaped:
+            mmapped.close()
+
         if self._is_linux:
             self._unmount_hugetlbfs()
         else:
