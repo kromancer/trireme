@@ -10,19 +10,6 @@ from common import is_in_path, read_config
 from log_plot import append_result
 
 
-def compile_exe(spmv_ll: Path):
-    clang = Path(os.environ['LLVM_PATH']) / "bin/clang"
-    assert clang.exists()
-
-    compile_spmv_cmd = [str(clang), "-O3", "-mavx2" if machine() == 'x86_64' else "",
-                        "-Wno-override-module", "-c", str(spmv_ll), "-o", "spmv.o"]
-    run(compile_spmv_cmd, check=True)
-
-    main_fun = Path(__file__).parent.resolve() / "templates" / "spmv_csr.main.c"
-    compile_exe_cmd = [str(clang), "-O0", "-fopenmp", "-g", str(main_fun), "spmv.o", "-o" "spmv"]
-    run(compile_exe_cmd, check=True)
-
-
 def gen_and_store_vtune_reports() -> None:
     reports = [
         {
@@ -66,10 +53,8 @@ def gen_and_store_perf_report() -> None:
     append_result({"perf-report": report.stdout})
 
 
-def profile_spmv(args: Namespace, spmv_ll: Path, nnz: int, buffers: List[str]):
-    compile_exe(spmv_ll)
-
-    spmv_cmd = ["./spmv", str(args.i), str(args.j), str(nnz)] + buffers
+def profile_spmv(args: Namespace, exe: Path, nnz: int, buffers: List[str]):
+    spmv_cmd = [str(exe), str(args.i), str(args.j), str(nnz)] + buffers
 
     post_run_action = None
     if args.analysis == "advisor":

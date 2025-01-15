@@ -27,19 +27,21 @@ class HugeTLBFS:
 
         Requires sudo/root privileges.
         """
-        self.mount_point = "/tmp/hugetlbfs"
-        self.pagesize = pagesize.upper()
         self.buffers = buffers
-        self.buffer_sizes_in_pages = []
         self.buffer_paths = []
-        self.pagesize_kb = None
-        self.num_pages = 0
         self.mmaped = []
 
-        # Check if running on Linux
+        # Check if running on Linux or macos
         self._is_linux = platform.system() == "Linux"
+        self._is_macos = (platform.system() == "Darwin")
+        assert self._is_linux or self._is_macos, "Not Supported OS"
 
         if self._is_linux:
+            self.mount_point = "/tmp/hugetlbfs"
+            self.pagesize = pagesize.upper()
+            self.buffer_sizes_in_pages = []
+            self.num_pages = 0
+
             # Validate and set the page size
             if self.pagesize == "2MB":
                 self.pagesize_kb = 2048
@@ -52,6 +54,9 @@ class HugeTLBFS:
 
             # Calculate the total number of pages required
             self._calculate_total_pages()
+        elif self._is_macos:
+            self.ramdisk_name = "ramdisk"
+            self.ramdisk_device = None
 
     def _calculate_total_pages(self):
         for buff in self.buffers:
@@ -116,26 +121,26 @@ class HugeTLBFS:
         except Exception as e:
             print(f"Warning: Could not release huge pages: {e}")
 
-    def _move_to_hugetlbfs(self):
+    def _move_buffers(self):
         """
         Move all buffers in self.buffers to new numpy arrays backed by hugetlbfs.
 
         Deallocates the memory of the original numpy arrays after the move.
         """
-        if not self._is_linux:
-            print("Not running on Linux. Cannot move buffers to hugetlbfs.")
-            return
-
         new_buffers = []
         for i, buf in enumerate(self.buffers):
             # Path for the hugepage-backed storage
             mmap_path = os.path.join(self.mount_point, f"buffer_{i}")
             self.buffer_paths.append(mmap_path)
 
-            # Create a memory-mapped file at the hugetlbfs mount point
-            aligned_size = self.buffer_sizes_in_pages[i] * self.page_size_bytes
+            # Create a memory-mapped
+            if self._is_linux:
+                aligned_size = self.buffer_sizes_in_pages[i] * self.page_size_bytes
+            else:
+                aligned_size = buf.nbytes
+
             with open(mmap_path, "wb") as f:
-                f.truncate(self.buffer_sizes_in_pages[i] * self.page_size_bytes)  # Resize the file to buffer size
+                f.truncate(aligned_size)  # Resize the file to buffer size
 
             # Memory-map the file
             with open(mmap_path, "r+b") as f:
@@ -153,6 +158,28 @@ class HugeTLBFS:
         self.buffers = tuple(new_buffers)
         print("Buffers have been successfully moved to hugetlbfs.")
 
+    def _setup_ramdisk_macos(self):
+        total_bytes = sum(buf.nbytes for buf in self.buffers)
+        overhead_factor = 1.2
+        adjusted_total_bytes = int(overhead_factor * total_bytes)
+        sectors = (adjusted_total_bytes + 511) // 512
+
+        # Create the RAM disk device
+        attach_cmd = ["hdiutil", "attach", "-nomount", f"ram://{sectors}"]
+        result = subprocess.run(attach_cmd, capture_output=True, text=True, check=True)
+        self.ramdisk_device = result.stdout.strip()
+
+        # Format and mount as HFS+ (ends up in /Volumes/ramdisk)
+        erase_cmd = ["diskutil", "erasevolume", "HFS+", self.ramdisk_name, self.ramdisk_device]
+        subprocess.run(erase_cmd, check=True)
+        self.mount_point = f"/Volumes/{self.ramdisk_name}"
+        print(f"Mounted a RAM disk at {self.mount_point}")
+
+    def _teardown_ramdisk_macos(self):
+        if self.ramdisk_device:
+            subprocess.run(["diskutil", "eject", self.ramdisk_device])
+            print(f"Ejected RAM disk {self.ramdisk_device}")
+
     def __enter__(self):
         """
         Enter the context: Reserve and mount hugetlbfs.
@@ -161,11 +188,17 @@ class HugeTLBFS:
             try:
                 self._reserve_hugepages()
                 self._mount_hugetlbfs()
-                self._move_to_hugetlbfs()
+                self._move_buffers()
             except Exception as e:
                 raise RuntimeError(f"Failed to set up HugeTLBFS: {e}")
         else:
-            print("Not running on Linux. HugeTLBFS will do nothing.")
+            assert self._is_macos, "Not supported OS"
+            try:
+                self._setup_ramdisk_macos()
+                self._move_buffers()
+            except Exception as e:
+                raise RuntimeError(f"Failed to set up ramdisk: {e}")
+
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
@@ -178,4 +211,6 @@ class HugeTLBFS:
         if self._is_linux:
             self._unmount_hugetlbfs()
         else:
-            print("Nothing to clean up as HugeTLBFS was not set up.")
+            assert self._is_macos, "Not supported OS"
+            self._teardown_ramdisk_macos()
+

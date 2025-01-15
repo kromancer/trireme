@@ -17,7 +17,7 @@ from prof import profile_spmv
 from argument_parsers import (add_args_for_benchmark, add_opt_arg, add_synth_tensor_arg, add_output_check_arg,
                               add_sparse_format_arg, add_prefetch_distance_arg, add_locality_hint_arg,
                               add_args_for_profile)
-from common import SparseFormats, make_work_dir_and_cd_to_it
+from common import build_with_cmake, make_work_dir_and_cd_to_it, SparseFormats
 from benchmark import benchmark, RunFuncType
 from generate_kernel import apply_passes, render_template_for_spmv, translate_to_llvm_ir
 from hwpref_controller import HwprefController
@@ -97,8 +97,11 @@ def run_with_jit(args: argparse.Namespace, llvm_mlir: ir.Module, mat: Union[coo_
         run_spmv(exec_engine, args, mat, mat_buffers, vec, dtype=dtype, decorator=benchmark)
 
 
-def run_with_aot(args: argparse.Namespace, src: Path, mat: Union[coo_array, csr_array], vec: np.ndarray):
-    llvm_ir = translate_to_llvm_ir(src, "spmv")
+def run_with_aot(args: argparse.Namespace, llvm_mlir: Path, mat: Union[coo_array, csr_array], vec: np.ndarray):
+    llvm_ir = translate_to_llvm_ir(llvm_mlir, "spmv").resolve()
+    src_path = Path(__file__).parent.resolve() / "templates"
+    exe = build_with_cmake([f"-DMAIN_FILE=spmv_{args.matrix_format}.main.c", f"-DKERNEL_LLVM_IR={llvm_ir}"],
+                           target="main", src_path=src_path)
 
     res = np.zeros(args.i, dtype=mat.data.dtype)
     if args.check_output:
@@ -107,7 +110,7 @@ def run_with_aot(args: argparse.Namespace, src: Path, mat: Union[coo_array, csr_
     mat_buffs, _, _ = get_storage_buffers(mat, SparseFormats(args.matrix_format))
     with (HugeTLBFS(args.huge_page_size, vec, *mat_buffs, res) as hugentlbfs,
           HwprefController(args)):
-        profile_spmv(args, llvm_ir, mat.nnz, hugentlbfs.buffer_paths)
+        profile_spmv(args, exe, mat.nnz, hugentlbfs.buffer_paths)
 
         if args.check_output:
             assert np.allclose(expected, hugentlbfs.buffers[-1]), "Wrong output!"
