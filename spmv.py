@@ -105,7 +105,7 @@ def run_with_aot(args: argparse.Namespace, src: Path, mat: Union[coo_array, csr_
         expected = mat.dot(vec)
 
     mat_buffs, _, _ = get_storage_buffers(mat, SparseFormats(args.matrix_format))
-    with (HugeTLBFS(args.huge_page_size, vec, mat_buffs, res) as hugentlbfs,
+    with (HugeTLBFS(args.huge_page_size, vec, *mat_buffs, res) as hugentlbfs,
           HwprefController(args)):
         profile_spmv(args, llvm_ir, mat.nnz, hugentlbfs.buffer_paths)
 

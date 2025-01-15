@@ -74,10 +74,10 @@ def gen_and_store_perf_report() -> None:
     append_result({"perf-report": report.stdout})
 
 
-def profile_spmv(args: Namespace, spmv_ll: Path, nnz: int, *buffers):
+def profile_spmv(args: Namespace, spmv_ll: Path, nnz: int, buffers: List[str]):
     compile_exe(spmv_ll)
 
-    spmv_cmd = ["./spmv", str(args.i), str(args.j), str(nnz), *buffers]
+    spmv_cmd = ["./spmv", str(args.i), str(args.j), str(nnz)] + buffers
 
     post_run_action = None
     if args.analysis == "advisor":

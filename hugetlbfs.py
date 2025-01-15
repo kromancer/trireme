@@ -27,7 +27,7 @@ class HugeTLBFS:
 
         Requires sudo/root privileges.
         """
-        self.mount_point = "/hugetlbfs"
+        self.mount_point = "/tmp/hugetlbfs"
         self.pagesize = pagesize.upper()
         self.buffers = buffers
         self.buffer_sizes_in_pages = []
@@ -50,18 +50,15 @@ class HugeTLBFS:
                 raise ValueError("Invalid page size. Supported options are '2MB' or '1GB'.")
 
             # Calculate the total number of pages required
-            self.num_pages = self._calculate_total_pages()
+            self._calculate_total_pages()
 
     def _calculate_total_pages(self):
         for buff in self.buffers:
             if not isinstance(buff, np.ndarray):
                 raise ValueError("All provided buffers must be of type numpy.ndarray.")
 
-            # Calculate size of the array in bytes
-            buffer_size_in_bytes = buff.nbytes
-
             # Calculate the number of pages required for this buffer (round up)
-            pages_needed = (buffer_size_in_bytes + self.page_size_bytes - 1) // self.page_size_bytes
+            pages_needed = (buff.nbytes + self.page_size_bytes - 1) // self.page_size_bytes
             self.buffer_sizes_in_pages.append(pages_needed)
 
         self.num_pages = sum(self.buffer_sizes_in_pages)
