@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
+#include <time.h>
 #include <unistd.h>
 
 
@@ -72,7 +73,17 @@ int main(int argc, char **argv) {
         .strides = 1
     };
 
+    struct timespec start_ts;
+    clock_gettime(CLOCK_MONOTONIC, &start_ts);
+
     (void)spmv(MEMREF_DESC_ARGS(res_d), MEMREF_DESC_ARGS(mat_indptr_d), MEMREF_DESC_ARGS(mat_indices_d), MEMREF_DESC_ARGS(mat_data_d), MEMREF_DESC_ARGS(vec_d));
+
+    struct timespec end_ts;
+    clock_gettime(CLOCK_MONOTONIC, &end_ts);
+
+    long seconds = end_ts.tv_sec - start_ts.tv_sec;
+    long nanoseconds = end_ts.tv_nsec - start_ts.tv_nsec;
+    printf("Exec time: %fs\n", seconds + nanoseconds*1e-9);
 
     // Clean up
     munmap(vec.ptr, vec.sb.st_size);
