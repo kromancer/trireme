@@ -20,6 +20,9 @@ class RAMDisk:
         else:
             self.ramdisks.append(_RAMDisk("2M", vec_buff, *buffers))
 
+    def reset_res_buff(self):
+        self.buffers[-1].fill(0)
+
     def __enter__(self):
         self.entered_ramdisks = [ramdisk.__enter__() for ramdisk in self.ramdisks]
         self.buffer_paths = [path for ramdisk in self.entered_ramdisks for path in ramdisk.buffer_paths]

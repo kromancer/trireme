@@ -69,6 +69,9 @@ class RAMDisk:
         assert self.mount_point is not None, "Ramdisk is not mounted!"
         run(["diskutil", "eject", self.ramdisk_device])
 
+    def reset_res_buff(self):
+        self.buffers[-1].fill(0)
+
     def __enter__(self):
         self._mount()
         try:

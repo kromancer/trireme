@@ -1,29 +1,26 @@
 import argparse
-import ctypes
 from pathlib import Path
 from platform import system
-from typing import Callable, List, Union
+import re
+from subprocess import run, PIPE
+from typing import Union
 
 import jinja2
 import numpy as np
 from scipy.sparse import coo_array, csr_array
 
 from log_plot import append_placeholder
-from mlir import runtime as rt
 from mlir import ir
-from mlir.execution_engine import ExecutionEngine
 
-from prof import profile_spmv
 from argument_parsers import (add_args_for_benchmark, add_opt_arg, add_synth_tensor_arg, add_output_check_arg,
                               add_sparse_format_arg, add_prefetch_distance_arg, add_locality_hint_arg,
                               add_args_for_profile)
 from common import build_with_cmake, make_work_dir_and_cd_to_it, SparseFormats
-from benchmark import benchmark, RunFuncType
 from generate_kernel import apply_passes, render_template_for_spmv, translate_to_llvm_ir
 from hwpref_controller import HwprefController
 from input_manager import InputManager, get_storage_buffers
-from mlir_exec_engine import create_exec_engine
-from np_to_memref import make_nd_memref_descriptor
+from log_plot import log_execution_times_secs
+from prof import profile_spmv
 
 if system() == "Linux":
     from ramdisk_linux import RAMDisk
@@ -53,56 +50,6 @@ def render_template_for_main(args: argparse.Namespace) -> str:
     return main_template.render(rows=args.i, cols=args.j, dtype=to_mlir_type[args.dtype])
 
 
-def run_spmv(exec_engine: ExecutionEngine, args: argparse.Namespace, mat: Union[coo_array, csr_array],
-             mat_buffs: List[np.ndarray], vec: np.ndarray, dtype: np.dtype,
-             decorator:  Callable[[ExecutionEngine, argparse.Namespace], Callable[[RunFuncType], RunFuncType]],
-             itype: np.dtype = np.dtype("int64"),):
-
-    mat_memrefs = [ctypes.pointer(ctypes.pointer(rt.get_ranked_memref_descriptor(b))) for b in mat_buffs]
-
-    vec_memref = ctypes.pointer(ctypes.pointer(rt.get_ranked_memref_descriptor(vec)))
-
-    # Allocate a buffer to receive the output
-    res_buff = (np.ctypeslib.as_ctypes_type(dtype) * args.i)(0)
-    res_memref = make_nd_memref_descriptor(1, dtype=dtype, itype=itype)()
-    c_dtype = np.ctypeslib.as_ctypes_type(dtype)
-    c_itype = np.ctypeslib.as_ctypes_type(itype)
-    res_memref.allocated = ctypes.addressof(res_buff)
-    res_memref.aligned = ctypes.cast(res_buff, ctypes.POINTER(c_dtype))
-    res_memref.offset = c_itype(0)
-    res_memref.shape = (c_itype * 1)(args.i)
-    res_memref.strides = (c_itype * 1)(1)
-
-    # Allocate a MemRefDescriptor to receive the output
-    ref_out = make_nd_memref_descriptor(1, dtype=dtype, itype=itype)()
-    mem_out = ctypes.pointer(ctypes.pointer(ref_out))
-
-    def run():
-        exec_engine.invoke("main", mem_out, ctypes.pointer(ctypes.pointer(res_memref)), *mat_memrefs, vec_memref)
-        exec_engine.dump_to_object_file("spmv.o")
-
-        # Sanity check on computed result.
-        if args.check_output:
-            expected = mat.dot(vec)
-            res = rt.ranked_memref_to_numpy(mem_out[0])
-            assert np.allclose(res, expected), "Wrong output!"
-
-        # reset output
-        ctypes.memset(ctypes.addressof(res_buff), 0, ctypes.sizeof(res_buff))
-
-    decorated_run = decorator(exec_engine, args)(run)
-    decorated_run()
-
-
-def run_with_jit(args: argparse.Namespace, llvm_mlir: ir.Module, mat: Union[coo_array, csr_array], vec: np.ndarray):
-    mat_buffers, dtype, _ = get_storage_buffers(mat, SparseFormats(args.matrix_format))
-
-    exec_engine = create_exec_engine(llvm_mlir)
-
-    with HwprefController(args):
-        run_spmv(exec_engine, args, mat, mat_buffers, vec, dtype=dtype, decorator=benchmark)
-
-
 def run_with_aot(args: argparse.Namespace, llvm_mlir: Path, mat: Union[coo_array, csr_array], vec: np.ndarray):
     llvm_ir = translate_to_llvm_ir(llvm_mlir, "spmv").resolve()
     src_path = Path(__file__).parent.resolve() / "templates"
@@ -116,10 +63,28 @@ def run_with_aot(args: argparse.Namespace, llvm_mlir: Path, mat: Union[coo_array
     mat_buffs, _, _ = get_storage_buffers(mat, SparseFormats(args.matrix_format))
     with (RAMDisk(args, vec, *mat_buffs, res) as ramdisk,
           HwprefController(args)):
-        profile_spmv(args, exe, mat.nnz, ramdisk.buffer_paths)
 
-        if args.check_output:
-            assert np.allclose(expected, ramdisk.buffers[-1]), "Wrong output!"
+        if args.action == "profile":
+            profile_spmv(args, exe, mat.nnz, ramdisk.buffer_paths)
+            if args.check_output:
+                assert np.allclose(expected, ramdisk.buffers[-1]), "Wrong output!"
+        else:
+            spmv_cmd = [str(exe), str(args.i), str(args.j), str(mat.nnz)] + ramdisk.buffer_paths
+
+            exec_times = []
+            for _ in range(args.repetitions):
+                result = run(spmv_cmd, check=True, stdout=PIPE, stderr=PIPE, text=True)
+
+                if args.check_output:
+                    assert np.allclose(expected, ramdisk.buffers[-1]), "Wrong output!"
+
+                ramdisk.reset_res_buff()
+
+                match = re.search(r"Exec time: ([0-9.]+)s", result.stdout)
+                assert match is not None, "Execution time not found in the output."
+                exec_times.append(float(match.group(1)))
+
+            log_execution_times_secs(exec_times)
 
 
 def main():
@@ -145,19 +110,10 @@ def main():
     else:
         pipeline = "no-opt"
 
-    uses_aot_compiled_spmv = args.action == "profile"
-    if uses_aot_compiled_spmv:
-        main_fun = None
-    else:
-        main_fun = render_template_for_main(args)
-
     with ir.Context(), ir.Location.unknown():
-        llvm_mlir, out = apply_passes(args=args, src=spmv, kernel="spmv", pipeline=pipeline, main_fun=main_fun)
+        llvm_mlir, out = apply_passes(args=args, src=spmv, kernel="spmv", pipeline=pipeline)
 
-    if uses_aot_compiled_spmv:
-        run_with_aot(args, out, mat, vec)
-    else:
-        run_with_jit(args, llvm_mlir, mat, vec)
+    run_with_aot(args, out, mat, vec)
 
 
 def parse_args() -> argparse.Namespace:

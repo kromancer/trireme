@@ -20,7 +20,7 @@ extern memref_descriptor_t spmv(void *, void *, int64_t, int64_t, int64_t,
 int main(int argc, char **argv) {
 
     if (argc < 9) {
-        fprintf(stderr, "Usage: %s <rows> <cols> <nnz> <vec> <mat.data> <mat.indices> <mat.indptr> <res>\n", argv[0]);
+        fprintf(stderr, "Usage: %s <rows> <cols> <nnz> <vec> <mat.indices> <mat.indptr> <mat.data> <res>\n", argv[0]);
         exit(EXIT_FAILURE);
     }
 

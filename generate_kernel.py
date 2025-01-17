@@ -4,7 +4,7 @@ from platform import machine
 from os import chdir, environ, getcwd, makedirs
 from pathlib import Path
 from subprocess import run
-from typing import Optional, Tuple
+from typing import Tuple
 
 import jinja2
 import numpy as np
@@ -123,7 +123,7 @@ to_mlir_type = {
 }
 
 
-def apply_passes(args: argparse.Namespace, src: str, kernel: str, pipeline: str, main_fun: Optional[str] = None,
+def apply_passes(args: argparse.Namespace, src: str, kernel: str, pipeline: str,
                  index_type: np.dtype = np.dtype("int64")) -> Tuple[ir.Module, Path]:
     out_file_name: str
 
@@ -153,11 +153,6 @@ def apply_passes(args: argparse.Namespace, src: str, kernel: str, pipeline: str,
             raise
 
         out = f"{kernel}.{run_pass.call_count}.{mlir_opt_pass}.mlir"
-
-        # Inject main after the "sparse-assembler" pass
-        if mlir_opt_pass.startswith("sparse-assembler") and main_fun is not None:
-            ops = "".join([str(o.operation) for o in module.operation.regions[0].blocks[0].operations])
-            module = ir.Module.parse(ops + main_fun)
 
         with open(out, "w") as f:
             f.write(str(module))
