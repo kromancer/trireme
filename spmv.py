@@ -1,13 +1,13 @@
 import argparse
 import ctypes
 from pathlib import Path
+from platform import system
 from typing import Callable, List, Union
 
 import jinja2
 import numpy as np
 from scipy.sparse import coo_array, csr_array
 
-from hugetlbfs import HugeTLBFS
 from log_plot import append_placeholder
 from mlir import runtime as rt
 from mlir import ir
@@ -24,6 +24,12 @@ from hwpref_controller import HwprefController
 from input_manager import InputManager, get_storage_buffers
 from mlir_exec_engine import create_exec_engine
 from np_to_memref import make_nd_memref_descriptor
+
+if system() == "Linux":
+    from ramdisk_linux import RAMDisk
+else:
+    assert system() == "Darwin", "Unsupported system!"
+    from ramdisk_macos import RAMDisk
 
 to_mlir_type = {
     "float64": "f64",
@@ -108,12 +114,12 @@ def run_with_aot(args: argparse.Namespace, llvm_mlir: Path, mat: Union[coo_array
         expected = mat.dot(vec)
 
     mat_buffs, _, _ = get_storage_buffers(mat, SparseFormats(args.matrix_format))
-    with (HugeTLBFS(args.huge_page_size, vec, *mat_buffs, res) as hugentlbfs,
+    with (RAMDisk(args, vec, *mat_buffs, res) as ramdisk,
           HwprefController(args)):
-        profile_spmv(args, exe, mat.nnz, hugentlbfs.buffer_paths)
+        profile_spmv(args, exe, mat.nnz, ramdisk.buffer_paths)
 
         if args.check_output:
-            assert np.allclose(expected, hugentlbfs.buffers[-1]), "Wrong output!"
+            assert np.allclose(expected, ramdisk.buffers[-1]), "Wrong output!"
 
 
 def main():
@@ -164,7 +170,7 @@ def parse_args() -> argparse.Namespace:
     add_opt_arg(parser)
     add_sparse_format_arg(parser, "matrix")
     add_output_check_arg(parser)
-    HugeTLBFS.add_args(parser)
+    RAMDisk.add_args(parser)
     HwprefController.add_args(parser)
 
     # 1st level subparsers, benchmark or profile
