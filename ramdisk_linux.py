@@ -23,6 +23,7 @@ class RAMDisk:
     def __enter__(self):
         self.entered_ramdisks = [ramdisk.__enter__() for ramdisk in self.ramdisks]
         self.buffer_paths = [path for ramdisk in self.entered_ramdisks for path in ramdisk.buffer_paths]
+        self.buffers = [buf for ramdisk in self.entered_ramdisks for buf in ramdisk.buffers]
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
@@ -35,14 +36,14 @@ class _RAMDisk:
     def __init__(self, page_size: str, *buffers: np.ndarray):
         assert page_size in ["2M", "1G"], "Unsupported page size"
         self.page_size = page_size
-        self.page_size_bytes = 2 ** 20 if self.page_size == "2M" else 2 ** 30
+        self.page_size_bytes = 2 * 2 ** 20 if self.page_size == "2M" else 2 ** 30
         self.page_size_in_kb = self.page_size_bytes // 1024
         self.buffers = buffers
         self.mount_point = "/tmp/huge-" + self.page_size
-        self._calculate_total_pages()
         self.buffer_sizes_in_pages = []
         self.mmaped = []
         self.buffer_paths = []
+        self._calculate_total_pages()
 
     def _calculate_total_pages(self):
         for buff in self.buffers:
@@ -85,7 +86,7 @@ class _RAMDisk:
         try:
             with open(hugepages_path, "w") as f:
                 f.write("0")
-            print(f"Released all reserved {self.pagesize} huge pages.")
+            print(f"Released all reserved huge pages.")
         except PermissionError:
             print("Warning: You need root privileges to release huge pages.")
         except Exception as e:
