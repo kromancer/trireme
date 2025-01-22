@@ -7,32 +7,37 @@
 
 #include "hardwarePrefetching/msr.h"
 
+#ifndef DISABLE_HW_PREF_L1_NLP
+#warning "DISABLE_HW_PREF_L1_NLP not defined, L1 NLP will be ENABLED (applicable for only on intel atom cores)"
+#define DISABLE_HW_PREF_L1_NLP 0
+#endif
+
 #ifndef DISABLE_HW_PREF_L1_IPP
-#warning "DISABLE_HW_PREF_L1_IPP not defined, L1 IPP will be ENABLED (applicapable for only on intel atom cores)"
+#warning "DISABLE_HW_PREF_L1_IPP not defined, L1 IPP will be ENABLED (applicable for only on intel atom cores)"
 #define DISABLE_HW_PREF_L1_IPP 0
 #endif
 
 #ifndef DISABLE_HW_PREF_L1_NPP
-#warning "DISABLE_HW_PREF_L1_NPP not defined, L1 NPP will be ENABLED (applicapable for only on intel atom cores)"
+#warning "DISABLE_HW_PREF_L1_NPP not defined, L1 NPP will be ENABLED (applicable for only on intel atom cores)"
 #define DISABLE_HW_PREF_L1_NPP 0
 #endif
 
 #ifndef DISABLE_HW_PREF_L2_STREAM
-#warning "DISABLE_HW_PREF_L2_STREAM not defined, L2 Stream will be ENABLED (applicapable for only on intel atom cores)"
+#warning "DISABLE_HW_PREF_L2_STREAM not defined, L2 Stream will be ENABLED (applicable for only on intel atom cores)"
 #define DISABLE_HW_PREF_L2_STREAM 0
 #endif
 
 #ifndef DISABLE_HW_PREF_L2_AMP
-#warning "DISABLE_HW_PREF_L2_AMP not defined, L2 AMP will be ENABLED (applicapable for only on intel atom cores)"
+#warning "DISABLE_HW_PREF_L2_AMP not defined, L2 AMP will be ENABLED (applicable for only on intel atom cores)"
 #define DISABLE_HW_PREF_L2_AMP 0
 #endif
 
 #ifndef DISABLE_HW_PREF_LLC_STREAM
-#warning "DISABLE_HW_PREF_LLC_STREAM not defined, LLC Stream will be ENABLED (applicapable for only on intel atom cores)"
+#warning "DISABLE_HW_PREF_LLC_STREAM not defined, LLC Stream will be ENABLED (applicable for only on intel atom cores)"
 #define DISABLE_HW_PREF_LLC_STREAM 0
 #endif
 
-#if DISABLE_HW_PREF_L1_IPP == 1 || DISABLE_HW_PREF_L1_NPP == 1 || DISABLE_HW_PREF_L2_STREAM == 1 || DISABLE_HW_PREF_L2_AMP == 1 || DISABLE_HW_PREF_LLC_STREAM == 1
+#if DISABLE_HW_PREF_L1_NLP == 1 || DISABLE_HW_PREF_L1_IPP == 1 || DISABLE_HW_PREF_L1_NPP == 1 || DISABLE_HW_PREF_L2_STREAM == 1 || DISABLE_HW_PREF_L2_AMP == 1 || DISABLE_HW_PREF_LLC_STREAM == 1
 #define HW_PREF_CONTROL_ON 1
 #else
 #define HW_PREF_CONTROL_ON 0
@@ -54,6 +59,13 @@ int init_hw_pref_control(void) {
     {
         return msr_file;
     }
+
+    // L2 NLP should be disabled by default
+    assert_l2_npl_is_disabled(msr);
+#endif
+
+#if DISABLE_HW_PREF_L1_NLP == 1
+    assert(msr_disable_l1nlp(msr) == 0);
 #endif
 
 #if DISABLE_HW_PREF_L1_IPP == 1
@@ -89,6 +101,10 @@ void deinit_hw_pref_control(void) {
     assert(core_id > UNITIALIZED);
     assert(msr_file > UNITIALIZED);
     assert(msr_read_all(msr_file, msr) >= 0);
+#endif
+
+#if DISABLE_HW_PREF_L1_NLP == 1
+    assert(msr_enable_l1nlp(msr) == 1);
 #endif
 
 #if DISABLE_HW_PREF_L1_IPP == 1

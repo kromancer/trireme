@@ -2,6 +2,9 @@ cmake_minimum_required(VERSION 3.22)
 
 project(hwpref_ctrl_wrapper LANGUAGES C)
 
+set(DISABLE_HW_PREF_L1_NLP 0 CACHE STRING "DISABLE HW PREF: L1 NLP ")
+message(STATUS "DISABLE_HW_PREF_L1_NLP is set to ${DISABLE_HW_PREF_L1_NLP}, where 1:disabled/0:enabled")
+
 set(DISABLE_HW_PREF_L1_IPP 0 CACHE STRING "DISABLE HW PREF: L1 IPP ")
 message(STATUS "DISABLE_HW_PREF_L1_IPP is set to ${DISABLE_HW_PREF_L1_IPP}, where 1:disabled/0:enabled")
 
@@ -27,6 +30,7 @@ target_link_libraries(hwpref_ctrl_wrapper PRIVATE
 
 target_compile_options(hwpref_ctrl_wrapper PRIVATE "-g" "-O0")
 target_compile_definitions(hwpref_ctrl_wrapper PRIVATE
+    DISABLE_HW_PREF_L1_NLP=${DISABLE_HW_PREF_L1_NLP}
     DISABLE_HW_PREF_L1_IPP=${DISABLE_HW_PREF_L1_IPP}
     DISABLE_HW_PREF_L1_NPP=${DISABLE_HW_PREF_L1_NPP}
     DISABLE_HW_PREF_L2_STREAM=${DISABLE_HW_PREF_L2_STREAM}

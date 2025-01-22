@@ -9,6 +9,8 @@ class HwprefController:
 
     @staticmethod
     def add_args(arg_parser: ArgumentParser):
+        arg_parser.add_argument('--disable-l1-nlp', action='store_true',
+                                help='Disable the L1 Next Line Prefetcher')
         arg_parser.add_argument('--disable-l1-ipp', action='store_true',
                                 help='Disable the L1 Instruction Point Prefetcher')
         arg_parser.add_argument('--disable-l1-npp', action='store_true',
@@ -22,7 +24,8 @@ class HwprefController:
 
     @staticmethod
     def get_cmake_args(args):
-        return [f"-DDISABLE_HW_PREF_L1_IPP={1 if args.disable_l1_ipp else 0}",
+        return [f"-DDISABLE_HW_PREF_L1_NLP={1 if args.disable_l1_nlp else 0}",
+                f"-DDISABLE_HW_PREF_L1_IPP={1 if args.disable_l1_ipp else 0}",
                 f"-DDISABLE_HW_PREF_L1_NPP={1 if args.disable_l1_npp else 0}",
                 f"-DDISABLE_HW_PREF_L2_STREAM={1 if args.disable_l2_stream else 0}",
                 f"-DDISABLE_HW_PREF_L2_AMP={1 if args.disable_l2_amp else 0}",
