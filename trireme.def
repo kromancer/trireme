@@ -98,7 +98,7 @@ From: ubuntu:22.04
     # Set git user info for applying the patches
     git config user.email "apptainer@build.com"
     git config user.name "apptainer-build"
-    git checkout ad192f9f20ad && git am /llvm-patches/*.patch
+    git checkout 7211bf48a62b && git am /llvm-patches/*.patch
 
     /opt/python/bin/python$VERSION_MAJOR -m venv venv
     . ./venv/bin/activate

@@ -6,11 +6,12 @@
 // CHECK-DAG:  %[[B2_crd:.+]] = sparse_tensor.coordinates
 
 // Check inner loop for prefetching
-// CHECK: %[[upper:.+]] = memref.load %[[B2_pos]][%c1024]
+// CHECK: %[[seg_end:.+]] = memref.load %[[B2_pos]][%c1024]
 // CHECK: {{.+}} = scf.for %[[jB:.+]] = %[[B2_pos_i:.+]] to {{.+}} step %c1 iter_args({{.+}} = {{.+}}) -> (f64) {
+// CHECK: %[[bound:.+]] = arith.subi %[[seg_end]], %c1
 // CHECK: %[[jB_plus_pd:.+]] = arith.addi %[[jB]], %[[pd]]
-// CHECK: %[[cmp:.+]] = arith.cmpi ult, %[[jB_plus_pd]], %[[upper]]
-// CHECK: %[[sel:.+]] = arith.select %[[cmp]], %[[jB_plus_pd]], %[[upper]]
+// CHECK: %[[cmp:.+]] = arith.cmpi ult, %[[jB_plus_pd]], %[[bound]]
+// CHECK: %[[sel:.+]] = arith.select %[[cmp]], %[[jB_plus_pd]], %[[bound]]
 // CHECK: %[[pref:.+]] = memref.load %[[B2_crd]][%[[sel]]]
 // CHECK: memref.prefetch %[[c]][%[[pref]]], read, locality<2>, data
 

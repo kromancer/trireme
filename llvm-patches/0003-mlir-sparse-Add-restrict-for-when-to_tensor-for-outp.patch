@@ -1,7 +1,7 @@
-From c7abcdb4e19a943aebfc11848431716fdf463ed3 Mon Sep 17 00:00:00 2001
+From 9abf10ff06ada044dbab600f8e12a2231faee212 Mon Sep 17 00:00:00 2001
 From: Konstantinos Sotiropoulos <konstantinos.sotiropoulos@chalmers.se>
 Date: Fri, 3 Jan 2025 10:43:03 +0100
-Subject: [PATCH 2/3] [mlir][sparse] Add `restrict` for when `to_tensor` for
+Subject: [PATCH 3/3] [mlir][sparse] Add `restrict` for when `to_tensor` for
  output
 
 ---
@@ -32,5 +32,5 @@ index bf12dc8ae05c..30599635b4bd 100644
      // TODO: Constant affine expression should be handled differently when using
      // slice-based codegen, it does not matter now because we already reject the
 -- 
-2.47.0
+2.48.1
 
