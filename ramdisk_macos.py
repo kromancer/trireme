@@ -25,6 +25,10 @@ class RAMDisk:
         adjusted_total_bytes = int(overhead_factor * total_bytes)
         sectors = (adjusted_total_bytes + 511) // 512
 
+        # HFS+ expects a minimum valid size, let's say 8MB
+        if sectors < 16384:
+            sectors = 16384
+
         # Create the RAM disk device
         attach_cmd = ["hdiutil", "attach", "-nomount", f"ram://{sectors}"]
         result = run(attach_cmd, capture_output=True, text=True, check=True)
@@ -63,7 +67,7 @@ class RAMDisk:
                 gc.collect()
 
         self.buffers = tuple(new_buffers)
-        print("Buffers have been successfully moved to hugetlbfs.")
+        print(f"Buffers have been successfully moved to {self.mount_point}.")
 
     def _eject(self):
         assert self.mount_point is not None, "Ramdisk is not mounted!"

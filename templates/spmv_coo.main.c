@@ -11,12 +11,12 @@
 #include <unistd.h>
 
 
-extern memref_descriptor_t spmv(void *, void *, int64_t, int64_t, int64_t,  // vec
-                                void *, void *, int64_t, int64_t, int64_t,  // mat.pos
-                                void *, void *, int64_t, int64_t, int64_t,  // mat.row
-                                void *, void *, int64_t, int64_t, int64_t,  // mat.col
-                                void *, void *, int64_t, int64_t, int64_t,  // mat.data
-                                void *, void *, int64_t, int64_t, int64_t); // res
+extern memref_descriptor_t spmv(void *, void *, index_t, index_t, index_t,  // vec
+                                void *, void *, index_t, index_t, index_t,  // mat.pos
+                                void *, void *, index_t, index_t, index_t,  // mat.row
+                                void *, void *, index_t, index_t, index_t,  // mat.col
+                                void *, void *, index_t, index_t, index_t,  // mat.data
+                                void *, void *, index_t, index_t, index_t); // res
 
 int main(int argc, char **argv) {
 

@@ -10,8 +10,8 @@ func.func @spmv(%a_t: {{ out_type }},
     %c1 = arith.constant 1 : index
     %c2 = arith.constant 2 : index
 
-    %B2_pos = sparse_tensor.positions %B {level = 1 : index} : {{ mat_type }} to memref<?xindex>
-    %B2_crd = sparse_tensor.coordinates %B {level = 1 : index} : {{ mat_type }} to memref<?xindex>
+    %Bj_pos = sparse_tensor.positions %B {level = 1 : index} : {{ mat_type }} to memref<?xindex>
+    %Bj_crd = sparse_tensor.coordinates %B {level = 1 : index} : {{ mat_type }} to memref<?xindex>
     %B_vals = sparse_tensor.values %B : {{ mat_type }} to memref<?x{{ dtype }}>
 
     %c_vals = bufferization.to_memref %c_t : {{ vtype }} to memref<{{ cols }}x{{ dtype }}>
@@ -25,37 +25,37 @@ func.func @spmv(%a_t: {{ out_type }},
         %6 = memref.load %a_buff[%i] : memref<{{ rows }}x{{ dtype }}>
 
         // Load position of B2 segment start
-        %pB2 = memref.load %B2_pos[%i] : memref<?xindex>
+        %seg_start = memref.load %Bj_pos[%i] : memref<?xindex>
 
-        // Load position of B2 segment end
+        // Load position of Bj segment end
         %i_plus_one = arith.addi %i, %c1 : index
-        %pB2_end = memref.load %B2_pos[%i_plus_one] : memref<?xindex>
+        %seg_end = memref.load %Bj_pos[%i_plus_one] : memref<?xindex>
+        %bound = arith.subi %seg_end, %c1 : index
 
-        %a_i = scf.for %jB = %pB2 to %pB2_end step %c1 iter_args(%arg5 = %6) -> ({{ dtype }}) {
+        %a_i = scf.for %jj = %seg_start to %seg_end step %c1 iter_args(%arg5 = %6) -> ({{ dtype }}) {
 
-            // Load B_vals[jB]
-            %B_vals_jB = memref.load %B_vals[%jB] : memref<?x{{ dtype }}>
+            // Load B_vals[jj]
+            %B_vals_jj = memref.load %B_vals[%jj] : memref<?x{{ dtype }}>
 
             // Load candidate coordinate j
-            %j = memref.load %B2_crd[%jB] : memref<?xindex>
+            %j = memref.load %Bj_crd[%jj] : memref<?xindex>
 
             // Load c_vals[j]
             %c_vals_j = memref.load %c_vals[%j] : memref<{{ cols }}x{{ dtype }}>
 
-            // Prefetch B2_crd[jB + 2 * dist]
-            %jB_plus_double_dist = arith.addi %jB, %double_dist : index
-            memref.prefetch %B2_crd[%jB_plus_double_dist], read, locality<{{ loc_hint }}>, data : memref<?xindex>
+            // Prefetch Bj_crd[jj + 2 * dist]
+            %jj_plus_double_dist = arith.addi %jj, %double_dist : index
+            memref.prefetch %Bj_crd[%jj_plus_double_dist], read, locality<{{ loc_hint }}>, data : memref<?xindex>
 
-            // Load B2_crd[min(j + dist, j_end)]
-            %jB_plus_dist = arith.addi %jB, %dist : index
-            %jB_plus_dist_or_pB2_end = arith.minui %jB_plus_dist, %pB2_end : index
-            %B2_crd_jB_plus_dist_or_pB2_end = memref.load %B2_crd[%jB_plus_dist_or_pB2_end] : memref<?xindex>
+            // Load Bj_crd[min(j + dist, j_end)]
+            %jj_plus_dist = arith.addi %jj, %dist : index
+            %jj_plus_dist_or_bound = arith.minui %jj_plus_dist, %bound : index
+            %Bj_crd_jj_plus_dist_or_bound = memref.load %Bj_crd[%jj_plus_dist_or_bound] : memref<?xindex>
 
-            // Prefetch c_vals[B2_crd[%B2_crd_jB_plus_dist_or_pB2_end]]
-            memref.prefetch %c_vals[%B2_crd_jB_plus_dist_or_pB2_end], read, locality<{{ loc_hint }}>, data : memref<{{ cols }}x{{ dtype }}>
+            // Prefetch c_vals[Bj_crd[%Bj_crd_jj_plus_dist_or_seg_end]]
+            memref.prefetch %c_vals[%Bj_crd_jj_plus_dist_or_bound], read, locality<{{ loc_hint }}>, data : memref<{{ cols }}x{{ dtype }}>
 
-
-            %mul = {{ mul_op }} %B_vals_jB, %c_vals_j : {{ dtype }}
+            %mul = {{ mul_op }} %B_vals_jj, %c_vals_j : {{ dtype }}
             %a_i = {{ add_op }} %arg5, %mul : {{ dtype }}
             scf.yield %a_i : {{ dtype }}
         }

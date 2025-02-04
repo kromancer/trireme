@@ -2,12 +2,11 @@ import argparse
 from pathlib import Path
 from platform import system
 import re
+from typing import List
 from subprocess import run, PIPE
-from typing import Union
 
 import jinja2
 import numpy as np
-from scipy.sparse import coo_array, csr_array
 
 from log_plot import append_placeholder
 from mlir import ir
@@ -50,33 +49,23 @@ def render_template_for_main(args: argparse.Namespace) -> str:
     return main_template.render(rows=args.i, cols=args.j, dtype=to_mlir_type[args.dtype])
 
 
-def run_with_aot(args: argparse.Namespace, llvm_mlir: Path, mat: Union[coo_array, csr_array], vec: np.ndarray):
-    llvm_ir = translate_to_llvm_ir(llvm_mlir, "spmv").resolve()
-    src_path = Path(__file__).parent.resolve() / "templates"
-    exe = build_with_cmake([f"-DMAIN_FILE=spmv_{args.matrix_format}.main.c", f"-DKERNEL_LLVM_IR={llvm_ir}"],
-                           target="main", src_path=src_path)
-
-    res = np.zeros(args.i, dtype=mat.data.dtype)
-    if args.check_output:
-        expected = mat.dot(vec)
-
-    mat_buffs, _, _ = get_storage_buffers(mat, SparseFormats(args.matrix_format))
-    with (RAMDisk(args, vec, *mat_buffs, res) as ramdisk,
-          HwprefController(args)):
-
+def run_with_aot(args: argparse.Namespace, exe: Path, nnz: int, mat_buffs: List[np.array], vec: np.ndarray,
+                 exp_out: np.ndarray):
+    res = np.zeros(args.i, dtype=vec.dtype)
+    with (RAMDisk(args, vec, *mat_buffs, res) as ramdisk, HwprefController(args)):
         if args.action == "profile":
-            profile_spmv(args, exe, mat.nnz, ramdisk.buffer_paths)
+            profile_spmv(args, exe, nnz, ramdisk.buffer_paths)
             if args.check_output:
-                assert np.allclose(expected, ramdisk.buffers[-1]), "Wrong output!"
+                assert np.allclose(exp_out, ramdisk.buffers[-1]), "Wrong output!"
         else:
-            spmv_cmd = [str(exe), str(args.i), str(args.j), str(mat.nnz)] + ramdisk.buffer_paths
+            spmv_cmd = [str(exe), str(args.i), str(args.j), str(nnz)] + ramdisk.buffer_paths
 
             exec_times = []
             for _ in range(args.repetitions):
                 result = run(spmv_cmd, check=True, stdout=PIPE, stderr=PIPE, text=True)
 
                 if args.check_output:
-                    assert np.allclose(expected, ramdisk.buffers[-1]), "Wrong output!"
+                    assert np.allclose(exp_out, ramdisk.buffers[-1]), "Wrong output!"
 
                 ramdisk.reset_res_buff()
 
@@ -94,6 +83,7 @@ def main():
 
     in_man = InputManager(args)
     mat, vec = in_man.create_sparse_mat_and_dense_vec()
+    mat_buffs, _, itype = get_storage_buffers(mat, SparseFormats(args.matrix_format))
 
     spmv = render_template_for_spmv(args)
     with open("spmv.0. mlir", "w") as f:
@@ -111,9 +101,20 @@ def main():
         pipeline = "no-opt"
 
     with ir.Context(), ir.Location.unknown():
-        llvm_mlir, out = apply_passes(args=args, src=spmv, kernel="spmv", pipeline=pipeline)
+        llvm_mlir, out = apply_passes(args=args, src=spmv, kernel="spmv", pipeline=pipeline, index_type=itype)
 
-    run_with_aot(args, out, mat, vec)
+    # Translate MLIR's llvm dialect to llvm IR, compile and link
+    llvm_ir = translate_to_llvm_ir(out, "spmv").resolve()
+    src_path = Path(__file__).parent.resolve() / "templates"
+    exe = build_with_cmake([f"-DMAIN_FILE=spmv_{args.matrix_format}.main.c",
+                            f"-DINDEX_TYPE={itype}",
+                            f"-DKERNEL_LLVM_IR={llvm_ir}"],
+                           target="main", src_path=src_path)
+
+    expected = None
+    if args.check_output:
+        expected = mat.dot(vec)
+    run_with_aot(args, exe, mat.nnz, mat_buffs, vec, expected)
 
 
 def parse_args() -> argparse.Namespace:

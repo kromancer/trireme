@@ -2,6 +2,21 @@ cmake_minimum_required(VERSION 3.22)
 
 project(spmv LANGUAGES C)
 
+# What's the index bitwidth?
+set(INDEX_TYPE "int32" CACHE STRING "Set index type: int32 or int64")
+
+# Convert the string to a numerical macro value
+if(INDEX_TYPE STREQUAL "int32")
+    set(INDEX_BITWIDTH 32)
+    set(INDEX_TYPE_DEF "uint32_t")
+elseif(INDEX_TYPE STREQUAL "int64")
+    set(INDEX_BITWIDTH 64)
+    set(INDEX_TYPE_DEF "uint64_t")
+else()
+    message(FATAL_ERROR "Invalid INDEX_TYPE: Use int32 or int64")
+endif()
+message(STATUS "INDEX_TYPE set to ${INDEX_TYPE_DEF}, INDEX_BITWIDTH=${INDEX_BITWIDTH}")
+
 # Use OpenMP from llvm
 #
 # Search for the OpenMP header in the LLVM_PATH
@@ -59,6 +74,7 @@ target_compile_options(main PRIVATE
  -fopenmp
  -g
  -O0
+ -DINDEX_BITWIDTH=${INDEX_BITWIDTH}
  )
 
 target_link_options(main PRIVATE
