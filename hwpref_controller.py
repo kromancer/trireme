@@ -53,10 +53,10 @@ class HwprefController:
 
     def __enter__(self):
         if self.skip:
-            return
+            return self
         assert self.init_hw_pref_control() >= 0
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         if self.skip:
-            return
+            return False
         self.deinit_hw_pref_control()
