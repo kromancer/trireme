@@ -1,19 +1,19 @@
 // RUN: mlir-opt %s --sparsification=pd=32 | FileCheck %s
 
-// CHECK:      %[[pd:.+]] = arith.constant 32 : index
-// CHECK-DAG:  %[[c:.+]] = bufferization.to_memref %arg1
-// CHECK-DAG:  %[[B2_pos:.+]] = sparse_tensor.positions
-// CHECK-DAG:  %[[B2_crd:.+]] = sparse_tensor.coordinates
+// CHECK:          %[[pd:.+]] = arith.constant 32 : index
+// CHECK:           %[[c:.+]] = bufferization.to_memref %arg1
+// CHECK:      %[[Bj_pos:.+]] = sparse_tensor.positions
+// CHECK:      %[[Bj_crd:.+]] = sparse_tensor.coordinates
+// CHECK: %[[Bj_crd_size:.+]] = memref.load %[[Bj_pos]][%c1024]
 
 // Check inner loop for prefetching
-// CHECK: %[[seg_end:.+]] = memref.load %[[B2_pos]][%c1024]
-// CHECK: {{.+}} = scf.for %[[jB:.+]] = %[[B2_pos_i:.+]] to {{.+}} step %c1 iter_args({{.+}} = {{.+}}) -> (f64) {
-// CHECK: %[[bound:.+]] = arith.subi %[[seg_end]], %c1
-// CHECK: %[[jB_plus_pd:.+]] = arith.addi %[[jB]], %[[pd]]
-// CHECK: %[[cmp:.+]] = arith.cmpi ult, %[[jB_plus_pd]], %[[bound]]
-// CHECK: %[[sel:.+]] = arith.select %[[cmp]], %[[jB_plus_pd]], %[[bound]]
-// CHECK: %[[pref:.+]] = memref.load %[[B2_crd]][%[[sel]]]
-// CHECK: memref.prefetch %[[c]][%[[pref]]], read, locality<2>, data
+// CHECK: {{.+}} = scf.for %[[jj:.+]] = {{.+}} to {{.+}} step %c1 iter_args({{.+}} = {{.+}}) -> (f64) {
+// CHECK:          %[[bound:.+]] = arith.subi %[[Bj_crd_size]], %c1
+// CHECK:     %[[jj_plus_pd:.+]] = arith.addi %[[jj]], %[[pd]]
+// CHECK:            %[[cmp:.+]] = arith.cmpi ult, %[[jj_plus_pd]], %[[bound]]
+// CHECK:            %[[sel:.+]] = arith.select %[[cmp]], %[[jj_plus_pd]], %[[bound]]
+// CHECK:           %[[pref:.+]] = memref.load %[[Bj_crd]][%[[sel]]]
+// CHECK:           memref.prefetch %[[c]][%[[pref]]], read, locality<2>, data
 
 #map = affine_map<(d0, d1) -> (d0, d1)>
 #map1 = affine_map<(d0, d1) -> (d1)>
