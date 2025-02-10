@@ -1,4 +1,5 @@
 from argparse import ArgumentParser, Namespace
+from contextlib import ExitStack
 import gc
 import mmap
 import numpy as np
@@ -24,10 +25,16 @@ class RAMDisk:
         self.buffers[-1].fill(0)
 
     def __enter__(self):
-        self.entered_ramdisks = [ramdisk.__enter__() for ramdisk in self.ramdisks]
-        self.buffer_paths = [path for ramdisk in self.entered_ramdisks for path in ramdisk.buffer_paths]
-        self.buffers = [buf for ramdisk in self.entered_ramdisks for buf in ramdisk.buffers]
-        return self
+        self._stack = ExitStack()
+        try:
+            for disk in self.ramdisks:
+                self._stack.enter_context(disk)
+            self.buffer_paths = [path for ramdisk in self.ramdisks for path in ramdisk.buffer_paths]
+            self.buffers = [buf for ramdisk in self.ramdisks for buf in ramdisk.buffers]
+            return self
+        except Exception:
+            self._stack.close()
+            raise
 
     def __exit__(self, exc_type, exc_value, traceback):
         # Exit in reverse order
@@ -78,22 +85,21 @@ class _RAMDisk:
         except subprocess.CalledProcessError as e:
             raise RuntimeError(f"Failed to mount hugetlbfs: {e}")
 
+    def _release_hugepages(self):
+        hugepages_path = f"/sys/kernel/mm/hugepages/hugepages-{self.page_size_in_kb}kB/nr_hugepages"
+        try:
+            with open(hugepages_path, "w") as f:
+                f.write("0")
+            print(f"Released all reserved huge pages.")
+        except Exception as e:
+            print(f"Warning: Could not release huge pages: {e}")
+
     def _unmount(self):
         try:
             subprocess.run(["umount", self.mount_point], check=True)
             print(f"Unmounted hugetlbfs from {self.mount_point}.")
         except subprocess.CalledProcessError:
             print(f"Warning: Could not unmount {self.mount_point}. You may need to do this manually.")
-
-        hugepages_path = f"/sys/kernel/mm/hugepages/hugepages-{self.page_size_in_kb}kB/nr_hugepages"
-        try:
-            with open(hugepages_path, "w") as f:
-                f.write("0")
-            print(f"Released all reserved huge pages.")
-        except PermissionError:
-            print("Warning: You need root privileges to release huge pages.")
-        except Exception as e:
-            print(f"Warning: Could not release huge pages: {e}")
 
     def _move_buffers(self):
         new_buffers = []
@@ -123,16 +129,27 @@ class _RAMDisk:
         print(f"Buffers have been successfully moved to {self.mount_point}.")
 
     def __enter__(self):
-        try:
-            self._reserve_hugepages()
-            self._mount()
-            self._move_buffers()
-        except Exception as e:
-            raise RuntimeError(f"Failed to set up HugeTLBFS: {e}")
+        # no cleanup required here if this action excepts
+        self._reserve_hugepages()
 
-        return self
+        # if this excepts, simply release the number of reserved pages
+        try:
+            self._mount()
+        except Exception as e:
+            self._release_hugepages()
+            raise RuntimeError(f"Failed to mount HugeTLBFS: {e}")
+
+        # if this excepts, release and unmount
+        try:
+            self._move_buffers()
+            return self
+        except Exception as e:
+            self._release_hugepages()
+            self._unmount()
+            raise RuntimeError(f"Failed to move buffers: {e}")
 
     def __exit__(self, exc_type, exc_value, traceback):
         for mmapped in self.mmaped:
             mmapped.close()
+        self._release_hugepages()
         self._unmount()
