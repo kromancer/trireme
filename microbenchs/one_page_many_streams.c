@@ -72,6 +72,8 @@ int main() {
         #pragma GCC unroll NUM_OF_STREAMS
         for (int s = 0; s < NUM_OF_STREAMS; s++) {
             volatile char *ptr = addr[s] + i * CL;
+	    if (ptr >= page_addr + PAGE_SIZE)
+	      continue;
 
             // Inspired by:
             // https://sites.utexas.edu/jdm4372/2018/07/23/comments-on-timing-short-code-sections-on-intel-processors/
@@ -93,8 +95,8 @@ int main() {
         while (__rdtsc() - start_delay < 1000);
     }
 
+    munmap(page_addr, PAGE_SIZE);
     for (int s = 0; s < NUM_OF_STREAMS; s++) {
-        munmap(addr[s], PAGE_SIZE);
         printf("STREAM %d:\n", s);
         for (int i = 0; i < PAGE_SIZE_CL; i++)
             printf("%"PRIu64"\n", cl_acc_times[s][i]);
