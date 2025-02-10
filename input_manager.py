@@ -30,6 +30,7 @@ class InputManager:
 
     def __init__(self, args: Namespace):
         self.args = args
+        self.rbio = None
 
         seed = read_config("input-manager-config.json", "seed")
         if seed is None:
@@ -122,7 +123,8 @@ class InputManager:
                 assert mtx_file.exists()
 
                 # The matrix is read in the CSC format
-                p_Ap, p_Ai = RBio().read_rb(mtx_file, self.args.i, self.args.j, nnz)
+                self.rbio = RBio()
+                p_Ap, p_Ai = self.rbio.read_rb(mtx_file, self.args.i, self.args.j, nnz)
 
         indptr = np.ctypeslib.as_array(p_Ap, shape=(self.args.j + 1,))
         indices = np.ctypeslib.as_array(p_Ai, shape=(nnz,))
@@ -142,4 +144,3 @@ class InputManager:
 
     def create_sparse_mat_and_dense_vec(self) -> Tuple[Union[sp.coo_array, sp.csr_array], np.ndarray]:
         return self.create_sparse_mat(), self.create_dense_vec()
-

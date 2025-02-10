@@ -1,10 +1,11 @@
 from argparse import ArgumentParser, Namespace
 from contextlib import ExitStack
-import gc
 import mmap
 import numpy as np
 import os
 import subprocess
+
+from input_manager import InputManager
 
 
 class RAMDisk:
@@ -13,13 +14,13 @@ class RAMDisk:
         parser.add_argument("-1gb", "--use-1gb-pages-for-vec", action="store_true",
                             help="Use 1GB pages for the vector to reduce TLB misses when prefetching")
 
-    def __init__(self, args: Namespace, vec_buff: np.ndarray, *buffers: np.ndarray):
+    def __init__(self, args: Namespace, in_man: InputManager, vec_buff: np.ndarray, *buffers: np.ndarray):
         self.ramdisks = []
         if args.use_1gb_pages_for_vec:
-            self.ramdisks.append(_RAMDisk("1G", vec_buff))
-            self.ramdisks.append(_RAMDisk("2M", *buffers))
+            self.ramdisks.append(_RAMDisk("1G", in_man, vec_buff))
+            self.ramdisks.append(_RAMDisk("2M", in_man, *buffers))
         else:
-            self.ramdisks.append(_RAMDisk("2M", vec_buff, *buffers))
+            self.ramdisks.append(_RAMDisk("2M", in_man, vec_buff, *buffers))
 
     def reset_res_buff(self):
         self.buffers[-1].fill(0)
@@ -37,13 +38,11 @@ class RAMDisk:
             raise
 
     def __exit__(self, exc_type, exc_value, traceback):
-        # Exit in reverse order
-        for manager in reversed(self.ramdisks):
-            manager.__exit__(exc_type, exc_value, traceback)
+        self._stack.close()
 
 
 class _RAMDisk:
-    def __init__(self, page_size: str, *buffers: np.ndarray):
+    def __init__(self, page_size: str, in_man: InputManager, *buffers: np.ndarray):
         assert page_size in ["2M", "1G"], "Unsupported page size"
         self.page_size = page_size
         self.page_size_bytes = 2 * 2 ** 20 if self.page_size == "2M" else 2 ** 30
@@ -54,6 +53,7 @@ class _RAMDisk:
         self.mmaped = []
         self.buffer_paths = []
         self._calculate_total_pages()
+        self.in_man = in_man
 
     def _calculate_total_pages(self):
         for buff in self.buffers:
@@ -122,8 +122,8 @@ class _RAMDisk:
                 new_buffers.append(new_buf)
 
                 # Deallocate the old buffer
-                del buf
-                gc.collect()
+                if self.in_man.rbio is not None:
+                    self.in_man.rbio.free_buffer(buf.ctypes.data)
 
         self.buffers = tuple(new_buffers)
         print(f"Buffers have been successfully moved to {self.mount_point}.")

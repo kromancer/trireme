@@ -116,7 +116,8 @@ class RBio:
         assert result == 0, "RBread() failed"
         assert mkind.value == 1, "When reading shape, mkind should be set to pattern"
 
-        self.malloced = [p_Ap, p_Ai]
+        self.p_Ap = p_Ap
+        self.p_Ai = p_Ai
 
         return p_Ap, p_Ai
 
@@ -126,12 +127,18 @@ class RBio:
         else:
             return self._read(mtx, ctypes.c_int64)
 
+    def free_buffer(self, buffer_addr):
+        if buffer_addr == ctypes.cast(self.p_Ap, ctypes.c_void_p).value:
+            self.suite_sparse_free(self.p_Ap)
+        elif buffer_addr == ctypes.cast(self.p_Ai, ctypes.c_void_p).value:
+            self.suite_sparse_free(self.p_Ai)
+        else:
+            print("Not a buffer allocated by RBio")
+
     def free_and_finish(self):
         suite_sparse_finish = self.lib.SuiteSparse_finish
         suite_sparse_finish.restype = None
         suite_sparse_finish.argtypes = []
-
-        for p in self.malloced:
-            self.suite_sparse_free(p)
-
+        self.suite_sparse_free(self.p_Ap)
+        self.suite_sparse_free(self.p_Ai)
         suite_sparse_finish()

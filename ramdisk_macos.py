@@ -1,9 +1,10 @@
 from argparse import ArgumentParser, Namespace
-import gc
 import mmap
 import numpy as np
 from pathlib import Path
 from subprocess import run
+
+from input_manager import InputManager
 
 
 class RAMDisk:
@@ -11,13 +12,14 @@ class RAMDisk:
     def add_args(parser: ArgumentParser):
         pass
 
-    def __init__(self, args: Namespace, *buffers: np.ndarray):
+    def __init__(self, args: Namespace, in_man: InputManager, *buffers: np.ndarray):
         self.ramdisk_name = "ramdisk"
         self.mount_point = None
         self.ramdisk_device = None
         self.buffers = buffers
         self.buffer_paths = []
         self.mmaped = []
+        self.in_man = in_man
 
     def _mount(self):
         total_bytes = sum(buf.nbytes for buf in self.buffers)
@@ -63,8 +65,8 @@ class RAMDisk:
                 new_buffers.append(new_buf)
 
                 # Deallocate the old buffer
-                del buf
-                gc.collect()
+                if self.in_man.rbio is not None:
+                    self.in_man.rbio.free_buffer(buf.ctypes.data)
 
         self.buffers = tuple(new_buffers)
         print(f"Buffers have been successfully moved to {self.mount_point}.")

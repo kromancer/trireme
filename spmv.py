@@ -50,9 +50,9 @@ def render_template_for_main(args: argparse.Namespace) -> str:
 
 
 def run_with_aot(args: argparse.Namespace, exe: Path, nnz: int, mat_buffs: List[np.array], vec: np.ndarray,
-                 exp_out: np.ndarray):
+                 exp_out: np.ndarray, in_man: InputManager):
     res = np.zeros(args.i, dtype=vec.dtype)
-    with (RAMDisk(args, vec, *mat_buffs, res) as ramdisk, HwprefController(args)):
+    with (RAMDisk(args, in_man, vec, *mat_buffs, res) as ramdisk, HwprefController(args)):
         if args.action == "profile":
             profile_spmv(args, exe, nnz, ramdisk.buffer_paths)
             if args.check_output:
@@ -114,7 +114,7 @@ def main():
     expected = None
     if args.check_output:
         expected = mat.dot(vec)
-    run_with_aot(args, exe, mat.nnz, mat_buffs, vec, expected)
+    run_with_aot(args, exe, mat.nnz, mat_buffs, vec, expected, in_man)
 
 
 def parse_args() -> argparse.Namespace:
