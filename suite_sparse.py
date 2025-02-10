@@ -1,16 +1,17 @@
 from pathlib import Path
 from time import time
-from typing import Dict, List
+from typing import Dict, Set
 
 import pandas as pd
 import requests
 
 from common import change_dir
+from singleton import Singleton
 
 url_base = "https://sparse.tamu.edu"
 
 
-class SuiteSparse:
+class SuiteSparse(metaclass=Singleton):
     def __init__(self, working_dir: Path):
         self.dir = working_dir
 
@@ -31,12 +32,14 @@ class SuiteSparse:
         df.to_csv(index_file, index=False)
         self.df = df
 
-    def get_all_matrix_names(self, is_real: bool = True) -> List[str]:
+    def get_all_matrix_names(self, is_real: bool = True) -> Set[str]:
         # filters non-complex matrices, including binary
         if is_real:
             df = self.df[self.df["is_real"] == 1]
+        else:
+            df = self.df
 
-        return self.df["name"].values.tolist()
+        return set(df["name"].values.tolist())
 
     def get_all_matrix_names_with_nnz(self) -> Dict[str, int]:
         return dict(zip(self.df["name"], self.df["num_of_entries"]))

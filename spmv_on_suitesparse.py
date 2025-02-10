@@ -7,7 +7,8 @@ from typing import List, Tuple
 from tqdm import tqdm
 
 from common import read_config
-from suite_sparse import get_all_suitesparse_matrix_names
+from input_manager import InputManager
+from suite_sparse import SuiteSparse
 
 
 def main():
@@ -19,7 +20,7 @@ def main():
     command = ["python", "spmv.py"] + unknown_args
 
     if args.collection == "all":
-        matrix_names = set(get_all_suitesparse_matrix_names(is_real=True))
+        matrix_names = SuiteSparse(InputManager.get_working_dir()).get_all_matrix_names()
         matrix_names -= set(read_config("suite-sparse-config.json", "exclude-from-all"))
     else:
         matrix_names = read_config("suite-sparse-config.json", args.collection)
