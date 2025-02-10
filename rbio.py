@@ -1,6 +1,7 @@
 import ctypes
 from pathlib import Path
 import platform
+from typing import Union
 
 
 class RBio:
@@ -46,25 +47,31 @@ class RBio:
         self.suite_sparse_free.argtypes = [ctypes.c_void_p]
         self.suite_sparse_free.restype = None
 
-    def read_rb(self, mtx: Path):
+    def _read(self, mtx: Path, index_type: Union[type[ctypes.c_int64], type[ctypes.c_int64]]):
         # RBread
-        rbread = self.lib.RBread
+        if index_type == ctypes.c_int64:
+            rbread = self.lib.RBread
+        elif index_type == ctypes.c_int32:
+            rbread = self.lib.RBread_i
+        else:
+            assert False, "Unsupported index type"
+
         rbread.restype = ctypes.c_int
         rbread.argtypes = [
             ctypes.c_char_p,  # filename
-            ctypes.c_int64,   # build_upper
-            ctypes.c_int64,   # zero_handling
+            index_type,   # build_upper
+            index_type,   # zero_handling
             ctypes.c_char_p,  # title
             ctypes.c_char_p,  # key
             ctypes.c_char_p,  # mtype
-            ctypes.POINTER(ctypes.c_int64),  # nrow
-            ctypes.POINTER(ctypes.c_int64),  # ncol
-            ctypes.POINTER(ctypes.c_int64),  # mkind
-            ctypes.POINTER(ctypes.c_int64),  # skind
-            ctypes.POINTER(ctypes.c_int64),  # asize
-            ctypes.POINTER(ctypes.c_int64),  # znz
-            ctypes.POINTER(ctypes.POINTER(ctypes.c_int64)),  # p_Ap
-            ctypes.POINTER(ctypes.POINTER(ctypes.c_int64)),  # p_Ai
+            ctypes.POINTER(index_type),  # nrow
+            ctypes.POINTER(index_type),  # ncol
+            ctypes.POINTER(index_type),  # mkind
+            ctypes.POINTER(index_type),  # skind
+            ctypes.POINTER(index_type),  # asize
+            ctypes.POINTER(index_type),  # znz
+            ctypes.POINTER(ctypes.POINTER(index_type)),  # p_Ap
+            ctypes.POINTER(ctypes.POINTER(index_type)),  # p_Ai
             ctypes.c_void_p,  # p_Ax -> all below will be set to null
             ctypes.c_void_p,  # p_Az
             ctypes.c_void_p,  # p_Zp
@@ -76,20 +83,20 @@ class RBio:
         title = ctypes.create_string_buffer(73)
         key = ctypes.create_string_buffer(9)
         mtype = ctypes.create_string_buffer(4)
-        nrow = ctypes.c_int64()
-        ncol = ctypes.c_int64()
-        mkind = ctypes.c_int64()
-        skind = ctypes.c_int64()
-        asize = ctypes.c_int64()
-        znz = ctypes.c_int64()
-        p_Ap = ctypes.POINTER(ctypes.c_int64)()
-        p_Ai = ctypes.POINTER(ctypes.c_int64)()
+        nrow = index_type()
+        ncol = index_type()
+        mkind = index_type()
+        skind = index_type()
+        asize = index_type()
+        znz = index_type()
+        p_Ap = ctypes.POINTER(index_type)()
+        p_Ai = ctypes.POINTER(index_type)()
         null_ptr = ctypes.c_void_p()
 
         result = rbread(
             filename,
-            ctypes.c_int64(0),  # No special handling of symmetric matrices
-            ctypes.c_int64(0),  # Do not prune explicitly stored zeroes
+            index_type(0),  # No special handling of symmetric matrices
+            index_type(0),  # Do not prune explicitly stored zeroes
             title,
             key,
             mtype,
@@ -111,7 +118,13 @@ class RBio:
 
         self.malloced = [p_Ap, p_Ai]
 
-        return nrow.value, ncol.value, asize.value, p_Ap, p_Ai
+        return p_Ap, p_Ai
+
+    def read_rb(self, mtx: Path, i: int, j: int, nnz: int):
+        if all(n < 2 ** 31 for n in [i, j, nnz]):
+            return self._read(mtx, ctypes.c_int32)
+        else:
+            return self._read(mtx, ctypes.c_int64)
 
     def free_and_finish(self):
         suite_sparse_finish = self.lib.SuiteSparse_finish

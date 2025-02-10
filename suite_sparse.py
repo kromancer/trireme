@@ -16,7 +16,7 @@ class SuiteSparse(metaclass=Singleton):
         self.dir = working_dir
 
         url_csv = url_base + "/files/ssstats.csv"
-        column_headers = [
+        self.column_headers = [
             "group", "name", "num_of_rows", "num_of_cols", "num_of_entries", "is_real", "is_binary",
             "is_nd", "is_posdef", "psym", "nsym", "kind", "num_of_entries_redundant"
         ]
@@ -25,12 +25,19 @@ class SuiteSparse(metaclass=Singleton):
         if index_file.exists():
             age = time() - index_file.stat().st_mtime
             if age < 432000:  # 43200 seconds = 5 days
-                self.df = pd.read_csv(index_file, sep=",", skiprows=1, header=None, names=column_headers)
+                self.df = pd.read_csv(index_file, sep=",", skiprows=1, header=None, names=self.column_headers)
                 return
 
-        df = pd.read_csv(url_csv, sep=",", skiprows=2, header=None, names=column_headers)
+        df = pd.read_csv(url_csv, sep=",", skiprows=2, header=None, names=self.column_headers)
         df.to_csv(index_file, index=False)
         self.df = df
+
+    def get_meta(self, mtx_name: str, meta: str):
+        assert meta in self.column_headers
+        return self.df[self.df["name"] == mtx_name][meta].values[0]
+
+    def is_binary(self, mtx_name: str) -> int:
+        return self.get_meta(mtx_name, "is_binary")
 
     def get_all_matrix_names(self, is_real: bool = True) -> Set[str]:
         # filters non-complex matrices, including binary
@@ -51,7 +58,7 @@ class SuiteSparse(metaclass=Singleton):
     def get_matrix(self, mtx_name: str, mtx_group: str = None):
         if mtx_group is None:
             try:
-                mtx_group = self.df[self.df["name"] == mtx_name]["group"].values[0]
+                mtx_group = self.get_meta(mtx_name, "group")
             except IndexError:
                 print(f"There is no SuiteSparse named {mtx_name}")
                 exit(1)
@@ -68,5 +75,3 @@ class SuiteSparse(metaclass=Singleton):
         else:
             raise RuntimeError(f"Failed to download {url_file}: {response.status_code}")
 
-    def is_binary(self, mtx_name: str) -> int:
-        return self.df[self.df["name"] == mtx_name]["is_binary"].values[0]

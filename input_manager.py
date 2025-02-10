@@ -99,9 +99,12 @@ class InputManager:
     def get_ss_mat(self) -> sp.csc_array:
         ss = SuiteSparse(self.directory)
         mtx = self.args.name
-        file_path = self.directory / f"{mtx}.tar.gz"
+        self.args.i = ss.get_meta(mtx, "num_of_rows")
+        self.args.j = ss.get_meta(mtx, "num_of_cols")
+        nnz = ss.get_meta(mtx, "num_of_entries")
 
         # If skip_store is False, use a temporary dir to download
+        file_path = self.directory / f"{mtx}.tar.gz"
         download_dir = None if self.skip_store else self.directory
         with change_dir(download_dir):
             if self.skip_load or not file_path.exists():
@@ -116,7 +119,7 @@ class InputManager:
                 assert mtx_file.exists()
 
                 # The matrix is read in the CSC format
-                self.args.i, self.args.j, nnz, p_Ap, p_Ai = RBio().read_rb(mtx_file)
+                p_Ap, p_Ai = RBio().read_rb(mtx_file, self.args.i, self.args.j, nnz)
 
         indptr = np.ctypeslib.as_array(p_Ap, shape=(self.args.j + 1,))
         indices = np.ctypeslib.as_array(p_Ai, shape=(nnz,))
