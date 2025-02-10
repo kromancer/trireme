@@ -106,10 +106,10 @@ def main():
     # Translate MLIR's llvm dialect to llvm IR, compile and link
     llvm_ir = translate_to_llvm_ir(out, "spmv").resolve()
     src_path = Path(__file__).parent.resolve() / "templates"
-    exe = build_with_cmake([f"-DMAIN_FILE=spmv_{args.matrix_format}.main.c",
-                            f"-DINDEX_TYPE={itype}",
-                            f"-DKERNEL_LLVM_IR={llvm_ir}"],
-                           target="main", src_path=src_path)
+    exe = build_with_cmake(
+        [f"-DMAIN_FILE=spmv_{'csx' if args.matrix_format in ['csr', 'csc'] else args.matrix_format}.main.c",
+         f"-DINDEX_TYPE={itype}", f"-DKERNEL_LLVM_IR={llvm_ir}"],
+        target="main", src_path=src_path)
 
     expected = None
     if args.check_output:

@@ -19,6 +19,9 @@ def get_storage_buffers(mat: sp.sparray, m_form: SparseFormats) -> Tuple[List[np
         mat: sp.coo_array
         pos = np.array([0, mat.nnz], dtype=mat.row.dtype)
         return [pos, mat.row, mat.col, mat.data], mat.data.dtype, mat.row.dtype
+    elif m_form == SparseFormats.CSC:
+        mat: sp.csc_matrix
+        return [mat.indptr, mat.indices, mat.data], mat.data.dtype, mat.indptr.dtype
     else:
         assert False, "Unknown format"
 
