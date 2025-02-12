@@ -53,6 +53,7 @@ class _RAMDisk:
         self.mmaped = []
         self.buffer_paths = []
         self._calculate_total_pages()
+        self.extra_pages = 0
         self.in_man = in_man
 
     def _calculate_total_pages(self):
@@ -66,10 +67,20 @@ class _RAMDisk:
     def _reserve_hugepages(self):
         total_pages = sum(self.buffer_sizes_in_pages)
         kernel_cfg = f"/sys/kernel/mm/hugepages/hugepages-{self.page_size_in_kb}kB/nr_hugepages"
+
         try:
-            with open(kernel_cfg, "w") as f:
-                f.write(str(total_pages))
-            print(f"Reserved {total_pages} huge pages of size {self.page_size}.")
+            # Read the current number of reserved huge pages
+            with open(kernel_cfg, "r") as f:
+                current_pages = int(f.read().strip())
+
+            # Calculate how many extra pages are needed
+            self.extra_pages = total_pages - current_pages
+
+            if self.extra_pages > 0:
+                with open(kernel_cfg, "w") as f:
+                    f.write(str(total_pages))
+                print(f"Reserved {self.extra_pages} extra huge pages of size {self.page_size}.")
+
         except PermissionError:
             raise RuntimeError(f"You need sudo/root privileges to modify {kernel_cfg}.")
 
@@ -86,13 +97,28 @@ class _RAMDisk:
             raise RuntimeError(f"Failed to mount hugetlbfs: {e}")
 
     def _release_hugepages(self):
+        if self.extra_pages == 0:
+            return
+
         hugepages_path = f"/sys/kernel/mm/hugepages/hugepages-{self.page_size_in_kb}kB/nr_hugepages"
         try:
-            with open(hugepages_path, "w") as f:
-                f.write("0")
-            print(f"Released all reserved huge pages.")
-        except Exception as e:
-            print(f"Warning: Could not release huge pages: {e}")
+            # Read the current number of huge pages
+            with open(hugepages_path, "r") as f:
+                current_pages = int(f.read().strip())
+
+            # Calculate new number of pages after releasing only the extras
+            new_pages = max(0, current_pages - self.extra_pages)
+
+            # Update sysfs only if there is a change
+            if new_pages < current_pages:
+                with open(hugepages_path, "w") as f:
+                    f.write(str(new_pages))
+                print(f"Released {self.extra_pages} huge pages. Remaining: {new_pages}.")
+            else:
+                print("No huge pages to release.")
+
+        except PermissionError:
+            print(f"Warning: You need sudo/root privileges to modify {hugepages_path}.")
 
     def _unmount(self):
         try:
