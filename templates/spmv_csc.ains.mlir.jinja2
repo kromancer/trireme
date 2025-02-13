@@ -1,0 +1,64 @@
+#sparse = {{ encoding }}
+
+// Computes: a(i) = B(i, j) * c(j)
+func.func @spmv(%a_t: {{ out_type }},
+                %B: {{ mat_type }},
+                %c_t: {{ vtype }}) -> {{ out_type }} {
+
+    %c0 = arith.constant 0 : index
+    %c1 = arith.constant 1 : index
+    %c2 = arith.constant 2 : index
+    %cols = arith.constant {{ cols }} : index
+
+    // Fixed lookahead distance
+    // %dist = arith.constant {{ pd }} : index
+    // %double_dist = arith.muli %dist, %c2 : index
+
+    %Bi_pos = sparse_tensor.positions %B {level = 1 : index} : {{ mat_type }} to memref<?xindex>
+    %Bi_crd = sparse_tensor.coordinates %B {level = 1 : index} : {{ mat_type }} to memref<?xindex>
+    %B_vals = sparse_tensor.values %B : {{ mat_type }} to memref<?x{{ dtype }}>
+
+    %c = bufferization.to_memref %c_t : {{ vtype }} to memref<{{ cols }}x{{ dtype }}>
+    %a = bufferization.to_memref %a_t : {{ out_type }} to memref<{{ rows }}x{{ dtype }}>
+
+    scf.for %j = %c0 to %cols step %c1 {
+        // Load c_vals[j]
+        %c_j = memref.load %c[%j] : memref<{{ cols }}x{{ dtype }}>
+
+        // Load segment start
+        %seg_start = memref.load %Bi_pos[%j] : memref<?xindex>
+
+        // Load segment end
+        %j_plus_one = arith.addi %j, %c1 : index
+        %seg_end = memref.load %Bi_pos[%j_plus_one] : memref<?xindex>
+        %bound = arith.subi %seg_end, %c1 : index
+
+        scf.for %ii = %seg_start to %seg_end step %c1 {
+
+            // Load candidate coordinate i
+            %i = memref.load %Bi_crd[%ii] : memref<?xindex>
+
+            // Prefetch Bi_crd[ii + 2 * dist]
+            // %ii_plus_double_dist = arith.addi %ii, %double_dist : index
+            // memref.prefetch %Bi_crd[%ii_plus_double_dist], read, locality<{{ loc_hint }}>, data : memref<?xindex>
+
+            // Load Bi_crd[min(ii + dist, bound)]
+            // %ii_plus_dist = arith.addi %ii, %dist : index
+            // %ii_plus_dist_or_bound = arith.minui %ii_plus_dist, %bound : index
+            // %Bi_crd_ii_plus_dist_or_bound = memref.load %Bi_crd[%ii_plus_dist_or_bound] : memref<?xindex>
+
+            // Prefetch a[Bi_crd[Bi_crd_ii_plus_dist_or_seg_end]]
+            // memref.prefetch %a[%Bi_crd_ii_plus_dist_or_bound], write, locality<{{ loc_hint }}>, data : memref<{{ rows }}x{{ dtype }}>
+
+            // Load values for computation
+            %a_i = memref.load %a[%i] : memref<{{ rows }}x{{ dtype }}>
+            %B_ii = memref.load %B_vals[%ii] : memref<?x{{ dtype }}>
+
+            %mul = {{ mul_op }} %B_ii, %c_j : {{ dtype }}
+            %new_a_i = {{ add_op }} %a_i, %mul : {{ dtype }}
+            memref.store %new_a_i, %a[%i] : memref<{{ rows }}x{{ dtype }}>
+        } {"Emitted from" = "linalg.generic"}
+    } {"Emitted from" = "linalg.generic"}
+    %res = bufferization.to_tensor %a restrict : memref<{{ rows }}x{{ dtype }}> to {{ out_type }}
+    return %res : {{ out_type }}
+}

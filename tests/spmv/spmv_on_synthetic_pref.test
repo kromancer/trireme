@@ -1,5 +1,7 @@
 # RUN: python %S/../../spmv.py -o pref-mlir --check-output --matrix-format coo benchmark --repetitions 3 synthetic -i 1024 -j 2048 --dtype float64 --density 0.5
 # RUN: python %S/../../spmv.py -o pref-mlir --check-output --matrix-format csr benchmark --repetitions 3 synthetic -i 1024 -j 2048 --dtype bool --density 0.5
+# RUN: python %S/../../spmv.py -o pref-mlir --check-output --matrix-format csc benchmark --repetitions 3 synthetic -i 1024 -j 2048 --dtype bool --density 0.5
 
 # RUN: python %S/../../spmv.py -o pref-ains --check-output --matrix-format coo benchmark --repetitions 3 synthetic -i 1024 -j 2048 --dtype float64 --density 0.5
 # RUN: python %S/../../spmv.py -o pref-ains --check-output --matrix-format csr benchmark --repetitions 3 synthetic -i 1024 -j 2048 --dtype bool --density 0.5
+# RUN: python %S/../../spmv.py -o pref-ains --check-output --matrix-format csc benchmark --repetitions 3 synthetic -i 1024 -j 2048 --dtype bool --density 0.5
