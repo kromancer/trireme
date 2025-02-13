@@ -1,5 +1,6 @@
 // RUN: mlir-opt %s --sparsification=pd=32 --cse | FileCheck %s
 
+// CHECK:         %[[pd2:.+]] = arith.constant 64 : index
 // CHECK:          %[[pd:.+]] = arith.constant 32
 // CHECK:           %[[c:.+]] = bufferization.to_memref %arg1
 // CHECK:      %[[Bi_pos:.+]] = sparse_tensor.positions %arg0 {level = 0 : index}
@@ -14,6 +15,8 @@
 //            For all non-zeroes in row
 // CHECK:     {{.+}} = scf.for %[[jj:.+]] = %[[B2_pos_i:.+]] to {{.+}} step %c1 iter_args({{.+}} = {{.+}}) -> (f64) {
 // CHECK:              %[[bound:.+]] = arith.subi %[[Bj_crd_size]], %c1
+// CHECK:        %[[jj_plus_pd2:.+]] = arith.addi %[[jj]], %[[pd2]]
+// CHECK:         memref.prefetch %[[Bj_crd]][%[[jj_plus_pd2]]], read, locality<2>, data
 // CHECK:         %[[jj_plus_pd:.+]] = arith.addi %[[jj]], %[[pd]]
 // CHECK:                %[[cmp:.+]] = arith.cmpi ult, %[[jj_plus_pd]], %[[bound]]
 // CHECK:                %[[sel:.+]] = arith.select %[[cmp]], %[[jj_plus_pd]], %[[bound]]

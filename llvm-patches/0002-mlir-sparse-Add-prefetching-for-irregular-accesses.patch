@@ -1,4 +1,4 @@
-From e0b23709a8cf8b863c0861d7eda3a3361b72f150 Mon Sep 17 00:00:00 2001
+From 4ab84d9c642f13622a4f90b5164d4f053108afb7 Mon Sep 17 00:00:00 2001
 From: Konstantinos Sotiropoulos <konstantinos.sotiropoulos@chalmers.se>
 Date: Fri, 3 Jan 2025 10:42:07 +0100
 Subject: [PATCH 2/4] [mlir][sparse] Add prefetching for irregular accesses
@@ -10,11 +10,11 @@ Subject: [PATCH 2/4] [mlir][sparse] Add prefetching for irregular accesses
  .../Transforms/SparseTensorPasses.cpp         |  3 +-
  .../Transforms/Utils/CodegenEnv.cpp           |  4 +-
  .../Transforms/Utils/CodegenEnv.h             |  2 +-
- .../Transforms/Utils/LoopEmitter.cpp          | 92 ++++++++++++++++++-
+ .../Transforms/Utils/LoopEmitter.cpp          | 98 ++++++++++++++++++-
  .../Transforms/Utils/LoopEmitter.h            | 14 ++-
  .../Transforms/Utils/SparseTensorIterator.cpp |  2 -
  .../Transforms/Utils/SparseTensorIterator.h   |  1 -
- 10 files changed, 119 insertions(+), 17 deletions(-)
+ 10 files changed, 125 insertions(+), 17 deletions(-)
 
 diff --git a/mlir/include/mlir/Dialect/SparseTensor/Pipelines/Passes.h b/mlir/include/mlir/Dialect/SparseTensor/Pipelines/Passes.h
 index efbe5c56a219..14ab25c4ee9f 100644
@@ -140,7 +140,7 @@ index 34b793ee11e4..dc1d9e7d4fb4 100644
    /// Generates loop boundary statements (entering/exiting loops). The function
    /// passes and updates the passed-in parameters.
 diff --git a/mlir/lib/Dialect/SparseTensor/Transforms/Utils/LoopEmitter.cpp b/mlir/lib/Dialect/SparseTensor/Transforms/Utils/LoopEmitter.cpp
-index ea5533dfc6ba..caabe576250c 100644
+index ea5533dfc6ba..26f1362c41ab 100644
 --- a/mlir/lib/Dialect/SparseTensor/Transforms/Utils/LoopEmitter.cpp
 +++ b/mlir/lib/Dialect/SparseTensor/Transforms/Utils/LoopEmitter.cpp
 @@ -7,6 +7,9 @@
@@ -228,7 +228,7 @@ index ea5533dfc6ba..caabe576250c 100644
      }
      // NOTE: we can also prepare for 0 lvl here in advance, this will hoist
      // some loop preparation from tensor iteration, but will also (undesirably)
-@@ -683,9 +713,65 @@ Operation *LoopEmitter::enterCoIterationOverTensorsAtLvls(
+@@ -683,9 +713,71 @@ Operation *LoopEmitter::enterCoIterationOverTensorsAtLvls(
    }
  
    // Enter dense tensor levels.
@@ -266,6 +266,12 @@ index ea5533dfc6ba..caabe576250c 100644
 +      // loopStack vector
 +      auto prefDist =
 +          C_IDX(getCurrentDepth() >= loopStack.capacity() - 1 ? prefetchDistance : 1);
++      auto prefDoubleDist =
++          C_IDX(getCurrentDepth() >= loopStack.capacity() - 1 ? 2 * prefetchDistance : 1);
++
++      // prefetch crd[ii + 2 * distance]
++      auto plusDoubleDist = ADDI(indices[0], prefDoubleDist);
++      builder.create<memref::PrefetchOp>(loc, crdBuf, plusDoubleDist.getResult(), false, 2, true);
 +
 +      // load crd[min(ii + distance, upperBound)]
 +      auto plusDist = ADDI(indices[0], prefDist);
@@ -273,7 +279,7 @@ index ea5533dfc6ba..caabe576250c 100644
 +      Value loadIdx = SELECT(cmp, plusDist, bound).getResult();
 +      auto prefIdx = sparse_tensor::genIndexLoad(builder, loc, crdBuf, loadIdx);
 +
-+      // Prefetch B[crd[min(ii + distance, upperBound)]]
++      // prefetch B[crd[min(ii + distance, upperBound)]]
 +      SmallVector<Value> prefIndices;
 +      bool isWrite = false;
 +      Value posOrValbuf;

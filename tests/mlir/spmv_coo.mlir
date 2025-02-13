@@ -1,5 +1,6 @@
 // RUN: mlir-opt %s --sparsification=pd=32 --cse | FileCheck %s
 
+//CHECK:         %[[pd2:.+]] = arith.constant 64 : index
 //CHECK:          %[[pd:.+]] = arith.constant 32 : index
 //CHECK:           %[[c:.+]] = bufferization.to_memref %arg1
 //CHECK:           %[[a:.+]] = bufferization.to_memref %arg2
@@ -11,15 +12,18 @@
 // prefetch for writes on a[Bi_crd[]]
 //CHECK: scf.while (%[[seg_start:.+]] = {{.+}}, %[[seg_end:.+]] = {{.+}}) : (index, index) -> (index, index)
 //CHECK:      %[[bound:.+]] = arith.subi %[[Bi_crd_size]], %c1
+//CHECK:      memref.prefetch %[[Bi_crd]]
 //CHECK:      arith.select
-//CHECK:       %[[pref:.+]] = memref.load %[[Bi_crd]]
+//CHECK:      %[[pref:.+]] = memref.load %[[Bi_crd]]
 //CHECK:      memref.prefetch %[[a]][%[[pref]]], write, locality<2>, data
 
 // prefetch for reads on c[Bj_crd[jj]]
-//CHECK: scf.for %[[iB:.+]] = %[[seg_start]] to %[[seg_end]]
-//CHECK:     %[[iB_plus_pd:.+]] = arith.addi %[[iB]], %[[pd]]
-//CHECK:            %[[cmp:.+]] = arith.cmpi ult, %[[iB_plus_pd]], %[[bound]]
-//CHECK:            %[[sel:.+]] = arith.select %[[cmp]], %[[iB_plus_pd]], %[[bound]]
+//CHECK: scf.for %[[jj:.+]] = %[[seg_start]] to %[[seg_end]]
+//CHECK:    %[[jj_plus_pd2:.+]] = arith.addi %[[jj]], %[[pd2]]
+//CHECK:     memref.prefetch %[[Bj_crd]][%[[jj_plus_pd2]]], read, locality<2>, data
+//CHECK:     %[[jj_plus_pd:.+]] = arith.addi %[[jj]], %[[pd]]
+//CHECK:            %[[cmp:.+]] = arith.cmpi ult, %[[jj_plus_pd]], %[[bound]]
+//CHECK:            %[[sel:.+]] = arith.select %[[cmp]], %[[jj_plus_pd]], %[[bound]]
 //CHECK:           %[[pref:.+]] = memref.load %[[Bj_crd]][%[[sel]]]
 //CHECK:     memref.prefetch %[[c]][%[[pref]]], read, locality<2>, data
 
