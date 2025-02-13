@@ -17,10 +17,10 @@ from argument_parsers import (add_dimension_args, add_dtype_arg, add_locality_hi
 from common import SparseFormats, make_work_dir_and_cd_to_it
 
 pipelines = {
-    "no-opt":
+    "base":
     ["sparse-assembler",
      "sparse-reinterpret-map",
-     "sparsification{enable-runtime-library=false}",
+     "sparsification{enable-runtime-library=false pd=?}",
      "sparse-tensor-codegen",
      "sparse-storage-specifier-to-llvm",
      "one-shot-bufferize{bufferize-function-boundaries function-boundary-type-conversion=identity-layout-map}",
@@ -33,25 +33,10 @@ pipelines = {
      "convert-cf-to-llvm{index-bitwidth=?}",
      "reconcile-unrealized-casts"],
 
-    "pref":
+    "omp":
     ["sparse-assembler",
      "sparse-reinterpret-map",
-     "sparsification{enable-runtime-library=false pd=0}",
-     "sparse-tensor-codegen",
-     "sparse-storage-specifier-to-llvm",
-     "one-shot-bufferize{bufferize-function-boundaries function-boundary-type-conversion=identity-layout-map}",
-     "convert-scf-to-cf",
-     "expand-strided-metadata",
-     "finalize-memref-to-llvm{index-bitwidth=? use-aligned-alloc=false use-generic-functions=false}",
-     "convert-func-to-llvm{index-bitwidth=? use-bare-ptr-memref-call-conv=false}",
-     "convert-arith-to-llvm{index-bitwidth=?}",
-     "convert-cf-to-llvm{index-bitwidth=?}",
-     "reconcile-unrealized-casts"],
-
-    "pref-omp":
-    ["sparse-assembler",
-     "sparse-reinterpret-map",
-     "sparsification{enable-runtime-library=false pd=0 parallelization-strategy=dense-any-loop}",
+     "sparsification{enable-runtime-library=false pd=? parallelization-strategy=dense-any-loop}",
      "sparse-tensor-codegen",
      "sparse-storage-specifier-to-llvm",
      "one-shot-bufferize{bufferize-function-boundaries function-boundary-type-conversion=identity-layout-map}",
@@ -59,12 +44,8 @@ pipelines = {
      "canonicalize",
      "convert-scf-to-cf",
      "expand-strided-metadata",
-     "finalize-memref-to-llvm{index-bitwidth=? use-aligned-alloc=false use-generic-functions=false}",
-     "convert-func-to-llvm{index-bitwidth=? use-bare-ptr-memref-call-conv=false}",
+     "convert-openmp-to-llvm{index-bitwidth=?}",
      "canonicalize",
-     "convert-openmp-to-llvm",
-     "convert-arith-to-llvm{index-bitwidth=?}",
-     "convert-cf-to-llvm{index-bitwidth=?}",
      "reconcile-unrealized-casts"],
 
     "vect-vl4":
@@ -84,26 +65,6 @@ pipelines = {
      "convert-arith-to-llvm{index-bitwidth=?}",
      "convert-index-to-llvm{index-bitwidth=?}",
      "convert-cf-to-llvm{index-bitwidth=?}",
-     "reconcile-unrealized-casts"],
-
-    "omp":
-    ["sparse-assembler",
-     "sparse-reinterpret-map",
-     "sparsification{enable-runtime-library=false parallelization-strategy=dense-any-loop}",
-     "convert-scf-to-openmp",
-     "sparse-tensor-codegen",
-     "sparse-storage-specifier-to-llvm",
-     "one-shot-bufferize{bufferize-function-boundaries function-boundary-type-conversion=identity-layout-map}",
-     "canonicalize{max-iterations=10 max-num-rewrites=-1 region-simplify=normal test-convergence=false top-down=true}",
-     "convert-scf-to-cf",
-     "expand-strided-metadata",
-     "finalize-memref-to-llvm{index-bitwidth=? use-aligned-alloc=false use-generic-functions=false}",
-     "convert-func-to-llvm{index-bitwidth=? use-bare-ptr-memref-call-conv=false}",
-     "convert-arith-to-llvm{index-bitwidth=?}",
-     "convert-index-to-llvm{index-bitwidth=?}",
-     "convert-cf-to-llvm{index-bitwidth=?}",
-     "convert-openmp-to-llvm",
-     "canonicalize",
      "reconcile-unrealized-casts"]
 }
 
@@ -139,7 +100,7 @@ def apply_passes(args: argparse.Namespace, src: str, kernel: str, pipeline: str,
 
         # Adapt the prefetch distance
         if "pd" in mlir_opt_pass:
-            mlir_opt_pass = mlir_opt_pass.replace("pd=0",
+            mlir_opt_pass = mlir_opt_pass.replace("pd=?",
                                                   f"pd={args.prefetch_distance}")
 
         run_pass.call_count += 1
@@ -212,19 +173,13 @@ def render_template_for_spmv(args: argparse.Namespace) -> str:
                       "omp": f"spmv.mlir.jinja2",
                       "pref-mlir": f"spmv.mlir.jinja2",
                       "pref-mlir-omp": f"spmv.mlir.jinja2",
-                      "pref-split": f"spmv_{args.matrix_format}.split.mlir.jinja2",
                       "pref-ains": f"spmv_{args.matrix_format}.ains.mlir.jinja2",
                       "pref-spe": f"spmv_{args.matrix_format}.spe.mlir.jinja2"}
 
     spmv_template = jinja.get_template(template_names[args.optimization])
-    if args.optimization in ["no-opt", "pref-mlir"]:
-        spmv_rendered = spmv_template.render(encoding=encoding, mat_type=mat_type, vtype=vtype, out_type=out_type,
-                                             add_op=add_op, mul_op=mul_op, dtype=dtype)
-    else:
-        spmv_rendered = spmv_template.render(encoding=encoding, mat_type=mat_type, vtype=vtype, out_type=out_type,
-                                             add_op=add_op, mul_op=mul_op, dtype=dtype,
-                                             rows=args.i, cols=args.j, pd=args.prefetch_distance,
-                                             loc_hint=args.locality_hint)
+    spmv_rendered = spmv_template.render(encoding=encoding, mat_type=mat_type, vtype=vtype, out_type=out_type,
+                                         add_op=add_op, mul_op=mul_op, dtype=dtype, rows=args.i, cols=args.j,
+                                         pd=args.prefetch_distance, loc_hint=args.locality_hint)
     return spmv_rendered
 
 
@@ -251,16 +206,11 @@ def translate_to_llvm_ir(src: Path, out: str) -> Path:
 
 def generate(args: argparse.Namespace, module: ir.Module, kernel_name: str, translate: bool = False):
 
-    if args.optimization in ["pref-ains", "pref-spe", "pref-split"]:
-        pipes = [x for x in pipelines if x not in ["pref", "pref-omp"]]
-    else:
-        pipes = pipelines
-
     with make_and_switch_dir(kernel_name):
         with open(f"{kernel_name}.mlir", "w") as f:
             f.write(str(module))
 
-        for p in pipes:
+        for p in pipelines:
             with make_and_switch_dir(p):
                 _, last_output = apply_passes(args, str(module), kernel_name, p)
 

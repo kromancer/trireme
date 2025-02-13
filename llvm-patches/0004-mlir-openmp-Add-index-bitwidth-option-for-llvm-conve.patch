@@ -1,0 +1,47 @@
+From 1d1d892cf630b3bc0076875b535e030b133b82bd Mon Sep 17 00:00:00 2001
+From: Konstantinos Sotiropoulos <konstantinos.sotiropoulos@chalmers.se>
+Date: Thu, 13 Feb 2025 02:28:33 +0100
+Subject: [PATCH 4/4] [mlir][openmp] Add `index-bitwidth` option for llvm
+ conversion pass
+
+---
+ mlir/include/mlir/Conversion/Passes.td            | 4 ++++
+ mlir/lib/Conversion/OpenMPToLLVM/OpenMPToLLVM.cpp | 7 ++++++-
+ 2 files changed, 10 insertions(+), 1 deletion(-)
+
+diff --git a/mlir/include/mlir/Conversion/Passes.td b/mlir/include/mlir/Conversion/Passes.td
+index b547839d7673..c86d8f0cc69a 100644
+--- a/mlir/include/mlir/Conversion/Passes.td
++++ b/mlir/include/mlir/Conversion/Passes.td
+@@ -958,6 +958,10 @@ def ConvertOpenACCToSCF : Pass<"convert-openacc-to-scf", "ModuleOp"> {
+ def ConvertOpenMPToLLVMPass : Pass<"convert-openmp-to-llvm", "ModuleOp"> {
+   let summary = "Convert the OpenMP ops to OpenMP ops with LLVM dialect";
+   let dependentDialects = ["LLVM::LLVMDialect"];
++  let options = [Option<"indexBitwidth", "index-bitwidth", "unsigned",
++             /*default=kDeriveIndexBitwidthFromDataLayout*/"0",
++             "Bitwidth of the index type, 0 to use size of machine word">,
++             ];
+ }
+ 
+ //===----------------------------------------------------------------------===//
+diff --git a/mlir/lib/Conversion/OpenMPToLLVM/OpenMPToLLVM.cpp b/mlir/lib/Conversion/OpenMPToLLVM/OpenMPToLLVM.cpp
+index 5d0003911bca..11b4285f92cf 100644
+--- a/mlir/lib/Conversion/OpenMPToLLVM/OpenMPToLLVM.cpp
++++ b/mlir/lib/Conversion/OpenMPToLLVM/OpenMPToLLVM.cpp
+@@ -301,7 +301,12 @@ void ConvertOpenMPToLLVMPass::runOnOperation() {
+ 
+   // Convert to OpenMP operations with LLVM IR dialect
+   RewritePatternSet patterns(&getContext());
+-  LLVMTypeConverter converter(&getContext());
++
++  LowerToLLVMOptions options(&getContext());
++  if (indexBitwidth != kDeriveIndexBitwidthFromDataLayout)
++    options.overrideIndexBitwidth(indexBitwidth);
++
++  LLVMTypeConverter converter(&getContext(), options);
+   arith::populateArithToLLVMConversionPatterns(converter, patterns);
+   cf::populateControlFlowToLLVMConversionPatterns(converter, patterns);
+   cf::populateAssertToLLVMConversionPattern(converter, patterns);
+-- 
+2.48.1
+

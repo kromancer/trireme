@@ -89,16 +89,12 @@ def main():
     with open("spmv.0. mlir", "w") as f:
         f.write(spmv)
 
-    if args.optimization == "pref-mlir":
-        pipeline = "pref"
-    elif args.optimization == "pref-mlir-omp":
-        pipeline = "pref-omp"
+    if args.optimization in ["omp", "pref-mlir-omp"]:
+        pipeline = "omp"
     elif args.optimization == "vect-vl4":
         pipeline = "vect-vl4"
-    elif args.optimization == "omp":
-        pipeline = "omp"
     else:
-        pipeline = "no-opt"
+        pipeline = "base"
 
     with ir.Context(), ir.Location.unknown():
         llvm_mlir, out = apply_passes(args=args, src=spmv, kernel="spmv", pipeline=pipeline, index_type=itype)
