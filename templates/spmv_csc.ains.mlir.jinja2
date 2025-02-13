@@ -11,8 +11,8 @@ func.func @spmv(%a_t: {{ out_type }},
     %cols = arith.constant {{ cols }} : index
 
     // Fixed lookahead distance
-    // %dist = arith.constant {{ pd }} : index
-    // %double_dist = arith.muli %dist, %c2 : index
+    %dist = arith.constant {{ pd }} : index
+    %double_dist = arith.muli %dist, %c2 : index
 
     %Bi_pos = sparse_tensor.positions %B {level = 1 : index} : {{ mat_type }} to memref<?xindex>
     %Bi_crd = sparse_tensor.coordinates %B {level = 1 : index} : {{ mat_type }} to memref<?xindex>
