@@ -39,16 +39,16 @@ func.func @spmv(%a_t: {{ out_type }},
             %i = memref.load %Bi_crd[%ii] : memref<?xindex>
 
             // Prefetch Bi_crd[ii + 2 * dist]
-            // %ii_plus_double_dist = arith.addi %ii, %double_dist : index
-            // memref.prefetch %Bi_crd[%ii_plus_double_dist], read, locality<{{ loc_hint }}>, data : memref<?xindex>
+            %ii_plus_double_dist = arith.addi %ii, %double_dist : index
+            memref.prefetch %Bi_crd[%ii_plus_double_dist], read, locality<{{ loc_hint }}>, data : memref<?xindex>
 
             // Load Bi_crd[min(ii + dist, bound)]
-            // %ii_plus_dist = arith.addi %ii, %dist : index
-            // %ii_plus_dist_or_bound = arith.minui %ii_plus_dist, %bound : index
-            // %Bi_crd_ii_plus_dist_or_bound = memref.load %Bi_crd[%ii_plus_dist_or_bound] : memref<?xindex>
+            %ii_plus_dist = arith.addi %ii, %dist : index
+            %ii_plus_dist_or_bound = arith.minui %ii_plus_dist, %bound : index
+            %Bi_crd_ii_plus_dist_or_bound = memref.load %Bi_crd[%ii_plus_dist_or_bound] : memref<?xindex>
 
             // Prefetch a[Bi_crd[Bi_crd_ii_plus_dist_or_seg_end]]
-            // memref.prefetch %a[%Bi_crd_ii_plus_dist_or_bound], write, locality<{{ loc_hint }}>, data : memref<{{ rows }}x{{ dtype }}>
+            memref.prefetch %a[%Bi_crd_ii_plus_dist_or_bound], write, locality<{{ loc_hint }}>, data : memref<{{ rows }}x{{ dtype }}>
 
             // Load values for computation
             %a_i = memref.load %a[%i] : memref<{{ rows }}x{{ dtype }}>
