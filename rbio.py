@@ -135,6 +135,12 @@ class RBio:
         else:
             print("Not a buffer allocated by RBio")
 
+    def free_pos_buffer(self):
+        self.suite_sparse_free(self.p_Ap)
+
+    def free_idx_buffer(self):
+        self.suite_sparse_free(self.p_Ai)
+
     def free_and_finish(self):
         suite_sparse_finish = self.lib.SuiteSparse_finish
         suite_sparse_finish.restype = None

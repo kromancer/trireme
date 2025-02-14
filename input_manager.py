@@ -98,6 +98,7 @@ class InputManager:
             m: sp.coo_array = m.tocoo()
         elif m_f == SparseFormats.CSC:
             m: sp.csc_array = m.tocsc()
+
         if not self.skip_store:
             sp.save_npz(file_path, m)
         return m
