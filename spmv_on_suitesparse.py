@@ -20,7 +20,7 @@ def main():
     command = ["python", "spmv.py"] + unknown_args
 
     if args.collection == "all":
-        matrix_names = SuiteSparse(InputManager.get_working_dir()).get_all_matrix_names()
+        matrix_names = SuiteSparse(InputManager.get_working_dir("SuiteSparse")).get_all_matrix_names()
         matrix_names -= set(read_config("suite-sparse-config.json", "exclude-from-all"))
     else:
         matrix_names = read_config("suite-sparse-config.json", args.collection)

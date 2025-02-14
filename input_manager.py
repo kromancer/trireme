@@ -47,11 +47,11 @@ class InputManager:
             skip_store = True
         self.skip_store = skip_store
 
-        self.directory = InputManager.get_working_dir()
+        self.directory = InputManager.get_working_dir(self.args.in_source)
 
     @staticmethod
-    def get_working_dir():
-        sdir = read_config("input-manager-config.json", "directory")
+    def get_working_dir(in_source: str):
+        sdir = read_config("input-manager-config.json", f"directory-{in_source}")
         if sdir is None:
             sdir = Path.cwd()
         else:
