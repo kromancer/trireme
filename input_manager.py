@@ -109,6 +109,7 @@ class InputManager:
         self.args.i = ss.get_meta(mtx, "num_of_rows")
         self.args.j = ss.get_meta(mtx, "num_of_cols")
         nnz = ss.get_meta(mtx, "num_of_entries")
+        self.args.dtype = "bool" if ss.is_binary(self.args.name) else "float64"
 
         # If skip_store is False, use a temporary dir to download
         file_path = self.directory / f"{mtx}.tar.gz"
@@ -127,18 +128,8 @@ class InputManager:
 
                 # The matrix is read in the CSC format
                 self.rbio = RBio()
-                p_Ap, p_Ai = self.rbio.read_rb(mtx_file, self.args.i, self.args.j, nnz)
+                mat = self.rbio.read_rb(mtx_file, self.args.i, self.args.j, nnz, self.args.dtype)
 
-        indptr = np.ctypeslib.as_array(p_Ap, shape=(self.args.j + 1,))
-        indices = np.ctypeslib.as_array(p_Ai, shape=(nnz,))
-
-        if ss.is_binary(self.args.name):
-            self.args.dtype = "bool"
-        else:
-            self.args.dtype = "float64"
-        data = np.ones(nnz, dtype=self.args.dtype)
-
-        mat = sp.csc_array((data, indices, indptr), shape=(self.args.i, self.args.j))
         if self.args.matrix_format == "csr":
             return mat.tocsr(copy=False)
         elif self.args.matrix_format == "coo":

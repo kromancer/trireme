@@ -21,39 +21,17 @@ if __name__ == "__main__":
                 mtx = file.name.split('.')[0]
                 tar.extractall()
 
-                i = ss.get_meta(mtx, "num_of_rows")
-                j = ss.get_meta(mtx, "num_of_cols")
-                nnz = ss.get_meta(mtx, "num_of_entries")
-
                 rb_file = Path(mtx) / (mtx + ".rb")
                 assert rb_file.exists()
 
-                p_Ap, p_Ai = rbio.read_rb(rb_file, i, j, nnz)
-
-                indptr = np.ctypeslib.as_array(p_Ap, shape=(j + 1,))
-                indices = np.ctypeslib.as_array(p_Ai, shape=(nnz,))
-
+                i = ss.get_meta(mtx, "num_of_rows")
+                j = ss.get_meta(mtx, "num_of_cols")
+                nnz = ss.get_meta(mtx, "num_of_entries")
                 if ss.is_binary(mtx):
                     dtype = "bool"
                 else:
                     dtype = "float64"
 
-                data = np.ones(nnz, dtype=dtype)
-
-                try:
-                    mat = sp.csc_array((data, indices, indptr), shape=(i, j))
-                    sp.save_npz(input_dir / (mtx + ".npz"), mat.tocsr(copy=False))
-                    print(f"Saved {mtx} to {input_dir / mtx}.npz")
-                except ValueError:
-                    print(f"FAILED: {mtx}")
-                    rbio.free_pos_buffer()
-                    rbio.free_idx_buffer()
-
-
-
-
-
-
-
-
-
+                mat = rbio.read_rb(rb_file, i, j, nnz, dtype)
+                sp.save_npz(input_dir / (mtx + ".npz"), mat.tocsr(copy=False))
+                print(f"Saved {mtx} to {input_dir / mtx}.npz")

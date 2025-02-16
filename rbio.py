@@ -2,6 +2,8 @@ import ctypes
 from pathlib import Path
 import platform
 from typing import Union
+import numpy as np
+import scipy.sparse as sp
 
 
 class RBio:
@@ -45,9 +47,9 @@ class RBio:
 
         self.suite_sparse_free = self.lib.SuiteSparse_free
         self.suite_sparse_free.argtypes = [ctypes.c_void_p]
-        self.suite_sparse_free.restype = None
+        self.suite_sparse_free.restype = ctypes.c_void_p
 
-    def _read(self, mtx: Path, index_type: Union[type[ctypes.c_int64], type[ctypes.c_int64]]):
+    def _read(self, mtx: Path, index_type: Union[type[ctypes.c_int64], type[ctypes.c_int64]], dtype: str) -> sp.csc_array:
         # RBread
         if index_type == ctypes.c_int64:
             rbread = self.lib.RBread
@@ -117,29 +119,21 @@ class RBio:
         assert mkind.value == 1, "When reading shape, mkind should be set to pattern"
 
         self.p_Ap = p_Ap
+        indptr = np.ctypeslib.as_array(p_Ap, shape=(ncol.value + 1,))
         self.p_Ai = p_Ai
+        indices = np.ctypeslib.as_array(p_Ai, shape=(asize.value,))
 
-        return p_Ap, p_Ai
+        # TODO: Avoid this copy
+        data = np.ones(indices.size, dtype=dtype)
+        mat = sp.csc_array((data, indices, indptr), copy=True, shape=(nrow.value, ncol.value))
+        self.free_and_finish()
+        return mat
 
-    def read_rb(self, mtx: Path, i: int, j: int, nnz: int):
+    def read_rb(self, mtx: Path, i: int, j: int, nnz: int, dtype: str) -> sp.csc_array:
         if all(n < 2 ** 31 for n in [i, j, nnz]):
-            return self._read(mtx, ctypes.c_int32)
+            return self._read(mtx, ctypes.c_int32, dtype)
         else:
-            return self._read(mtx, ctypes.c_int64)
-
-    def free_buffer(self, buffer_addr):
-        if buffer_addr == ctypes.cast(self.p_Ap, ctypes.c_void_p).value:
-            self.suite_sparse_free(self.p_Ap)
-        elif buffer_addr == ctypes.cast(self.p_Ai, ctypes.c_void_p).value:
-            self.suite_sparse_free(self.p_Ai)
-        else:
-            print("Not a buffer allocated by RBio")
-
-    def free_pos_buffer(self):
-        self.suite_sparse_free(self.p_Ap)
-
-    def free_idx_buffer(self):
-        self.suite_sparse_free(self.p_Ai)
+            return self._read(mtx, ctypes.c_int64, dtype)
 
     def free_and_finish(self):
         suite_sparse_finish = self.lib.SuiteSparse_finish

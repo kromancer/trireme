@@ -64,10 +64,6 @@ class RAMDisk:
                 new_buf[:] = buf
                 new_buffers.append(new_buf)
 
-                # Deallocate the old buffer
-                if self.in_man.rbio is not None:
-                    self.in_man.rbio.free_buffer(buf.ctypes.data)
-
         self.buffers = tuple(new_buffers)
         print(f"Buffers have been successfully moved to {self.mount_point}.")
 
