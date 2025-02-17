@@ -5,6 +5,8 @@ from typing import Union
 import numpy as np
 import scipy.sparse as sp
 
+from common import timeit
+
 
 class RBio:
     def __init__(self):
@@ -129,6 +131,7 @@ class RBio:
         self.free_and_finish()
         return mat
 
+    @timeit
     def read_rb(self, mtx: Path, i: int, j: int, nnz: int, dtype: str) -> sp.csc_array:
         if all(n < 2 ** 31 for n in [i, j, nnz]):
             return self._read(mtx, ctypes.c_int32, dtype)

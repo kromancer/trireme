@@ -4,7 +4,7 @@ import tarfile
 
 import scipy.sparse as sp
 
-from common import change_dir, read_config
+from common import change_dir, read_config, timeit
 from rbio import RBio
 from suite_sparse import SuiteSparse
 
@@ -18,11 +18,15 @@ if __name__ == "__main__":
         for file in input_dir.glob("*.tar.gz"):
             with tarfile.open(file, "r:gz") as tar:
                 mtx = file.name.split('.')[0]
+                print(f"Converting {mtx}")
                 out = input_dir / (mtx + ".npz")
                 if out.exists():
                     continue
 
-                tar.extractall()
+                @timeit
+                def extract():
+                    tar.extractall()
+                extract()
 
                 rb_file = Path(mtx) / (mtx + ".rb")
                 assert rb_file.exists()
@@ -36,6 +40,11 @@ if __name__ == "__main__":
                     dtype = "float64"
 
                 mat = rbio.read_rb(rb_file, i, j, nnz, dtype)
-                sp.save_npz(out, mat.tocsr(copy=False))
+
+                @timeit
+                def save():
+                    sp.save_npz(out, mat.tocsr(copy=False))
+                save()
+
                 print(f"Saved {mtx} to {input_dir / mtx}.npz")
                 gc.collect()
