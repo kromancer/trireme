@@ -11,6 +11,7 @@ from platform import system
 from shutil import rmtree, which
 from subprocess import run
 import sys
+import tarfile
 from tempfile import TemporaryDirectory, TemporaryFile
 from time import time
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
@@ -90,6 +91,14 @@ def is_in_path(exe: str) -> bool:
         return False
 
     return True
+
+@timeit
+def extract_tar(file: Path):
+    if is_in_path("tar"):
+        run(["tar", "-xf", file], check=True)
+    else:
+        with tarfile.open(file, "r:gz") as tar:
+            tar.extractall()
 
 
 def run_func_and_capture_stdout(func: Callable, *args, **kwargs) -> Tuple[str, Any]:

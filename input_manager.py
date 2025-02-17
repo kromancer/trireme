@@ -1,12 +1,11 @@
 from argparse import Namespace
 from pathlib import Path
-import tarfile
 from typing import List, Tuple, Union
 
 import numpy as np
 import scipy.sparse as sp
 
-from common import change_dir, print_size, read_config, SparseFormats, timeit
+from common import change_dir, extract_tar, print_size, read_config, SparseFormats, timeit
 from rbio import RBio
 from suite_sparse import SuiteSparse
 
@@ -117,12 +116,12 @@ class InputManager:
         with change_dir(download_dir):
             if self.skip_load or not file_path.exists():
                 ss.get_matrix(self.args.name)
-                file_path = Path.cwd() / f"{mtx}.tar.gz"
+                file_path = f"{mtx}.tar.gz"
+                extract_tar(file_path)
 
             # Always switch to a temporary directory for the extraction
             with change_dir():
-                with tarfile.open(file_path, "r:gz") as tar:
-                    tar.extractall()
+
                 mtx_file = Path(mtx) / (mtx + ".rb")
                 assert mtx_file.exists()
 
