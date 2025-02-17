@@ -92,6 +92,7 @@ def is_in_path(exe: str) -> bool:
 
     return True
 
+
 @timeit
 def extract_tar(file: Path):
     if is_in_path("tar"):

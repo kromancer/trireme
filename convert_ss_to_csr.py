@@ -4,7 +4,7 @@ import tarfile
 
 import scipy.sparse as sp
 
-from common import change_dir, read_config, timeit
+from common import change_dir, extract_tar, read_config, timeit
 from rbio import RBio
 from suite_sparse import SuiteSparse
 
@@ -23,10 +23,7 @@ if __name__ == "__main__":
                 if out.exists():
                     continue
 
-                @timeit
-                def extract():
-                    tar.extractall()
-                extract()
+                extract_tar(file)
 
                 rb_file = Path(mtx) / (mtx + ".rb")
                 assert rb_file.exists()
