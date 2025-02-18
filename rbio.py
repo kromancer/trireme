@@ -124,10 +124,11 @@ class RBio:
         indptr = np.ctypeslib.as_array(p_Ap, shape=(ncol.value + 1,))
         self.p_Ai = p_Ai
         indices = np.ctypeslib.as_array(p_Ai, shape=(asize.value,))
+        data = np.ones(indices.size, dtype=dtype)
 
         # TODO: Avoid this copy
-        data = np.ones(indices.size, dtype=dtype)
         mat = sp.csc_array((data, indices, indptr), copy=True, shape=(nrow.value, ncol.value))
+
         self.free_and_finish()
         return mat
 

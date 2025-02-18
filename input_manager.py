@@ -4,6 +4,7 @@ from typing import List, Tuple, Union
 
 import numpy as np
 import scipy.sparse as sp
+sp._matrix_io.PICKLE_KWARGS["allow_pickle"] = True
 
 from common import change_dir, extract_tar, print_size, read_config, SparseFormats, timeit
 from rbio import RBio
@@ -102,38 +103,52 @@ class InputManager:
             sp.save_npz(file_path, m)
         return m
 
-    def get_ss_mat(self) -> sp.csc_array:
+    def load_ss(self, mtx: str, form: str, file: Path, ss: SuiteSparse) -> Union[sp.coo_array, sp.csr_array, sp.csc_array]:
+        if form == "csr":
+            mat: sp.csr_array = sp.load_npz(file)
+            return mat
+
+        # Always switch to a temporary directory for tar extraction
+        with change_dir():
+            extract_tar(file)
+            nnz = ss.get_meta(mtx, "num_of_entries")
+            self.args.dtype = "bool" if ss.is_binary(self.args.name) else "float64"
+            self.rbio = RBio()
+            mat: sp.csc_array = self.rbio.read_rb(Path(mtx) / (mtx + ".rb"), self.args.i, self.args.j, nnz, self.args.dtype)
+            if form == "coo":
+                mat: sp.coo_array = mat.tocoo(copy=False)
+            return mat
+
+    def get_ss_mat(self) -> Union[sp.csr_array, sp.coo_array, sp.csc_array]:
         ss = SuiteSparse(self.directory)
         mtx = self.args.name
         self.args.i = ss.get_meta(mtx, "num_of_rows")
         self.args.j = ss.get_meta(mtx, "num_of_cols")
-        nnz = ss.get_meta(mtx, "num_of_entries")
         self.args.dtype = "bool" if ss.is_binary(self.args.name) else "float64"
 
+        compressed = self.directory / f"{mtx}.npz" if self.args.matrix_format == "csr" \
+            else self.directory / f"{mtx}.tar.gz"
+
+        if not self.skip_load and compressed.exists():
+            return self.load_ss(mtx, self.args.matrix_format, compressed, ss)
+
         # If skip_store is False, use a temporary dir to download
-        file_path = self.directory / f"{mtx}.tar.gz"
         download_dir = None if self.skip_store else self.directory
         with change_dir(download_dir):
-            if self.skip_load or not file_path.exists():
-                ss.get_matrix(self.args.name)
-                file_path = f"{mtx}.tar.gz"
-                extract_tar(file_path)
+            ss.get_matrix(self.args.name)
+            file_path = Path(f"{mtx}.tar.gz")
 
-            # Always switch to a temporary directory for the extraction
-            with change_dir():
+            # If the requested format is csr, we need to load it as csc and then transform it to csr
+            form = "csc" if self.args.matrix_format == "csr" else self.args.matrix_format
+            mat = self.load_ss(mtx, form, file_path, ss)
 
-                mtx_file = Path(mtx) / (mtx + ".rb")
-                assert mtx_file.exists()
+            if self.args.matrix_format == "csr":
+                mat = mat.tocsr(copy=False)
+                if not self.skip_store:
+                    out = mtx + ".npz"
+                    sp.save_npz(out, mat.tocsr(copy=False))
 
-                # The matrix is read in the CSC format
-                self.rbio = RBio()
-                mat = self.rbio.read_rb(mtx_file, self.args.i, self.args.j, nnz, self.args.dtype)
-
-        if self.args.matrix_format == "csr":
-            return mat.tocsr(copy=False)
-        elif self.args.matrix_format == "coo":
-            return mat.tocoo(copy=False)
-        return mat
+            return mat
 
     def create_sparse_mat_and_dense_vec(self) -> Tuple[Union[sp.coo_array, sp.csr_array], np.ndarray]:
         return self.create_sparse_mat(), self.create_dense_vec()

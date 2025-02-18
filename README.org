@@ -1,0 +1,20 @@
+* Building the container image
+
+#+begin_src sh
+sudo apptainer build [path where image should be placed]/trireme.sif trireme.def
+#+end_src
+
+* Working with CSR on SuiteSparse matrices
+
+SuiteSparse matrices are provided in COO format (.mtx files) or CSC format (.rb files) by default.
+Converting them to CSR using scipy.sparse (as implemented in this repo) requires significant memory and is best done offline, before running benchmarks.
+On the experiment system—an i9-12900K with 128GB RAM (its maximum capacity)—these transformations will require swap space.
+
+See [[./convert_ss_to_csr.sh]] for details.
+
+* Running tests
+
+Use one worker thread, some modules are not thread safe
+#+begin_src sh
+lit -j1 -a tests
+#+end_src
