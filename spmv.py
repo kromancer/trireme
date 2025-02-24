@@ -110,6 +110,17 @@ def main():
     expected = None
     if args.check_output:
         expected = mat.dot(vec)
+        if args.symmetric:
+            # "expected" reflects just U * vec
+            # "mat" is symmetric, and is stored as an Upper (U) triangular sparse matrix
+            #  Compute: [ U + U^T - D(U) ] * vec
+            UT_vec = mat.transpose().dot(vec)
+            D_vec = mat.diagonal() * vec
+            if args.dtype == "bool":
+                expected = expected + UT_vec ^ D_vec
+            else:
+                expected = expected + UT_vec - D_vec
+
     run_with_aot(args, exe, mat.nnz, mat_buffs, vec, expected, in_man)
 
 

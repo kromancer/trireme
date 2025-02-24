@@ -1,7 +1,7 @@
 import ctypes
 from pathlib import Path
 import platform
-from typing import Union
+from typing import Union, Tuple
 import numpy as np
 import scipy.sparse as sp
 
@@ -51,7 +51,7 @@ class RBio:
         self.suite_sparse_free.argtypes = [ctypes.c_void_p]
         self.suite_sparse_free.restype = ctypes.c_void_p
 
-    def _read(self, mtx: Path, index_type: Union[type[ctypes.c_int64], type[ctypes.c_int64]], dtype: str) -> sp.csc_array:
+    def _read(self, mtx: Path, index_type: Union[type[ctypes.c_int64], type[ctypes.c_int64]], dtype: str) -> Tuple[sp.csc_array, int]:
         # RBread
         if index_type == ctypes.c_int64:
             rbread = self.lib.RBread
@@ -130,10 +130,10 @@ class RBio:
         mat = sp.csc_array((data, indices, indptr), copy=True, shape=(nrow.value, ncol.value))
 
         self.free_and_finish()
-        return mat
+        return mat, asize.value
 
     @timeit
-    def read_rb(self, mtx: Path, i: int, j: int, nnz: int, dtype: str) -> sp.csc_array:
+    def read_rb(self, mtx: Path, i: int, j: int, nnz: int, dtype: str) -> Tuple[sp.csc_array, int]:
         if all(n < 2 ** 31 for n in [i, j, nnz]):
             return self._read(mtx, ctypes.c_int32, dtype)
         else:

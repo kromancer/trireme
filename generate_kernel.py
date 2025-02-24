@@ -24,6 +24,7 @@ pipelines = {
      "loop-invariant-code-motion",
      "sparse-tensor-codegen",
      "sparse-storage-specifier-to-llvm",
+     "cse",
      "one-shot-bufferize{bufferize-function-boundaries function-boundary-type-conversion=identity-layout-map}",
      "convert-scf-to-cf",
      "expand-strided-metadata",
@@ -41,6 +42,7 @@ pipelines = {
      "loop-invariant-code-motion",
      "sparse-tensor-codegen",
      "sparse-storage-specifier-to-llvm",
+     "cse",
      "one-shot-bufferize{bufferize-function-boundaries function-boundary-type-conversion=identity-layout-map}",
      "convert-scf-to-openmp",
      "canonicalize",
@@ -58,6 +60,7 @@ pipelines = {
      "sparse-vectorization{vl=4}",
      "sparse-tensor-codegen",
      "sparse-storage-specifier-to-llvm",
+     "cse",
      "one-shot-bufferize{bufferize-function-boundaries function-boundary-type-conversion=identity-layout-map}",
      "convert-scf-to-cf",
      "expand-strided-metadata",
@@ -185,7 +188,8 @@ def render_template_for_spmv(args: argparse.Namespace) -> str:
     spmv_template = jinja.get_template(template_names[args.optimization])
     spmv_rendered = spmv_template.render(encoding=encoding, mat_type=mat_type, vtype=vtype, out_type=out_type,
                                          add_op=add_op, mul_op=mul_op, dtype=dtype, rows=args.i, cols=args.j,
-                                         pd=args.prefetch_distance, loc_hint=args.locality_hint)
+                                         pd=args.prefetch_distance, loc_hint=args.locality_hint,
+                                         is_symmetric=args.symmetric)
     return spmv_rendered
 
 

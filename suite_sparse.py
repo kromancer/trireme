@@ -39,6 +39,9 @@ class SuiteSparse(metaclass=Singleton):
     def is_binary(self, mtx_name: str) -> int:
         return self.get_meta(mtx_name, "is_binary")
 
+    def is_pattern_symmetric(self, mtx_name: str) -> int:
+        return self.get_meta(mtx_name, "psym")
+
     def get_all_matrix_names(self, is_real: bool = True) -> Set[str]:
         # filters non-complex matrices, including binary
         if is_real:

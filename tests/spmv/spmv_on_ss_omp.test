@@ -1,4 +1,11 @@
+# Symmetric - boolean semiring
 # RUN: env %{LIBVAR}=/opt/SuiteSparse/lib python %S/../../spmv.py --check-output -o omp --matrix-format csc benchmark --repetitions 3 SuiteSparse europe_osm
 # RUN: env %{LIBVAR}=/opt/SuiteSparse/lib python %S/../../spmv.py --check-output -o pref-mlir-omp --matrix-format csc benchmark --repetitions 3 SuiteSparse europe_osm
 # RUN: env %{LIBVAR}=/opt/SuiteSparse/lib python %S/../../spmv.py --check-output -o pref-mlir-omp --matrix-format coo benchmark --repetitions 3 SuiteSparse europe_osm
 # RUN: env %{LIBVAR}=/opt/SuiteSparse/lib python %S/../../spmv.py --check-output -o pref-mlir-omp --matrix-format csr benchmark --repetitions 3 SuiteSparse europe_osm
+
+# Symmetric - floating point arithmetic semiring
+# RUN: env %{LIBVAR}=/opt/SuiteSparse/lib python %S/../../spmv.py --check-output -o omp --matrix-format csc benchmark --repetitions 3 SuiteSparse 1138_bus
+# RUN: env %{LIBVAR}=/opt/SuiteSparse/lib python %S/../../spmv.py --check-output -o pref-mlir-omp --matrix-format csc benchmark --repetitions 3 SuiteSparse 1138_bus
+# RUN: env %{LIBVAR}=/opt/SuiteSparse/lib python %S/../../spmv.py --check-output -o pref-mlir-omp --matrix-format coo benchmark --repetitions 3 SuiteSparse 1138_bus
+# RUN: env %{LIBVAR}=/opt/SuiteSparse/lib python %S/../../spmv.py --check-output -o pref-mlir-omp --matrix-format csr benchmark --repetitions 3 SuiteSparse 1138_bus

@@ -36,7 +36,7 @@ if __name__ == "__main__":
                 else:
                     dtype = "float64"
 
-                mat = rbio.read_rb(rb_file, i, j, nnz, dtype)
+                mat, _ = rbio.read_rb(rb_file, i, j, nnz, dtype)
 
                 @timeit
                 def save():

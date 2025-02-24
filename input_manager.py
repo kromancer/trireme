@@ -81,6 +81,7 @@ class InputManager:
                   f"nnz size: {print_size(m.nnz * m.dtype.itemsize)}"
                   f"{', saved as' + str(file_path) if not self.skip_store else ''}")
 
+        self.args.symmetric = False
         i = self.args.i
         j = self.args.j
         dens = self.args.density
@@ -114,7 +115,8 @@ class InputManager:
             nnz = ss.get_meta(mtx, "num_of_entries")
             self.args.dtype = "bool" if ss.is_binary(self.args.name) else "float64"
             self.rbio = RBio()
-            mat: sp.csc_array = self.rbio.read_rb(Path(mtx) / (mtx + ".rb"), self.args.i, self.args.j, nnz, self.args.dtype)
+            mat, stored_nnz = self.rbio.read_rb(Path(mtx) / (mtx + ".rb"), self.args.i, self.args.j, nnz, self.args.dtype)
+
             if form == "coo":
                 mat: sp.coo_array = mat.tocoo(copy=False)
             return mat
@@ -122,12 +124,14 @@ class InputManager:
     def get_ss_mat(self) -> Union[sp.csr_array, sp.coo_array, sp.csc_array]:
         ss = SuiteSparse(self.directory)
         mtx = self.args.name
+        self.args.symmetric = ss.is_pattern_symmetric(mtx) == 1.0
         self.args.i = ss.get_meta(mtx, "num_of_rows")
         self.args.j = ss.get_meta(mtx, "num_of_cols")
         self.args.dtype = "bool" if ss.is_binary(self.args.name) else "float64"
 
+        tar_gz = self.directory / f"{mtx}.tar.gz"
         compressed = self.directory / f"{mtx}.npz" if self.args.matrix_format == "csr" \
-            else self.directory / f"{mtx}.tar.gz"
+            else tar_gz
 
         if not self.skip_load and compressed.exists():
             return self.load_ss(mtx, self.args.matrix_format, compressed, ss)
@@ -135,12 +139,12 @@ class InputManager:
         # If skip_store is False, use a temporary dir to download
         download_dir = None if self.skip_store else self.directory
         with change_dir(download_dir):
-            ss.get_matrix(self.args.name)
-            file_path = Path(f"{mtx}.tar.gz")
+            if self.skip_load or not tar_gz.exists():
+                ss.get_matrix(self.args.name)
 
             # If the requested format is csr, we need to load it as csc and then transform it to csr
             form = "csc" if self.args.matrix_format == "csr" else self.args.matrix_format
-            mat = self.load_ss(mtx, form, file_path, ss)
+            mat = self.load_ss(mtx, form, tar_gz, ss)
 
             if self.args.matrix_format == "csr":
                 mat = mat.tocsr(copy=False)
