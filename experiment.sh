@@ -12,7 +12,7 @@ mv results.json prof-ains.json
 python spmv_on_suitesparse.py -c all -1gb $DISABLE_OPT -o pref-mlir --matrix-format csr profile perf record
 mv results.json prof-mlir.json
 
-python spmv_on_suitesparse.py -c all -1gb $DISABLE_OPT -o no-opt --matrix-format csr profile perf record
+python spmv_on_suitesparse.py -c all -1gb -o no-opt --matrix-format csr profile perf record
 mv results.json prof-no-opt.json
 
 python spmv_on_suitesparse.py -c all -1gb $DISABLE_OPT -o pref-ains --matrix-format csr benchmark --repetitions 10
@@ -21,5 +21,5 @@ mv results.json bench-ains.json
 python spmv_on_suitesparse.py -c all -1gb $DISABLE_OPT -o pref-mlir --matrix-format csr benchmark --repetitions 10
 mv results.json bench-mlir.json
 
-python spmv_on_suitesparse.py -c all -1gb $DISABLE_OPT -o no-opt --matrix-format csr benchmark --repetitions 10
+python spmv_on_suitesparse.py -c all -1gb -o no-opt --matrix-format csr benchmark --repetitions 10
 mv results.json bench-no-opt.json
