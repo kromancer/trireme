@@ -77,6 +77,9 @@ def save_hw_event_report_to_csv(log: str, args_re: str) -> Path:
 def plot_mean_exec_times(logs: List[Dict], series: Dict) -> None:
     means = [log['mean_ms'] for log in logs]
 
+    if "normalize" in series:
+        means = [log['mean_ms'] / logs[0]['mean_ms'] for log in logs]
+
     x_vals = list(range(series['x_start'], series['x_start'] + len(means)))
 
     # Find the minimum value and its index
@@ -89,7 +92,7 @@ def plot_mean_exec_times(logs: List[Dict], series: Dict) -> None:
     # Highlight the minimum point
     plt.scatter(min_x_value, min_value, color='red', s=20, zorder=5)
 
-    plt.plot(x_vals, means, label=series['label'] + f", min({min_x_value:.0f}, {min_value:.0f})")
+    plt.plot(x_vals, means, label=series['label'] + f", min({min_x_value:.0f}, {min_value:.3f})")
 
 
 def plot_mean_exec_times_ss(logs: List[Dict], series: Dict) -> None:
@@ -98,7 +101,7 @@ def plot_mean_exec_times_ss(logs: List[Dict], series: Dict) -> None:
     X-axis is the number of non-zero elements of the matrix
     """
     m_names = [re.search(r'SuiteSparse\s+(\S+)', log['args']).group(1) for log in logs]
-    names_to_nnz = SuiteSparse(InputManager.get_working_dir()).get_all_matrix_names_with_nnz()
+    names_to_nnz = SuiteSparse(InputManager.get_working_dir("SuiteSparse")).get_all_matrix_names_with_nnz()
     nnz = [names_to_nnz[n] for n in m_names]
 
     means_all = []
@@ -125,22 +128,45 @@ def plot_events_perf_ss(logs: List[Dict], series: Dict) -> None:
     Plot perf mon events for SparseSuite matrices
     X-axis is the number of non-zero elements of the matrix
     """
-    m_names = [re.search(r'SuiteSparse\s+(\S+)', log['args']).group(1) for log in logs]
-    names_to_nnz = SuiteSparse(working_dir=InputManager.get_working_dir()).get_all_matrix_names_with_nnz()
-    x_vals = [names_to_nnz[n] for n in m_names]
+    event_name = series["event"]
+    e_pattern = re.compile(
+        r"event\s+'{}'.*?# Event count \(approx\.\):\s*(\d+)".format(re.escape(event_name)),
+        re.DOTALL
+    )
 
-    e_counts = [float(e["counter-value"])
-                for log in logs
-                for e in log["report"] if e["event"] == series["event"]]
-
+    norm_pattern = None
     if "normalize" in series:
-        norm_e_counts = [float(e["counter-value"])
-                         for log in logs
-                         for e in log["report"] if e["event"] == series["normalize"]]
-        e_counts = [e / n for e, n in zip(e_counts, norm_e_counts)]
+        normalization_event = series["normalize"]
+        norm_pattern = re.compile(
+            r"event\s+'{}'.*?# Event count \(approx\.\):\s*(\d+)".format(re.escape(normalization_event)),
+            re.DOTALL
+        )
+
+    e_counts = []
+    x_vals = []
+    names_to_nnz = SuiteSparse(working_dir=InputManager.get_working_dir("SuiteSparse")).get_all_matrix_names_with_nnz()
+    for log in logs:
+        if "perf-report" not in log:
+            assert log["status"] != "complete"
+            print(f"perf-report not in {log['args']}")
+            continue
+        match = e_pattern.search(log["perf-report"])
+        if match:
+            e_counts.append(float(match.group(1)))
+            m_name = re.search(r'SuiteSparse\s+(\S+)', log["args"]).group(1)
+            x_vals.append(names_to_nnz[m_name])
+
+        if norm_pattern is not None:
+            match2 = norm_pattern.search(log["perf-report"])
+            if match2:
+                norm = float(match2.group(1))
+                normalized = e_counts.pop() / norm
+                assert normalized <= 1
+                e_counts.append(normalized)
+
     plt.scatter(x_vals, e_counts, label=series['label'], s=5)
     plt.xscale("log")
-    # plt.yscale("log")
+    plt.yscale("log")
 
 
 def plot_observed_max_bandwidth(logs: List[Dict], series: Dict) -> None:
@@ -275,7 +301,7 @@ def main():
             "plot_mean_exec_times": plot_mean_exec_times,
             "plot_observed_max_bandwidth": plot_observed_max_bandwidth,
             "plot_event": plot_events_from_vtune,
-            "plot_event_perf_ss": plot_events_perf_ss,
+            "plot_events_perf_ss": plot_events_perf_ss,
             "plot_mean_exec_times_ss": plot_mean_exec_times_ss
         }[series["plot_method"]](logs, series)
 

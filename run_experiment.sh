@@ -42,10 +42,10 @@ set_cpu_to_max_freq() {
 }
 
 prevent_swaps() {
-    sysctl -w vm.overcommit_memory=0
+    sysctl -w vm.overcommit_memory=0 > /dev/null
     echo "✅ vm.overcommit_memory=0"
 
-    sysctl vm.swappiness=0
+    sysctl vm.swappiness=0 > /dev/null
     echo "✅ sysctl vm.swappiness=0"
 }
 
@@ -54,4 +54,4 @@ set_performance_governor $1
 set_cpu_to_max_freq $1
 prevent_swaps
 
-cset shield -e -- apptainer exec trireme.sif sh -c "cd trireme && taskset -c $1 ./experiment.sh"
+cset shield -e -- apptainer exec --memory 120G --memory-swap 120G trireme.sif sh -c "cd trireme && taskset -c $1 ./experiment.sh"

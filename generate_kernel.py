@@ -103,8 +103,11 @@ def apply_passes(args: argparse.Namespace, src: str, kernel: str, pipeline: str,
 
         # Adapt the prefetch distance
         if "pd" in mlir_opt_pass:
+            # Adapt the prefetch distance to be three times the one specified
+            # if we are operating on the boolean semiring
+            pd = 3 * args.prefetch_distance if args.dtype == "bool" else args.prefetch_distance
             mlir_opt_pass = mlir_opt_pass.replace("pd=?",
-                                                  f"pd={args.prefetch_distance}")
+                                                  f"pd={pd}")
 
         run_pass.call_count += 1
         try:

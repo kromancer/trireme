@@ -1,16 +1,21 @@
 {
     "useful-events": {
         "ecore": [
-            "mem_uops_retired.all_loads:uppp",
-            "mem_load_uops_retired.dram_hit:uppp"
+            "cpu_clk_unhalted.core:upp",
+            "mem_uops_retired.all_loads:upp",
+            "mem_load_uops_retired.dram_hit:upp",
+            "mem_load_uops_retired.l3_hit:upp",
+            "mem_load_uops_retired.l2_hit:upp",
+            "dtlb_load_misses.walk_completed:upp",
+            "ld_head.dtlb_miss_at_ret:upp"
         ],
         "pcore": [
-            "mem_inst_retired.all_loads:uppp"
+            "mem_inst_retired.all_loads:upp"
         ]
     },
     "record": [
         "record",
-        "-c", "250",
-        "-e", "mem_load_uops_retired.dram_hit:uppp"
+        "-c", "300",
+        "-e", "mem_load_uops_retired.dram_hit:upp"
     ]
 }

@@ -1,8 +1,6 @@
 from argparse import Namespace
 import json
-import os
 from pathlib import Path
-from platform import machine
 from subprocess import run
 from typing import Dict, List
 
