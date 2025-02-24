@@ -69,7 +69,7 @@ def add_args_for_profile(parser: ArgumentParser):
 
 
 def add_prefetch_distance_arg(parser: ArgumentParser):
-    parser.add_argument("-pd", "--prefetch-distance", type=int, default=45,
+    parser.add_argument("-pd", "--prefetch-distance", type=int, default=0,
                         help="Prefetch distance when operating on a floating point arithmetic semiring"
                              "This will be automatically adjusted to 3x the distance specified for the boolean semiring")
 
