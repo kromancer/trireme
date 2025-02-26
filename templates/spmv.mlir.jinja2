@@ -34,12 +34,12 @@ module {
          ^bb0(%bij: {{ dtype }}, %ci: {{ dtype }}, %aj: {{ dtype }}) :
            %row = linalg.index 0 : index
            %col = linalg.index 1 : index
-           %acc = sparse_tensor.reduce %bij, %ci, %c0: {{ dtype }} {
-             ^bb0(%bij_: {{ dtype }}, %ci_: {{ dtype }}):
-               %t1 = {{ mul_op }} %bij_, %ci_ : {{ dtype }}
-               %t2 = {{ add_op }} %t1, %aj: {{ dtype }}
+           %acc = sparse_tensor.reduce %bij, %aj, %c0: {{ dtype }} {
+             ^bb0(%bij_: {{ dtype }}, %aj_: {{ dtype }}):
+               %t1 = {{ mul_op }} %bij_, %ci : {{ dtype }}
+               %t2 = {{ add_op }} %t1, %aj_: {{ dtype }}
                %is_diag = arith.cmpi eq, %row, %col : index
-               %sel = arith.select %is_diag, %aj, %t2: {{ dtype }}
+               %sel = arith.select %is_diag, %aj_, %t2: {{ dtype }}
                sparse_tensor.yield %sel: {{ dtype }}
            }
            linalg.yield %acc: {{ dtype }}
