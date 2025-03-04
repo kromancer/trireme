@@ -37,7 +37,19 @@
 #define DISABLE_HW_PREF_LLC_STREAM 0
 #endif
 
-#if DISABLE_HW_PREF_L1_NLP == 1 || DISABLE_HW_PREF_L1_IPP == 1 || DISABLE_HW_PREF_L1_NPP == 1 || DISABLE_HW_PREF_L2_STREAM == 1 || DISABLE_HW_PREF_L2_AMP == 1 || DISABLE_HW_PREF_LLC_STREAM == 1
+#ifndef SET_L2_STREAM_DD
+#warning "SET_L2_STREAM_DD not defined, L2's Demand Density Threshold won't change (applicable for only on intel atom cores)"
+#define SET_L2_STREAM_DD -1
+#endif
+
+
+#if DISABLE_HW_PREF_L1_NLP == 1 || \\
+    DISABLE_HW_PREF_L1_IPP == 1 || \\
+    DISABLE_HW_PREF_L1_NPP == 1 || \\
+    DISABLE_HW_PREF_L2_STREAM == 1 || \\
+    DISABLE_HW_PREF_L2_AMP == 1 || \\
+    DISABLE_HW_PREF_LLC_STREAM == 1 || \\
+    SET_L2_STREAM_DD != -1
 #define HW_PREF_CONTROL_ON 1
 #else
 #define HW_PREF_CONTROL_ON 0
@@ -88,6 +100,10 @@ int init_hw_pref_control(void) {
     assert(msr_disable_llcstream(msr) == 0);
 #endif
 
+#if SET_L2_STREAM_DD != -1
+    msr_set_l2dd(msr, SET_L2_STREAM_DD);
+#endif
+
 #if HW_PREF_CONTROL_ON == 1
     assert(msr_write_all(msr_file, msr) >= 0);
 #endif
@@ -125,6 +141,10 @@ void deinit_hw_pref_control(void) {
 
 #if DISABLE_HW_PREF_LLC_STREAM == 1
     assert(msr_enable_llcstream(msr) == 1);
+#endif
+
+#if SET_L2_STREAM_DD != -1
+    assert(msr_get_l2dd(msr) == SET_L2_STREAM_DD);
 #endif
 
 #if HW_PREF_CONTROL_ON == 1
