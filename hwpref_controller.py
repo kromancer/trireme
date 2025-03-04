@@ -36,8 +36,9 @@ class HwprefController:
 
     def __init__(self, args):
 
-        self.skip = not any([args.disable_l1_ipp, args.disable_l1_npp, args.disable_l2_stream, args.disable_l2_amp,
-                             args.disable_llc_stream])
+        self.skip = (not any([args.disable_l1_ipp, args.disable_l1_npp, args.disable_l1_nlp,
+                             args.disable_l2_stream, args.disable_l2_amp, args.disable_llc_stream])
+                     and args.l2_stream_dd == -1)
         if self.skip:
             return
 

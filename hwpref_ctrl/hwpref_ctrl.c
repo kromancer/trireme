@@ -43,13 +43,13 @@
 #endif
 
 
-#if DISABLE_HW_PREF_L1_NLP == 1 || \\
-    DISABLE_HW_PREF_L1_IPP == 1 || \\
-    DISABLE_HW_PREF_L1_NPP == 1 || \\
-    DISABLE_HW_PREF_L2_STREAM == 1 || \\
-    DISABLE_HW_PREF_L2_AMP == 1 || \\
-    DISABLE_HW_PREF_LLC_STREAM == 1 || \\
-    SET_L2_STREAM_DD != -1
+#if (DISABLE_HW_PREF_L1_NLP == 1) || \
+  (DISABLE_HW_PREF_L1_IPP == 1) || \
+  (DISABLE_HW_PREF_L1_NPP == 1) || \
+  (DISABLE_HW_PREF_L2_STREAM == 1) || \
+  (DISABLE_HW_PREF_L2_AMP == 1) || \
+  (DISABLE_HW_PREF_LLC_STREAM == 1) || \
+  (SET_L2_STREAM_DD != -1)
 #define HW_PREF_CONTROL_ON 1
 #else
 #define HW_PREF_CONTROL_ON 0
