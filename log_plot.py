@@ -7,7 +7,7 @@ from io import StringIO
 from pathlib import Path
 import re
 from statistics import harmonic_mean, mean, median, stdev
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 from git import Repo
 from matplotlib import pyplot as plt
@@ -74,11 +74,11 @@ def save_hw_event_report_to_csv(log: str, args_re: str) -> Path:
         f.write(entry["vtune-hw-events.csv"])
 
 
-def plot_mean_exec_times(logs: List[Dict], series: Dict) -> None:
+def plot_mean_exec_times(logs: List[Dict], series: Dict, normalize: Optional[float]) -> None:
     means = [log['mean_ms'] for log in logs]
 
-    if "normalize" in series:
-        means = [log['mean_ms'] / logs[0]['mean_ms'] for log in logs]
+    if normalize is not None:
+        means = [log['mean_ms'] / normalize for log in logs]
 
     x_vals = list(range(series['x_start'], series['x_start'] + len(means)))
 
@@ -95,7 +95,7 @@ def plot_mean_exec_times(logs: List[Dict], series: Dict) -> None:
     plt.plot(x_vals, means, label=series['label'] + f", min({min_x_value:.0f}, {min_value:.3f})")
 
 
-def plot_mean_exec_times_ss(logs: List[Dict], series: Dict) -> None:
+def plot_mean_exec_times_ss(logs: List[Dict], series: Dict, normalize: Optional[float]) -> None:
     """
     Plot mean exec times for SparseSuite matrices
     X-axis is the number of non-zero elements of the matrix
@@ -123,7 +123,7 @@ def plot_mean_exec_times_ss(logs: List[Dict], series: Dict) -> None:
     plt.yscale("log")
 
 
-def plot_events_perf_ss(logs: List[Dict], series: Dict) -> None:
+def plot_events_perf_ss(logs: List[Dict], series: Dict, normalize: Optional[float]) -> None:
     """
     Plot perf mon events for SparseSuite matrices
     X-axis is the number of non-zero elements of the matrix
@@ -169,7 +169,7 @@ def plot_events_perf_ss(logs: List[Dict], series: Dict) -> None:
     plt.yscale("log")
 
 
-def plot_observed_max_bandwidth(logs: List[Dict], series: Dict) -> None:
+def plot_observed_max_bandwidth(logs: List[Dict], series: Dict, normalize: Optional[float]) -> None:
     bw = []
     for log in logs:
         # Regular expression to find the line starting with 'DRAM, GB/sec'
@@ -248,7 +248,7 @@ def get_git_commit_hash():
     return commit_hash
 
 
-def plot_events_from_vtune(logs: List[Dict], series: Dict) -> None:
+def plot_events_from_vtune(logs: List[Dict], series: Dict, normalize: Optional[float]) -> None:
     event_counts = []
     for log in logs:
         csv_file = StringIO(log["vtune-hw-events.csv"])
@@ -291,6 +291,13 @@ def main():
 
     base_path = Path(config_file).resolve().parent
 
+    normalize = None
+    if "normalize" in config:
+        log_path = base_path / Path(config["normalize"]['file']).relative_to('.')
+        means = filter_logs(log_path, config["normalize"]['args_re'])
+        assert len(means) == 1
+        normalize = means[0]["mean_ms"]
+
     for series in config['series']:
         log = base_path / Path(series['file']).relative_to('.')
 
@@ -303,7 +310,7 @@ def main():
             "plot_event": plot_events_from_vtune,
             "plot_events_perf_ss": plot_events_perf_ss,
             "plot_mean_exec_times_ss": plot_mean_exec_times_ss
-        }[series["plot_method"]](logs, series)
+        }[series["plot_method"]](logs, series, normalize)
 
     if "baselines" in config:
         for baseline in config['baselines']:
