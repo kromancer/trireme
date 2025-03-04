@@ -23,6 +23,8 @@ class HwprefController:
                                 help='Disable the LLC Stream Prefetcher')
         arg_parser.add_argument('--l2-stream-dd', type=int, choices=range(-1, 256), default=-1,
                                 help="Set the L2 Stream's Demand Density Threshold")
+        arg_parser.add_argument('--l2-stream-dd-ovr', type=int, choices=range(-1, 15), default=-1,
+                                help="Set the L2 Stream's Demand Density Threshold Override")
 
     @staticmethod
     def get_cmake_args(args):
@@ -32,13 +34,14 @@ class HwprefController:
                 f"-DDISABLE_HW_PREF_L2_STREAM={1 if args.disable_l2_stream else 0}",
                 f"-DDISABLE_HW_PREF_L2_AMP={1 if args.disable_l2_amp else 0}",
                 f"-DDISABLE_HW_PREF_LLC_STREAM={1 if args.disable_llc_stream else 0}",
-                f"-DSET_L2_STREAM_DD={args.l2_stream_dd}"]
+                f"-DSET_L2_STREAM_DD={args.l2_stream_dd}",
+                f"-DSET_L2_STREAM_DD_OVR={args.l2_stream_dd_ovr}"]
 
     def __init__(self, args):
 
         self.skip = (not any([args.disable_l1_ipp, args.disable_l1_npp, args.disable_l1_nlp,
                              args.disable_l2_stream, args.disable_l2_amp, args.disable_llc_stream])
-                     and args.l2_stream_dd == -1)
+                     and args.l2_stream_dd == -1 and args.l2_stream_dd_ovr == -1)
         if self.skip:
             return
 

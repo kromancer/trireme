@@ -3,23 +3,52 @@
 source /home/paul/venv/bin/activate
 source /opt/intel/oneapi/setvars.sh
 
-DISABLE_ALL="--disable-l1-nlp --disable-l1-ipp --disable-l1-npp --disable-l2-stream --disable-l2-amp --disable-llc-stream"
-DISABLE_OPT="--disable-l1-nlp --disable-l2-amp"
+REPS=10
 
-python spmv_on_suitesparse.py -c all -1gb $DISABLE_OPT -o pref-ains --matrix-format csr profile perf record
-mv results.json prof-ains.json
+L2_DD="--l2-stream-dd 192"
 
-python spmv_on_suitesparse.py -c all -1gb $DISABLE_OPT -o pref-mlir --matrix-format csr profile perf record
-mv results.json prof-mlir.json
+MLC_STREAMER="--disable-l1-nlp --disable-l1-ipp --disable-l2-amp --disable-llc-stream"
+L1_IPP_MLC_STREAMER="--disable-l1-nlp --disable-l2-amp --disable-llc-stream"
+L1_IPP_MLC_STREAMER_LLC_STREAMER="--disable-l1-nlp --disable-l2-amp"
 
-python spmv_on_suitesparse.py -c all -1gb -o no-opt --matrix-format csr profile perf record
-mv results.json prof-no-opt.json
+MTX=kmer_U1a
 
-python spmv_on_suitesparse.py -c all -1gb $DISABLE_OPT -o pref-ains --matrix-format csr benchmark --repetitions 10
-mv results.json bench-ains.json
+for pd in $(seq 0 4 128); do
+    for dd in $(seq 0 5 255); do
+        for ovr in {0..15}; do
+            python spmv.py --l2-stream-dd $dd --l2-stream-dd-ovr $ovr -1gb -pd=$pd --matrix-format csr benchmark --repetitions $REPS SuiteSparse $MTX
+        done
+    done
+done
 
-python spmv_on_suitesparse.py -c all -1gb $DISABLE_OPT -o pref-mlir --matrix-format csr benchmark --repetitions 10
-mv results.json bench-mlir.json
+mv results.json $MTX-all-enabled-dd-ovr.json
 
-python spmv_on_suitesparse.py -c all -1gb -o no-opt --matrix-format csr benchmark --repetitions 10
-mv results.json bench-no-opt.json
+for pd in $(seq 0 4 128); do
+    for dd in $(seq 0 5 255); do
+        for ovr in {0..15}; do
+            python spmv.py --l2-stream-dd $dd --l2-stream-dd-ovr $ovr $MLC_STREAMER -1gb -pd=$pd --matrix-format csr benchmark --repetitions $REPS SuiteSparse $MTX
+        done
+    done
+done
+
+mv results.json $MTX-mlc-streamer-dd-ovr.json
+
+for pd in $(seq 0 4 128); do
+    for dd in $(seq 0 5 255); do
+        for ovr in {0..15}; do
+            python spmv.py --l2-stream-dd $dd --l2-stream-dd-ovr $ovr $L1_IPP_MLC_STREAMER -1gb -pd=$pd --matrix-format csr benchmark --repetitions $REPS SuiteSparse $MTX
+        done
+    done
+done
+
+mv results.json $MTX-l1-ipp-mlc-streamer-dd-ovr.json
+
+for pd in $(seq 0 4 128); do
+    for dd in $(seq 0 5 255); do
+        for ovr in {0..15}; do
+            python spmv.py --l2-stream-dd $dd --l2-stream-dd-ovr $ovr $L1_IPP_MLC_STREAMER_LLC_STREAMER -1gb -pd=$pd --matrix-format csr benchmark --repetitions $REPS SuiteSparse $MTX
+        done
+    done
+done
+
+mv results.json $MTX-l1-ipp-mlc-streamer-llc-streamer-dd-ovr.json
