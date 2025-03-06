@@ -1,7 +1,7 @@
 From 4ab84d9c642f13622a4f90b5164d4f053108afb7 Mon Sep 17 00:00:00 2001
 From: Konstantinos Sotiropoulos <konstantinos.sotiropoulos@chalmers.se>
 Date: Fri, 3 Jan 2025 10:42:07 +0100
-Subject: [PATCH 2/4] [mlir][sparse] Add prefetching for irregular accesses
+Subject: [PATCH 2/5] [mlir][sparse] Add prefetching for irregular accesses
 
 ---
  .../Dialect/SparseTensor/Pipelines/Passes.h   |  6 +-

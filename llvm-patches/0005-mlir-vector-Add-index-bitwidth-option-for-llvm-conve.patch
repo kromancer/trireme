@@ -1,0 +1,42 @@
+From 71c8d8b88728e9d52f72372e1e5f7dfe4f145823 Mon Sep 17 00:00:00 2001
+From: Konstantinos Sotiropoulos <konstantinos.sotiropoulos@chalmers.se>
+Date: Thu, 6 Mar 2025 22:13:57 +0100
+Subject: [PATCH 5/5] [mlir][vector] Add `index-bitwidth` option for llvm
+ conversion pass
+
+---
+ mlir/include/mlir/Conversion/Passes.td                       | 3 +++
+ mlir/lib/Conversion/VectorToLLVM/ConvertVectorToLLVMPass.cpp | 3 +++
+ 2 files changed, 6 insertions(+)
+
+diff --git a/mlir/include/mlir/Conversion/Passes.td b/mlir/include/mlir/Conversion/Passes.td
+index c86d8f0cc69a..586096452e29 100644
+--- a/mlir/include/mlir/Conversion/Passes.td
++++ b/mlir/include/mlir/Conversion/Passes.td
+@@ -1448,6 +1448,9 @@ def ConvertVectorToLLVMPass : Pass<"convert-vector-to-llvm"> {
+            "vector::VectorTransformsOptions",
+            /*default=*/"vector::VectorTransformsOptions()",
+            "Options to lower some operations like contractions and transposes.">,
++    Option<"indexBitwidth", "index-bitwidth", "unsigned",
++           /*default=kDeriveIndexBitwidthFromDataLayout*/"0",
++           "Bitwidth of the index type, 0 to use size of machine word">,
+   ];
+ }
+ 
+diff --git a/mlir/lib/Conversion/VectorToLLVM/ConvertVectorToLLVMPass.cpp b/mlir/lib/Conversion/VectorToLLVM/ConvertVectorToLLVMPass.cpp
+index e3a81bd20212..883e0a3df7b4 100644
+--- a/mlir/lib/Conversion/VectorToLLVM/ConvertVectorToLLVMPass.cpp
++++ b/mlir/lib/Conversion/VectorToLLVM/ConvertVectorToLLVMPass.cpp
+@@ -86,6 +86,9 @@ void ConvertVectorToLLVMPass::runOnOperation() {
+ 
+   // Convert to the LLVM IR dialect.
+   LowerToLLVMOptions options(&getContext());
++  if (indexBitwidth != kDeriveIndexBitwidthFromDataLayout)
++    options.overrideIndexBitwidth(indexBitwidth);
++
+   LLVMTypeConverter converter(&getContext(), options);
+   RewritePatternSet patterns(&getContext());
+   populateVectorTransferLoweringPatterns(patterns);
+-- 
+2.48.1
+

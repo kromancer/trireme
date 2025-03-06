@@ -65,9 +65,9 @@ pipelines = {
      "convert-scf-to-cf",
      "expand-strided-metadata",
      "lower-affine",
-     "finalize-memref-to-llvm{index-bitwidth=? use-aligned-alloc=false use-generic-functions=false}",
-     f"convert-vector-to-llvm{{{'enable-x86vector' if machine() == 'x86_64' else 'enable-arm-neon'}}}",
+     f"convert-vector-to-llvm{{{'enable-x86vector' if machine() == 'x86_64' else 'enable-arm-neon'} index-bitwidth=?}}",
      "convert-func-to-llvm{index-bitwidth=? use-bare-ptr-memref-call-conv=false}",
+     "finalize-memref-to-llvm{index-bitwidth=? use-aligned-alloc=false use-generic-functions=false}",
      "convert-arith-to-llvm{index-bitwidth=?}",
      "convert-index-to-llvm{index-bitwidth=?}",
      "convert-cf-to-llvm{index-bitwidth=?}",
@@ -93,7 +93,7 @@ to_mlir_type = {
 
 
 def apply_passes(args: argparse.Namespace, src: str, kernel: str, pipeline: str,
-                 index_type: np.dtype = np.dtype("int64")) -> Tuple[ir.Module, Path]:
+                 index_type: np.dtype = np.dtype("int32")) -> Tuple[ir.Module, Path]:
     out_file_name: str
 
     def run_pass(mlir_opt_pass: str):
@@ -238,6 +238,8 @@ def parse_args() -> argparse.Namespace:
     add_dtype_arg(parser)
     add_locality_hint_arg(parser)
     add_prefetch_distance_arg(parser)
+    parser.add_argument("--symmetric", action="store_true",
+                        help="Assume that the matrix is symmetric (only for spmv)")
 
     subparsers = parser.add_subparsers(dest="kernel", help="Which kernel to generate")
 

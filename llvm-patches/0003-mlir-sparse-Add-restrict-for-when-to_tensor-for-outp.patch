@@ -1,7 +1,7 @@
 From 1d89194f476c5923645d7da124369c73c8d79225 Mon Sep 17 00:00:00 2001
 From: Konstantinos Sotiropoulos <konstantinos.sotiropoulos@chalmers.se>
 Date: Fri, 3 Jan 2025 10:43:03 +0100
-Subject: [PATCH 3/4] [mlir][sparse] Add `restrict` for when `to_tensor` for
+Subject: [PATCH 3/5] [mlir][sparse] Add `restrict` for when `to_tensor` for
  output
 
 ---
