@@ -2,46 +2,49 @@
 
 module {
 
-  func.func @spmv(%a: {{ out_type }},
+  func.func @spmv(%a_t: {{ out_type }},
                   %B: {{ mat_type }},
-                  %vec: {{ vtype }}) -> {{ out_type }} {
+                  %c_t: {{ vtype }}) -> {{ out_type }} {
 
     %rows = arith.constant {{ rows }} : index
     %c0 = arith.constant 0 : index
     %c1 = arith.constant 1 : index
     %pd = arith.constant {{ pd }} : index
 
-    %positions_buff = sparse_tensor.positions %B {level = 1 : index} : {{ mat_type }} to memref<?xindex>
-    %coordinates_buff = sparse_tensor.coordinates %B {level = 1 : index} : {{ mat_type }} to memref<?xindex>
+    %Bj_pos = sparse_tensor.positions %B {level = 1 : index} : {{ mat_type }} to memref<?xindex>
+    %Bj_crd = sparse_tensor.coordinates %B {level = 1 : index} : {{ mat_type }} to memref<?xindex>
     %values_buff = sparse_tensor.values %B : {{ mat_type }} to memref<?x{{ dtype }}>
 
-    %vec_buff = bufferization.to_memref %vec : memref<{{ cols }}x{{ dtype }}>
-    %a_buff = bufferization.to_memref %a : memref<{{ rows }}x{{ dtype }}>
+    %c = bufferization.to_memref %c_t : {{ vtype }} to memref<{{ cols }}x{{ dtype }}>
+    %a = bufferization.to_memref %a_t : {{ out_type }} to memref<{{ rows }}x{{ dtype }}>
+
+    %Bj_crd_size = memref.load %Bj_pos[%rows] : memref<?xindex>
+    %bound = arith.subi %Bj_crd_size, %c1 : index
 
     scf.for %i = %c0 to %rows step %c1 {
-      %f0 = memref.load %a_buff[%i] : memref<{{ rows }}x{{ dtype }}>
+      %f0 = memref.load %a[%i] : memref<{{ rows }}x{{ dtype }}>
 
-      %j_start = memref.load %positions_buff[%i] : memref<?xindex>
+      %seg_start = memref.load %Bj_pos[%i] : memref<?xindex>
       %i_plus_one = arith.addi %i, %c1 : index
-      %j_end = memref.load %positions_buff[%i_plus_one] : memref<?xindex>
+      %seg_end = memref.load %Bj_pos[%i_plus_one] : memref<?xindex>
 
-      %a_i = scf.for %j = %j_start to %j_end step %pd iter_args(%acc1 = %f0) -> f64 {
+      %a_i = scf.for %jj = %seg_start to %seg_end step %pd iter_args(%acc1 = %f0) -> f64 {
 
-        // find min(j + pd, j_end)
-        %j_plus_pd = arith.addi %j, %pd : index
-        %j_plus_pd_or_j_end = arith.minui %j_plus_pd, %j_end : index
-
+        %jj_plus_pd = arith.addi %jj, %pd : index
+        %jj_plus_pd_or_bound = arith.minui %jj_plus_pd, %bound : index
+        %jj_plus_pd_or_segend = arith.minui %jj_plus_pd, %seg_end : index
+	
         // SPE loop
-        scf.for %pre = %j to %j_plus_pd_or_j_end step %c1 {
-          %col_idx = memref.load %coordinates_buff[%pre] : memref<?xindex>
-          memref.prefetch %vec_buff[%col_idx], read, locality<{{ loc_hint }}>, data : memref<{{ cols }}x{{ dtype }}>
+        scf.for %pre = %jj to %jj_plus_pd_or_bound step %c1 {
+          %j = memref.load %Bj_crd[%pre] : memref<?xindex>
+          memref.prefetch %c[%j], read, locality<{{ loc_hint }}>, data : memref<{{ cols }}x{{ dtype }}>
         }
 
         // main loop
-        %partial_dot_prod = scf.for %main = %j to %j_plus_pd_or_j_end step %c1 iter_args(%acc2 = %f0) -> f64 {
-          %col_idx = memref.load %coordinates_buff[%main] : memref<?xindex>
+        %partial_dot_prod = scf.for %main = %jj to %jj_plus_pd_or_segend step %c1 iter_args(%acc2 = %f0) -> f64 {
+          %j = memref.load %Bj_crd[%main] : memref<?xindex>
           %t_val = memref.load %values_buff[%main] : memref<?x{{ dtype }}>
-          %v_val = memref.load %vec_buff[%col_idx] : memref<{{ cols }}x{{ dtype }}>
+          %v_val = memref.load %c[%j] : memref<{{ cols }}x{{ dtype }}>
           %14 = {{ mul_op }} %t_val, %v_val : f64
           %15 = {{ add_op }} %acc2, %14 : f64
           scf.yield %15 : f64
@@ -51,10 +54,10 @@ module {
         scf.yield %dot_prod : f64
       }
 
-      memref.store %a_i, %a_buff[%i] : memref<{{ rows }}x{{ dtype }}>
+      memref.store %a_i, %a[%i] : memref<{{ rows }}x{{ dtype }}>
     }
 
-    %5 = bufferization.to_tensor %a_buff restrict : memref<{{ rows }}x{{ dtype }}>
+    %5 = bufferization.to_tensor %a restrict : memref<{{ rows }}x{{ dtype }}> to {{ out_type }}
     return %5 : {{ out_type }}
   }
 }
