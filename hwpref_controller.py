@@ -23,7 +23,7 @@ class HwprefController:
                                 help='Disable the LLC Stream Prefetcher')
         arg_parser.add_argument('--l2-stream-dd', type=int, choices=range(-1, 256), default=-1,
                                 help="Set the L2 Stream's Demand Density Threshold")
-        arg_parser.add_argument('--l2-stream-dd-ovr', type=int, choices=range(-1, 15), default=-1,
+        arg_parser.add_argument('--l2-stream-dd-ovr', type=int, choices=range(-1, 16), default=-1,
                                 help="Set the L2 Stream's Demand Density Threshold Override")
 
     @staticmethod

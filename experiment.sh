@@ -3,6 +3,8 @@
 source /home/paul/venv/bin/activate
 source /opt/intel/oneapi/setvars.sh
 
+export LC_ALL=C
+
 REPS=10
 
 L2_DD="--l2-stream-dd 192"

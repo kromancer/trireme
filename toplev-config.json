@@ -1,12 +1,20 @@
 {
-
-
-
     "drilldown": [
         "--drilldown",
         "--no-multiplex",
         "--user",
         "--cputype", "atom",
         "--level", "6"
+    ],
+    "bottlenecks": [
+	"--bottlenecks",
+	"--long-desc",
+        "--no-multiplex",
+        "--user",
+	"--all",
+	"--frequency",
+        "--cputype", "atom",
+        "--level", "1",
+	"--single-thread"
     ]
 }
