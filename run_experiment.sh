@@ -12,6 +12,18 @@ check_turbo() {
     fi
 }
 
+check_hwp() {
+    if [ -f "/sys/devices/system/cpu/intel_pstate/status" ]; then
+        hwp_status=$(cat /sys/devices/system/cpu/intel_pstate/no_turbo)
+        if [ "$hwp_status" = "active" ]; then
+            echo "✅ HWP is disabled."
+        else
+            echo "❌ HWP is NOT disabled: $hwp_status"
+            exit 1
+        fi
+    fi
+}
+
 set_performance_governor() {
     cpupower frequency-set -g performance > /dev/null
     local core=$1
@@ -49,9 +61,18 @@ prevent_swaps() {
     echo "✅ sysctl vm.swappiness=0"
 }
 
+disable_deep_idle_states() {
+    local core=$1
+
+    cpupower -c $core idle-set -D 0
+    echo "✅ Deep idle states disabled"
+}
+
 check_turbo
+check_hwp
 set_performance_governor $1
 set_cpu_to_max_freq $1
 prevent_swaps
+disable_deep_idle_states $1
 
-cset shield -e -- apptainer exec --memory 120G --memory-swap 120G trireme.sif sh -c "cd trireme && taskset -c $1 ./experiment.sh"
+cset shield -e -- apptainer exec --writable-tmpfs --memory 120G --memory-swap 120G trireme.sif sh -c "cd trireme && taskset -c $1 ./experiment.sh"

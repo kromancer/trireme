@@ -2,20 +2,50 @@
     "useful-events": {
         "ecore": [
             "cpu_clk_unhalted.core:upp",
+	    "cpu_clk_unhalted.ref_tsc:upp",
             "mem_uops_retired.all_loads:upp",
             "mem_load_uops_retired.dram_hit:upp",
             "mem_load_uops_retired.l3_hit:upp",
             "mem_load_uops_retired.l2_hit:upp",
+	    "mem_bound_stalls.load:upp",
+	    "mem_scheduler_block.ld_buf",
+	    "mem_scheduler_block.rsv",
             "dtlb_load_misses.walk_completed:upp",
-            "ld_head.dtlb_miss_at_ret:upp"
+            "ld_head.dtlb_miss_at_ret:upp",
+	    "topdown_bad_speculation.mispredict:upp",
+	    "topdown_be_bound.reorder_buffer:upp",
+	    "topdown_be_bound.mem_scheduler:upp"
         ],
         "pcore": [
             "mem_inst_retired.all_loads:upp"
         ]
     },
-    "record": [
+    "stat-bottlenecks": [
+	"stat",
+	"-e", "cpu_clk_unhalted.core:u,mem_bound_stalls.load:u,topdown_bad_speculation.mispredict:u,topdown_be_bound.mem_scheduler:u,topdown_be_bound.reorder_buffer:u,mem_scheduler_block.ld_buf:u,mem_load_uops_retired.l2_hit:u",
+	"-j"
+    ],
+    "stat-clks": [
+	"stat",
+	"-e", "cpu_clk_unhalted.core,cpu_clk_unhalted.ref_tsc"
+    ],
+    "record-clks": [
+	"record",
+	"-e", "cpu_clk_unhalted.core:ppp",
+	"-c", "10000"
+    ],
+    "stat-llc-misses": [
+        "stat",
+	"-e", "mem_load_uops_retired.dram_hit:upp",
+	"-c", "100"
+    ],
+    "stat-kernel": [
+	"stat",
+	"-e", "context-switches,page-faults"
+    ],
+    "record-be-bound-mem-scheduler": [
         "record",
-        "-c", "300",
-        "-e", "mem_load_uops_retired.dram_hit:upp"
+	"-e", "topdown_be_bound.mem_scheduler:upp",
+	"-c", "100"
     ]
 }

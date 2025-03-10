@@ -49,6 +49,11 @@ def render_template_for_main(args: argparse.Namespace) -> str:
     return main_template.render(rows=args.i, cols=args.j, dtype=to_mlir_type[args.dtype])
 
 
+def flush_cache(cache_size=100 * 1024 * 1024):
+    a = np.arange(cache_size, dtype=np.uint8)
+    a.sum() # forces reading the array
+
+
 def run_with_aot(args: argparse.Namespace, exe: Path, nnz: int, mat_buffs: List[np.array], vec: np.ndarray,
                  exp_out: np.ndarray, in_man: InputManager):
     res = np.zeros(args.i, dtype=vec.dtype)
@@ -68,6 +73,7 @@ def run_with_aot(args: argparse.Namespace, exe: Path, nnz: int, mat_buffs: List[
                     assert np.allclose(exp_out, ramdisk.buffers[-1]), "Wrong output!"
 
                 ramdisk.reset_res_buff()
+                flush_cache()
 
                 match = re.search(r"Exec time: ([0-9.]+)s", result.stdout)
                 assert match is not None, "Execution time not found in the output."
