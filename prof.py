@@ -42,13 +42,13 @@ def parse_perf_stat_json_output() -> List[Dict]:
             except json.JSONDecodeError:
                 # If json.loads() raises an error, skip this line
                 continue
-    return events
+    append_result({"perf-stat": events})
 
 
 def gen_and_store_perf_record_report() -> None:
     cmd = ["perf", "report", "--stdio"]
     report = run(cmd, check=True, text=True, capture_output=True)
-    append_result({"perf-report": report.stdout})
+    append_result({"perf-record": report.stdout})
 
 
 def profile_spmv(args: Namespace, exe: Path, nnz: int, buffers: List[str]):
