@@ -45,7 +45,7 @@ def parse_perf_stat_json_output() -> List[Dict]:
     return events
 
 
-def gen_and_store_perf_report() -> None:
+def gen_and_store_perf_record_report() -> None:
     cmd = ["perf", "report", "--stdio"]
     report = run(cmd, check=True, text=True, capture_output=True)
     append_result({"perf-report": report.stdout})
@@ -65,7 +65,11 @@ def profile_spmv(args: Namespace, exe: Path, nnz: int, buffers: List[str]):
     elif args.analysis == "perf":
         assert is_in_path("perf")
         cmd = ["perf"] + read_config("perf-config.json", args.config) + ["--"] + spmv_cmd
-        post_run_action = gen_and_store_perf_report
+        if args.config.startswith("record"):
+            post_run_action = gen_and_store_perf_record_report
+        else:
+            assert args.config.startswith("stat")
+            post_run_action = parse_perf_stat_json_output
     elif args.analysis == "toplev":
         assert is_in_path("toplev")
         cmd = ["toplev"] + read_config("toplev-config.json", args.config) + spmv_cmd

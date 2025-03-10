@@ -38,7 +38,7 @@ pipelines = {
     "omp":
     ["sparse-assembler",
      "sparse-reinterpret-map",
-     "sparsification{enable-runtime-library=false pd=? parallelization-strategy=dense-any-loop}",
+     "sparsification{enable-runtime-library=false pd=? parallelization-strategy=dense-outer-loop}",
      "loop-invariant-code-motion",
      "sparse-tensor-codegen",
      "sparse-storage-specifier-to-llvm",
