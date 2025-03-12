@@ -1,0 +1,19 @@
+{
+    "title": "Delor64K SpMV CSR, E-core on i9-12900K",
+    "xlabel": "Prefetching Distance",
+    "ylabel": "Normalized Execution time (on PD=0)",
+    "normalize": {
+        "file": "./results/Delor64K/Delor64K-csr-pd.json",
+        "args_re": "-pd=0"
+    },
+    "series":
+    [
+        {
+            "file": "./results/Delor64K/Delor64K-csr-pd.json",
+            "args_re": "Delor64K",
+            "label": "L1-IPP & MLC Streamer & LLC Streamer",
+            "x_start": 0,
+            "plot_method": "plot_mean_exec_times"
+        }
+    ]
+}

@@ -19,3 +19,4 @@
 /graph-config.json
 /tests/output/
 **/.lit/
+/results.json

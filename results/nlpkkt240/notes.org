@@ -1,0 +1,151 @@
+* experiment
+
+#+begin_src sh
+#!/bin/bash
+
+source /home/paul/venv/bin/activate
+source /opt/intel/oneapi/setvars.sh
+
+REPS=10
+
+DISABLE_ALL="--disable-l1-nlp --disable-l1-ipp --disable-l2-stream --disable-l2-amp --disable-llc-stream"
+ENABLE_L1_IPP="--disable-l1-nlp --disable-l2-stream --disable-l2-amp --disable-llc-stream"
+ENABLE_MLC_STREAMER="--disable-l1-nlp --disable-l1-ipp --disable-l2-amp --disable-llc-stream"
+ENABLE_L1_NLP="--disable-l1-ipp --disable-l2-stream --disable-l2-amp --disable-llc-stream"
+ENABLE_LLC_STREAMER="--disable-l1-nlp --disable-l1-ipp --disable-l2-stream --disable-l2-amp"
+ENABLE_L2_AMP="--disable-l1-nlp --disable-l1-ipp --disable-l2-stream --disable-llc-stream"
+OPT1="--disable-l1-nlp --disable-l2-amp --disable-llc-stream"
+OPT2="--disable-l1-nlp --disable-l2-amp"
+OPT3="--disable-l2-amp --disable-l2-stream --disable-llc-stream"
+
+MTX=nlpkkt240
+
+for i in {0..128}; do
+    python spmv.py -1gb -pd=$i --matrix-format csr benchmark --repetitions $REPS SuiteSparse $MTX
+done
+
+for i in {0..128}; do
+    python spmv.py $DISABLE_ALL -1gb -pd=$i --matrix-format csr benchmark --repetitions $REPS SuiteSparse $MTX
+done
+
+for i in {0..128}; do
+    python spmv.py $ENABLE_L1_NLP -1gb -pd=$i --matrix-format csr benchmark --repetitions $REPS SuiteSparse $MTX
+done
+
+for i in {0..128}; do
+    python spmv.py $ENABLE_L1_IPP -1gb -pd=$i --matrix-format csr benchmark --repetitions $REPS SuiteSparse $MTX
+done
+
+for i in {0..128}; do
+    python spmv.py $ENABLE_L2_AMP -1gb -pd=$i --matrix-format csr benchmark --repetitions $REPS SuiteSparse $MTX
+done
+
+for i in {0..128}; do
+    python spmv.py $ENABLE_LLC_STREAMER -1gb -pd=$i --matrix-format csr benchmark --repetitions $REPS SuiteSparse $MTX
+done
+
+for i in {0..128}; do
+    python spmv.py $ENABLE_MLC_STREAMER -1gb -pd=$i --matrix-format csr benchmark --repetitions $REPS SuiteSparse $MTX
+done
+
+for i in {0..128}; do
+    python spmv.py $OPT1 -1gb -pd=$i --matrix-format csr benchmark --repetitions $REPS SuiteSparse $MTX
+done
+
+for i in {0..128}; do
+    python spmv.py $OPT2 -1gb -pd=$i --matrix-format csr benchmark --repetitions $REPS SuiteSparse $MTX
+done
+
+for i in {0..128}; do
+    python spmv.py $OPT3 -1gb -pd=$i --matrix-format csr benchmark --repetitions $REPS SuiteSparse $MTX
+done
+
+#+end_src
+
+* plot-config
+
+#+begin_src json
+#+begin_src json
+{
+    "title": "nlpkkt240 (floating) SpMV CSR, E-core on i9-12900",
+    "xlabel": "Prefetching Distance",
+    "ylabel": "Normalized exec time on baseline",
+    "normalize": {
+        "file": "./results/nlpkkt240/nlpkkt240-all-enabled.json",
+        "args_re": "spmv.py -1gb -pd=0"
+    },
+    "series":
+    [
+        {
+            "file": "./results/nlpkkt240/nlpkkt240-all-enabled.json",
+            "args_re": "nlpkkt240",
+            "label": "All enabled",
+            "x_start": 0,
+            "plot_method": "plot_mean_exec_times"
+        },
+        {
+            "file": "./results/nlpkkt240/results.json",
+            "args_re": "spmv.py --disable-l1-nlp --disable-l1-ipp --disable-l2-stream --disable-l2-amp --disable-llc-stream -1gb",
+            "label": "All off",
+            "x_start": 0,
+            "plot_method": "plot_mean_exec_times"
+        },
+        {
+            "file": "./results/nlpkkt240/results.json",
+            "args_re": "spmv.py --disable-l1-nlp --disable-l2-stream --disable-l2-amp --disable-llc-stream -1gb",
+            "label": "L1-IPP",
+            "x_start": 0,
+            "plot_method": "plot_mean_exec_times"
+        },
+        {
+            "file": "./results/nlpkkt240/results.json",
+            "args_re": "spmv.py --disable-l1-nlp --disable-l2-amp --disable-llc-stream -1gb",
+            "label": "L1-IPP & MLC streamer",
+            "x_start": 0,
+            "plot_method": "plot_mean_exec_times"
+        },
+        {
+            "file": "./results/nlpkkt240/results.json",
+            "args_re": "spmv.py --disable-l1-nlp --disable-l2-amp -1gb",
+            "label": "L1-IPP & MLC streamer & LLC streamer",
+            "x_start": 0,
+            "plot_method": "plot_mean_exec_times"
+        },
+        {
+            "file": "./results/nlpkkt240/results.json",
+            "args_re": "spmv.py --disable-l1-nlp --disable-l1-ipp --disable-l2-amp --disable-llc-stream -1gb",
+            "label": "MLC streamer",
+            "x_start": 0,
+            "plot_method": "plot_mean_exec_times"
+        },
+        {
+            "file": "./results/nlpkkt240/results.json",
+            "args_re": "spmv.py --disable-l1-ipp --disable-l2-stream --disable-l2-amp --disable-llc-stream -1gb",
+            "label": "L1 NLP",
+            "x_start": 0,
+            "plot_method": "plot_mean_exec_times"
+        },
+        {
+            "file": "./results/nlpkkt240/results.json",
+            "args_re": "spmv.py --disable-l1-nlp --disable-l1-ipp --disable-l2-stream --disable-l2-amp -1gb",
+            "label": "LLC streamer",
+            "x_start": 0,
+            "plot_method": "plot_mean_exec_times"
+        },
+        {
+            "file": "./results/nlpkkt240/results.json",
+            "args_re": "spmv.py --disable-l1-nlp --disable-l1-ipp --disable-l2-stream --disable-llc-stream -1gb",
+            "label": "L2 AMP",
+            "x_start": 0,
+            "plot_method": "plot_mean_exec_times"
+        },
+        {
+            "file": "./results/nlpkkt240/results.json",
+            "args_re": "spmv.py --disable-l2-amp --disable-l2-stream --disable-llc-stream -1gb",
+            "label": "L1 IPP & L1 NLP",
+            "x_start": 0,
+            "plot_method": "plot_mean_exec_times"
+        }
+    ]
+}
+#+end_src

@@ -1,0 +1,116 @@
+* notes
+
+- Figure out what is happening with the prefetch distance:
+  1. Is it affected by the state of hw prefetchers?
+     Let's say no, why would this matter?
+     I am going to select the best config, none the less
+
+  2. Is it affected by the semiring used in the computation?
+     That is a definite yes, need to re-run for Agatha with floating point semiring
+
+
+
+
+AGATHA-2015, only upper mult, 17143ms @ 124
+AGATHA-2015, full,            68656ms @ 124
+
+
+* plot configuration
+
+For AGATHA-2015
+
+#+begin_src json
+{
+    "title": "SpMV CSR, E-core on i9-12900",
+    "xlabel": "Prefetching Distance",
+    "ylabel": "Normalized exec time on PD=16",
+    "series":
+    [
+        {
+            "file": "./results/prefetching-distance/hw-on.json",
+            "args_re": "AGATHA_2015",
+            "label": "AGATHA_2015",
+            "x_start": 16,
+            "plot_method": "plot_mean_exec_times",
+            "normalize": true
+        },
+        {
+            "file": "./results/prefetching-distance-l1-nlp-l2-amp-off/l2-amp-off.json",
+            "args_re": "AGATHA_2015",
+            "label": "AGATHA_2015: l2-amp-off",
+            "x_start": 16,
+            "plot_method": "plot_mean_exec_times",
+            "normalize": true
+        },
+        {
+            "file": "./results/prefetching-distance-l1-nlp-l2-amp-off/l1-nlp-l2-amp-off.json",
+            "args_re": "AGATHA_2015",
+            "label": "AGATHA_2015: l1-nlp-off, l2-amp-off",
+            "x_start": 16,
+            "plot_method": "plot_mean_exec_times",
+            "normalize": true
+        }
+    ]
+}
+#+end_src
+
+For the others
+
+#+begin_src json
+{
+    "title": "SpMV CSR, E-core on i9-12900",
+    "xlabel": "Prefetching Distance",
+    "ylabel": "Normalized exec time on PD=16",
+    "series":
+    [
+        {
+            "file": "./results/prefetching-distance/hw-on.json",
+            "args_re": "Queen_4147",
+            "label": "Queen_4147",
+            "x_start": 16,
+            "plot_method": "plot_mean_exec_times",
+            "normalize": true
+        },
+        {
+            "file": "./results/prefetching-distance-l1-nlp-l2-amp-off/l2-amp-off.json",
+            "args_re": "Queen_4147",
+            "label": "Queen_4147: l2-amp-off",
+            "x_start": 16,
+            "plot_method": "plot_mean_exec_times",
+            "normalize": true
+        },
+        {
+            "file": "./results/prefetching-distance-l1-nlp-l2-amp-off/l1-nlp-l2-amp-off.json",
+            "args_re": "Queen_4147",
+            "label": "Queen_4147: l1-nlp-off, l2-amp-off",
+            "x_start": 16,
+            "plot_method": "plot_mean_exec_times",
+            "normalize": true
+        },
+        {
+            "file": "./results/prefetching-distance/hw-on.json",
+            "args_re": "nlpkkt240",
+            "label": "nlpkkt240",
+            "x_start": 16,
+            "plot_method": "plot_mean_exec_times",
+            "normalize": true
+        },
+        {
+            "file": "./results/prefetching-distance-l1-nlp-l2-amp-off/l2-amp-off.json",
+            "args_re": "nlpkkt240",
+            "label": "nlpkkt240: l2-amp-off",
+            "x_start": 16,
+            "plot_method": "plot_mean_exec_times",
+            "normalize": true
+        },
+        {
+            "file": "./results/prefetching-distance-l1-nlp-l2-amp-off/l1-nlp-l2-amp-off.json",
+            "args_re": "nlpkkt240",
+            "label": "nlpkkt240: l1-nlp-off, l2-amp-off",
+            "x_start": 16,
+            "plot_method": "plot_mean_exec_times",
+            "normalize": true
+        }
+    ]
+}
+#+end_src

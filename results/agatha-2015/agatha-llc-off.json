@@ -1,0 +1,2714 @@
+[
+    {
+        "args": "spmv.py -1gb --disable-llc-stream -pd=16 --matrix-format csr benchmark --repetitions 5 SuiteSparse AGATHA_2015",
+        "time": "2025-02-28 00:42:35.086014",
+        "host": "dune",
+        "git-hash": "409d111f4c3f423b86090269d46445b99e4e6016",
+        "status": "complete",
+        "exec_times_ns": [
+            77220066000,
+            77234901000,
+            77189155000,
+            77236502000,
+            77228923000
+        ],
+        "filtered": [
+            77220066000,
+            77234901000,
+            77189155000,
+            77236502000,
+            77228923000
+        ],
+        "mean_ms": 77221.909,
+        "std_dev": 19.411,
+        "cv": 0.0
+    },
+    {
+        "args": "spmv.py -1gb --disable-llc-stream -pd=17 --matrix-format csr benchmark --repetitions 5 SuiteSparse AGATHA_2015",
+        "time": "2025-02-28 00:53:57.560618",
+        "host": "dune",
+        "git-hash": "409d111f4c3f423b86090269d46445b99e4e6016",
+        "status": "complete",
+        "exec_times_ns": [
+            76154025000,
+            76072148000,
+            76148261000,
+            76133914000,
+            76158189000
+        ],
+        "filtered": [
+            76154025000,
+            76072148000,
+            76148261000,
+            76133914000,
+            76158189000
+        ],
+        "mean_ms": 76133.307,
+        "std_dev": 35.4,
+        "cv": 0.0
+    },
+    {
+        "args": "spmv.py -1gb --disable-llc-stream -pd=18 --matrix-format csr benchmark --repetitions 5 SuiteSparse AGATHA_2015",
+        "time": "2025-02-28 01:05:13.842510",
+        "host": "dune",
+        "git-hash": "409d111f4c3f423b86090269d46445b99e4e6016",
+        "status": "complete",
+        "exec_times_ns": [
+            74215557000,
+            74214384000,
+            74210887000,
+            74223463000,
+            74226865000
+        ],
+        "filtered": [
+            74215557000,
+            74214384000,
+            74210887000,
+            74223463000,
+            74226865000
+        ],
+        "mean_ms": 74218.231,
+        "std_dev": 6.667,
+        "cv": 0.0
+    },
+    {
+        "args": "spmv.py -1gb --disable-llc-stream -pd=19 --matrix-format csr benchmark --repetitions 5 SuiteSparse AGATHA_2015",
+        "time": "2025-02-28 01:16:19.183177",
+        "host": "dune",
+        "git-hash": "409d111f4c3f423b86090269d46445b99e4e6016",
+        "status": "complete",
+        "exec_times_ns": [
+            72792688000,
+            72764312000,
+            72780012000,
+            72786196000,
+            72741931000
+        ],
+        "filtered": [
+            72792688000,
+            72764312000,
+            72780012000,
+            72786196000,
+            72741931000
+        ],
+        "mean_ms": 72773.028,
+        "std_dev": 20.32,
+        "cv": 0.0
+    },
+    {
+        "args": "spmv.py -1gb --disable-llc-stream -pd=20 --matrix-format csr benchmark --repetitions 5 SuiteSparse AGATHA_2015",
+        "time": "2025-02-28 01:27:18.818016",
+        "host": "dune",
+        "git-hash": "409d111f4c3f423b86090269d46445b99e4e6016",
+        "status": "complete",
+        "exec_times_ns": [
+            71501607000,
+            71518711000,
+            71531723000,
+            71529601000,
+            71501276000
+        ],
+        "filtered": [
+            71501607000,
+            71518711000,
+            71531723000,
+            71529601000,
+            71501276000
+        ],
+        "mean_ms": 71516.584,
+        "std_dev": 14.678,
+        "cv": 0.0
+    },
+    {
+        "args": "spmv.py -1gb --disable-llc-stream -pd=21 --matrix-format csr benchmark --repetitions 5 SuiteSparse AGATHA_2015",
+        "time": "2025-02-28 01:38:11.948947",
+        "host": "dune",
+        "git-hash": "409d111f4c3f423b86090269d46445b99e4e6016",
+        "status": "complete",
+        "exec_times_ns": [
+            70368900000,
+            70390318000,
+            70227298000,
+            70373248000,
+            70362453000
+        ],
+        "filtered": [
+            70368900000,
+            70390318000,
+            70227298000,
+            70373248000,
+            70362453000
+        ],
+        "mean_ms": 70344.443,
+        "std_dev": 66.294,
+        "cv": 0.001
+    },
+    {
+        "args": "spmv.py -1gb --disable-llc-stream -pd=22 --matrix-format csr benchmark --repetitions 5 SuiteSparse AGATHA_2015",
+        "time": "2025-02-28 01:49:00.827443",
+        "host": "dune",
+        "git-hash": "409d111f4c3f423b86090269d46445b99e4e6016",
+        "status": "complete",
+        "exec_times_ns": [
+            69281115000,
+            69245931000,
+            69228994000,
+            69228577000,
+            69256847000
+        ],
+        "filtered": [
+            69281115000,
+            69245931000,
+            69228994000,
+            69228577000,
+            69256847000
+        ],
+        "mean_ms": 69248.293,
+        "std_dev": 21.893,
+        "cv": 0.0
+    },
+    {
+        "args": "spmv.py -1gb --disable-llc-stream -pd=23 --matrix-format csr benchmark --repetitions 5 SuiteSparse AGATHA_2015",
+        "time": "2025-02-28 01:59:41.901306",
+        "host": "dune",
+        "git-hash": "409d111f4c3f423b86090269d46445b99e4e6016",
+        "status": "complete",
+        "exec_times_ns": [
+            68371318000,
+            68356335000,
+            68368176000,
+            68357406999,
+            68318478000
+        ],
+        "filtered": [
+            68371318000,
+            68356335000,
+            68368176000,
+            68357406999,
+            68318478000
+        ],
+        "mean_ms": 68354.343,
+        "std_dev": 21.09,
+        "cv": 0.0
+    },
+    {
+        "args": "spmv.py -1gb --disable-llc-stream -pd=24 --matrix-format csr benchmark --repetitions 5 SuiteSparse AGATHA_2015",
+        "time": "2025-02-28 02:10:19.383675",
+        "host": "dune",
+        "git-hash": "409d111f4c3f423b86090269d46445b99e4e6016",
+        "status": "complete",
+        "exec_times_ns": [
+            67379639000,
+            67352903999,
+            67353049999,
+            67380189000,
+            67338122000
+        ],
+        "filtered": [
+            67379639000,
+            67352903999,
+            67353049999,
+            67380189000,
+            67338122000
+        ],
+        "mean_ms": 67360.781,
+        "std_dev": 18.49,
+        "cv": 0.0
+    },
+    {
+        "args": "spmv.py -1gb --disable-llc-stream -pd=25 --matrix-format csr benchmark --repetitions 5 SuiteSparse AGATHA_2015",
+        "time": "2025-02-28 02:20:53.756290",
+        "host": "dune",
+        "git-hash": "409d111f4c3f423b86090269d46445b99e4e6016",
+        "status": "complete",
+        "exec_times_ns": [
+            65645021000,
+            65643962000,
+            65664045000,
+            65734751000,
+            65640255999
+        ],
+        "filtered": [
+            65645021000,
+            65643962000,
+            65664045000,
+            65734751000,
+            65640255999
+        ],
+        "mean_ms": 65665.607,
+        "std_dev": 39.744,
+        "cv": 0.001
+    },
+    {
+        "args": "spmv.py -1gb --disable-llc-stream -pd=26 --matrix-format csr benchmark --repetitions 5 SuiteSparse AGATHA_2015",
+        "time": "2025-02-28 02:31:16.935715",
+        "host": "dune",
+        "git-hash": "409d111f4c3f423b86090269d46445b99e4e6016",
+        "status": "complete",
+        "exec_times_ns": [
+            65395872999,
+            65380318000,
+            65401624000,
+            65436319000,
+            65452664999
+        ],
+        "filtered": [
+            65395872999,
+            65380318000,
+            65401624000,
+            65436319000,
+            65452664999
+        ],
+        "mean_ms": 65413.36,
+        "std_dev": 30.03,
+        "cv": 0.0
+    },
+    {
+        "args": "spmv.py -1gb --disable-llc-stream -pd=27 --matrix-format csr benchmark --repetitions 5 SuiteSparse AGATHA_2015",
+        "time": "2025-02-28 02:41:41.777123",
+        "host": "dune",
+        "git-hash": "409d111f4c3f423b86090269d46445b99e4e6016",
+        "status": "complete",
+        "exec_times_ns": [
+            64551888000,
+            64548914999,
+            64578818000,
+            64524945000,
+            64584755000
+        ],
+        "filtered": [
+            64551888000,
+            64548914999,
+            64578818000,
+            64524945000,
+            64584755000
+        ],
+        "mean_ms": 64557.864,
+        "std_dev": 24.298,
+        "cv": 0.0
+    },
+    {
+        "args": "spmv.py -1gb --disable-llc-stream -pd=28 --matrix-format csr benchmark --repetitions 5 SuiteSparse AGATHA_2015",
+        "time": "2025-02-28 02:52:01.114344",
+        "host": "dune",
+        "git-hash": "409d111f4c3f423b86090269d46445b99e4e6016",
+        "status": "complete",
+        "exec_times_ns": [
+            63812327000,
+            63827163000,
+            63830563000,
+            63783963000,
+            63811415000
+        ],
+        "filtered": [
+            63812327000,
+            63827163000,
+            63830563000,
+            63783963000,
+            63811415000
+        ],
+        "mean_ms": 63813.086,
+        "std_dev": 18.406,
+        "cv": 0.0
+    },
+    {
+        "args": "spmv.py -1gb --disable-llc-stream -pd=29 --matrix-format csr benchmark --repetitions 5 SuiteSparse AGATHA_2015",
+        "time": "2025-02-28 03:02:15.972849",
+        "host": "dune",
+        "git-hash": "409d111f4c3f423b86090269d46445b99e4e6016",
+        "status": "complete",
+        "exec_times_ns": [
+            61334072000,
+            61340223000,
+            61328821000,
+            61349411000,
+            61330391000
+        ],
+        "filtered": [
+            61334072000,
+            61340223000,
+            61328821000,
+            61349411000,
+            61330391000
+        ],
+        "mean_ms": 61336.584,
+        "std_dev": 8.407,
+        "cv": 0.0
+    },
+    {
+        "args": "spmv.py -1gb --disable-llc-stream -pd=30 --matrix-format csr benchmark --repetitions 5 SuiteSparse AGATHA_2015",
+        "time": "2025-02-28 03:12:18.064109",
+        "host": "dune",
+        "git-hash": "409d111f4c3f423b86090269d46445b99e4e6016",
+        "status": "complete",
+        "exec_times_ns": [
+            62278512000,
+            62263142000,
+            62265271000,
+            62220425000,
+            62260952000
+        ],
+        "filtered": [
+            62278512000,
+            62263142000,
+            62265271000,
+            62220425000,
+            62260952000
+        ],
+        "mean_ms": 62257.66,
+        "std_dev": 21.909,
+        "cv": 0.0
+    },
+    {
+        "args": "spmv.py -1gb --disable-llc-stream -pd=31 --matrix-format csr benchmark --repetitions 5 SuiteSparse AGATHA_2015",
+        "time": "2025-02-28 03:22:26.825568",
+        "host": "dune",
+        "git-hash": "409d111f4c3f423b86090269d46445b99e4e6016",
+        "status": "complete",
+        "exec_times_ns": [
+            61726395000,
+            61722522000,
+            61642356000,
+            61718365000,
+            61698330000
+        ],
+        "filtered": [
+            61726395000,
+            61722522000,
+            61642356000,
+            61718365000,
+            61698330000
+        ],
+        "mean_ms": 61701.594,
+        "std_dev": 34.836,
+        "cv": 0.001
+    },
+    {
+        "args": "spmv.py -1gb --disable-llc-stream -pd=32 --matrix-format csr benchmark --repetitions 5 SuiteSparse AGATHA_2015",
+        "time": "2025-02-28 03:32:33.243879",
+        "host": "dune",
+        "git-hash": "409d111f4c3f423b86090269d46445b99e4e6016",
+        "status": "complete",
+        "exec_times_ns": [
+            61126699000,
+            61101490000,
+            61131436000,
+            61060481000,
+            61126927000
+        ],
+        "filtered": [
+            61126699000,
+            61101490000,
+            61131436000,
+            61060481000,
+            61126927000
+        ],
+        "mean_ms": 61109.407,
+        "std_dev": 29.781,
+        "cv": 0.0
+    },
+    {
+        "args": "spmv.py -1gb --disable-llc-stream -pd=33 --matrix-format csr benchmark --repetitions 5 SuiteSparse AGATHA_2015",
+        "time": "2025-02-28 03:42:33.778077",
+        "host": "dune",
+        "git-hash": "409d111f4c3f423b86090269d46445b99e4e6016",
+        "status": "complete",
+        "exec_times_ns": [
+            57719955000,
+            57749501000,
+            57703925000,
+            57737732000,
+            57739902000
+        ],
+        "filtered": [
+            57719955000,
+            57749501000,
+            57703925000,
+            57737732000,
+            57739902000
+        ],
+        "mean_ms": 57730.203,
+        "std_dev": 18.157,
+        "cv": 0.0
+    },
+    {
+        "args": "spmv.py -1gb --disable-llc-stream -pd=34 --matrix-format csr benchmark --repetitions 5 SuiteSparse AGATHA_2015",
+        "time": "2025-02-28 03:52:18.466969",
+        "host": "dune",
+        "git-hash": "409d111f4c3f423b86090269d46445b99e4e6016",
+        "status": "complete",
+        "exec_times_ns": [
+            58826120000,
+            58840920000,
+            58870448000,
+            58860592000,
+            58797423000
+        ],
+        "filtered": [
+            58826120000,
+            58840920000,
+            58870448000,
+            58860592000,
+            58797423000
+        ],
+        "mean_ms": 58839.101,
+        "std_dev": 28.954,
+        "cv": 0.0
+    },
+    {
+        "args": "spmv.py -1gb --disable-llc-stream -pd=35 --matrix-format csr benchmark --repetitions 5 SuiteSparse AGATHA_2015",
+        "time": "2025-02-28 04:02:07.996381",
+        "host": "dune",
+        "git-hash": "409d111f4c3f423b86090269d46445b99e4e6016",
+        "status": "complete",
+        "exec_times_ns": [
+            59345677000,
+            59290055000,
+            59366156000,
+            59314330000,
+            59374877000
+        ],
+        "filtered": [
+            59345677000,
+            59290055000,
+            59366156000,
+            59314330000,
+            59374877000
+        ],
+        "mean_ms": 59338.219,
+        "std_dev": 35.603,
+        "cv": 0.001
+    },
+    {
+        "args": "spmv.py -1gb --disable-llc-stream -pd=36 --matrix-format csr benchmark --repetitions 5 SuiteSparse AGATHA_2015",
+        "time": "2025-02-28 04:12:00.520305",
+        "host": "dune",
+        "git-hash": "409d111f4c3f423b86090269d46445b99e4e6016",
+        "status": "complete",
+        "exec_times_ns": [
+            58567319000,
+            58571853000,
+            58558049000,
+            58545700000,
+            58567778000
+        ],
+        "filtered": [
+            58567319000,
+            58571853000,
+            58558049000,
+            58545700000,
+            58567778000
+        ],
+        "mean_ms": 58562.14,
+        "std_dev": 10.488,
+        "cv": 0.0
+    },
+    {
+        "args": "spmv.py -1gb --disable-llc-stream -pd=37 --matrix-format csr benchmark --repetitions 5 SuiteSparse AGATHA_2015",
+        "time": "2025-02-28 04:21:48.117908",
+        "host": "dune",
+        "git-hash": "409d111f4c3f423b86090269d46445b99e4e6016",
+        "status": "complete",
+        "exec_times_ns": [
+            55298410000,
+            55295092000,
+            55282561000,
+            55278571000,
+            55285023000
+        ],
+        "filtered": [
+            55298410000,
+            55295092000,
+            55282561000,
+            55278571000,
+            55285023000
+        ],
+        "mean_ms": 55287.931,
+        "std_dev": 8.456,
+        "cv": 0.0
+    },
+    {
+        "args": "spmv.py -1gb --disable-llc-stream -pd=38 --matrix-format csr benchmark --repetitions 5 SuiteSparse AGATHA_2015",
+        "time": "2025-02-28 04:31:22.397222",
+        "host": "dune",
+        "git-hash": "409d111f4c3f423b86090269d46445b99e4e6016",
+        "status": "complete",
+        "exec_times_ns": [
+            56903675000,
+            56968930000,
+            56928824000,
+            57001885000,
+            56978830000
+        ],
+        "filtered": [
+            56903675000,
+            56968930000,
+            56928824000,
+            57001885000,
+            56978830000
+        ],
+        "mean_ms": 56956.429,
+        "std_dev": 39.59,
+        "cv": 0.001
+    },
+    {
+        "args": "spmv.py -1gb --disable-llc-stream -pd=39 --matrix-format csr benchmark --repetitions 5 SuiteSparse AGATHA_2015",
+        "time": "2025-02-28 04:41:03.671091",
+        "host": "dune",
+        "git-hash": "409d111f4c3f423b86090269d46445b99e4e6016",
+        "status": "complete",
+        "exec_times_ns": [
+            57393386000,
+            57372273000,
+            57347748000,
+            57393997000,
+            57390344000
+        ],
+        "filtered": [
+            57393386000,
+            57372273000,
+            57347748000,
+            57393997000,
+            57390344000
+        ],
+        "mean_ms": 57379.55,
+        "std_dev": 19.881,
+        "cv": 0.0
+    },
+    {
+        "args": "spmv.py -1gb --disable-llc-stream -pd=40 --matrix-format csr benchmark --repetitions 5 SuiteSparse AGATHA_2015",
+        "time": "2025-02-28 04:50:44.410169",
+        "host": "dune",
+        "git-hash": "409d111f4c3f423b86090269d46445b99e4e6016",
+        "status": "complete",
+        "exec_times_ns": [
+            56906308000,
+            56906953000,
+            56937327000,
+            56952283000,
+            56929064000
+        ],
+        "filtered": [
+            56906308000,
+            56906953000,
+            56937327000,
+            56952283000,
+            56929064000
+        ],
+        "mean_ms": 56926.387,
+        "std_dev": 19.864,
+        "cv": 0.0
+    },
+    {
+        "args": "spmv.py -1gb --disable-llc-stream -pd=41 --matrix-format csr benchmark --repetitions 5 SuiteSparse AGATHA_2015",
+        "time": "2025-02-28 05:00:24.384607",
+        "host": "dune",
+        "git-hash": "409d111f4c3f423b86090269d46445b99e4e6016",
+        "status": "complete",
+        "exec_times_ns": [
+            53746785000,
+            53712644000,
+            53759511000,
+            53717129000,
+            53726343000
+        ],
+        "filtered": [
+            53746785000,
+            53712644000,
+            53759511000,
+            53717129000,
+            53726343000
+        ],
+        "mean_ms": 53732.482,
+        "std_dev": 20.013,
+        "cv": 0.0
+    },
+    {
+        "args": "spmv.py -1gb --disable-llc-stream -pd=42 --matrix-format csr benchmark --repetitions 5 SuiteSparse AGATHA_2015",
+        "time": "2025-02-28 05:09:50.419973",
+        "host": "dune",
+        "git-hash": "409d111f4c3f423b86090269d46445b99e4e6016",
+        "status": "complete",
+        "exec_times_ns": [
+            56373784000,
+            56338201000,
+            56294382000,
+            56342426000,
+            56323085000
+        ],
+        "filtered": [
+            56373784000,
+            56338201000,
+            56294382000,
+            56342426000,
+            56323085000
+        ],
+        "mean_ms": 56334.376,
+        "std_dev": 28.98,
+        "cv": 0.001
+    },
+    {
+        "args": "spmv.py -1gb --disable-llc-stream -pd=43 --matrix-format csr benchmark --repetitions 5 SuiteSparse AGATHA_2015",
+        "time": "2025-02-28 05:19:28.150947",
+        "host": "dune",
+        "git-hash": "409d111f4c3f423b86090269d46445b99e4e6016",
+        "status": "complete",
+        "exec_times_ns": [
+            56006931000,
+            55979567000,
+            55985009000,
+            56027677000,
+            56003090000
+        ],
+        "filtered": [
+            56006931000,
+            55979567000,
+            55985009000,
+            56027677000,
+            56003090000
+        ],
+        "mean_ms": 56000.455,
+        "std_dev": 19.136,
+        "cv": 0.0
+    },
+    {
+        "args": "spmv.py -1gb --disable-llc-stream -pd=44 --matrix-format csr benchmark --repetitions 5 SuiteSparse AGATHA_2015",
+        "time": "2025-02-28 05:29:02.113262",
+        "host": "dune",
+        "git-hash": "409d111f4c3f423b86090269d46445b99e4e6016",
+        "status": "complete",
+        "exec_times_ns": [
+            55717782000,
+            55737537000,
+            55714881000,
+            55662645000,
+            55713406000
+        ],
+        "filtered": [
+            55717782000,
+            55737537000,
+            55714881000,
+            55662645000,
+            55713406000
+        ],
+        "mean_ms": 55709.25,
+        "std_dev": 27.812,
+        "cv": 0.0
+    },
+    {
+        "args": "spmv.py -1gb --disable-llc-stream -pd=45 --matrix-format csr benchmark --repetitions 5 SuiteSparse AGATHA_2015",
+        "time": "2025-02-28 05:38:35.172483",
+        "host": "dune",
+        "git-hash": "409d111f4c3f423b86090269d46445b99e4e6016",
+        "status": "complete",
+        "exec_times_ns": [
+            52967279000,
+            52917180000,
+            52951654000,
+            52981333000,
+            52976872000
+        ],
+        "filtered": [
+            52967279000,
+            52917180000,
+            52951654000,
+            52981333000,
+            52976872000
+        ],
+        "mean_ms": 52958.864,
+        "std_dev": 25.93,
+        "cv": 0.0
+    },
+    {
+        "args": "spmv.py -1gb --disable-llc-stream -pd=46 --matrix-format csr benchmark --repetitions 5 SuiteSparse AGATHA_2015",
+        "time": "2025-02-28 05:47:53.857504",
+        "host": "dune",
+        "git-hash": "409d111f4c3f423b86090269d46445b99e4e6016",
+        "status": "complete",
+        "exec_times_ns": [
+            55212292000,
+            55201720000,
+            55202606000,
+            55171327000,
+            55144199000
+        ],
+        "filtered": [
+            55212292000,
+            55201720000,
+            55202606000,
+            55171327000,
+            55144199000
+        ],
+        "mean_ms": 55186.429,
+        "std_dev": 28.177,
+        "cv": 0.001
+    },
+    {
+        "args": "spmv.py -1gb --disable-llc-stream -pd=47 --matrix-format csr benchmark --repetitions 5 SuiteSparse AGATHA_2015",
+        "time": "2025-02-28 05:57:26.687375",
+        "host": "dune",
+        "git-hash": "409d111f4c3f423b86090269d46445b99e4e6016",
+        "status": "complete",
+        "exec_times_ns": [
+            54900950000,
+            54966621000,
+            54943944000,
+            54976042000,
+            54941677000
+        ],
+        "filtered": [
+            54900950000,
+            54966621000,
+            54943944000,
+            54976042000,
+            54941677000
+        ],
+        "mean_ms": 54945.847,
+        "std_dev": 29.069,
+        "cv": 0.001
+    },
+    {
+        "args": "spmv.py -1gb --disable-llc-stream -pd=48 --matrix-format csr benchmark --repetitions 5 SuiteSparse AGATHA_2015",
+        "time": "2025-02-28 06:06:56.137120",
+        "host": "dune",
+        "git-hash": "409d111f4c3f423b86090269d46445b99e4e6016",
+        "status": "complete",
+        "exec_times_ns": [
+            54233302000,
+            54202055000,
+            54199318000,
+            54138263000,
+            54147511000
+        ],
+        "filtered": [
+            54233302000,
+            54202055000,
+            54199318000,
+            54138263000,
+            54147511000
+        ],
+        "mean_ms": 54184.09,
+        "std_dev": 40.046,
+        "cv": 0.001
+    },
+    {
+        "args": "spmv.py -1gb --disable-llc-stream -pd=49 --matrix-format csr benchmark --repetitions 5 SuiteSparse AGATHA_2015",
+        "time": "2025-02-28 06:16:22.957016",
+        "host": "dune",
+        "git-hash": "409d111f4c3f423b86090269d46445b99e4e6016",
+        "status": "complete",
+        "exec_times_ns": [
+            54311383000,
+            54310281000,
+            54344054000,
+            54312303000,
+            54323308000
+        ],
+        "filtered": [
+            54311383000,
+            54310281000,
+            54344054000,
+            54312303000,
+            54323308000
+        ],
+        "mean_ms": 54320.266,
+        "std_dev": 14.293,
+        "cv": 0.0
+    },
+    {
+        "args": "spmv.py -1gb --disable-llc-stream -pd=50 --matrix-format csr benchmark --repetitions 5 SuiteSparse AGATHA_2015",
+        "time": "2025-02-28 06:25:49.587291",
+        "host": "dune",
+        "git-hash": "409d111f4c3f423b86090269d46445b99e4e6016",
+        "status": "complete",
+        "exec_times_ns": [
+            54354648000,
+            54310504000,
+            54348435000,
+            54308456000,
+            54362643000
+        ],
+        "filtered": [
+            54354648000,
+            54310504000,
+            54348435000,
+            54308456000,
+            54362643000
+        ],
+        "mean_ms": 54336.937,
+        "std_dev": 25.576,
+        "cv": 0.0
+    },
+    {
+        "args": "spmv.py -1gb --disable-llc-stream -pd=51 --matrix-format csr benchmark --repetitions 5 SuiteSparse AGATHA_2015",
+        "time": "2025-02-28 06:35:16.523688",
+        "host": "dune",
+        "git-hash": "409d111f4c3f423b86090269d46445b99e4e6016",
+        "status": "complete",
+        "exec_times_ns": [
+            54120616000,
+            54133560000,
+            53961390000,
+            54115663000,
+            54142027000
+        ],
+        "filtered": [
+            54120616000,
+            54133560000,
+            53961390000,
+            54115663000,
+            54142027000
+        ],
+        "mean_ms": 54094.651,
+        "std_dev": 75.221,
+        "cv": 0.001
+    },
+    {
+        "args": "spmv.py -1gb --disable-llc-stream -pd=52 --matrix-format csr benchmark --repetitions 5 SuiteSparse AGATHA_2015",
+        "time": "2025-02-28 06:44:42.956192",
+        "host": "dune",
+        "git-hash": "409d111f4c3f423b86090269d46445b99e4e6016",
+        "status": "complete",
+        "exec_times_ns": [
+            53621613000,
+            53601158000,
+            53622880000,
+            53591621000,
+            53564361000
+        ],
+        "filtered": [
+            53621613000,
+            53601158000,
+            53622880000,
+            53591621000,
+            53564361000
+        ],
+        "mean_ms": 53600.327,
+        "std_dev": 24.144,
+        "cv": 0.0
+    },
+    {
+        "args": "spmv.py -1gb --disable-llc-stream -pd=53 --matrix-format csr benchmark --repetitions 5 SuiteSparse AGATHA_2015",
+        "time": "2025-02-28 06:54:11.135257",
+        "host": "dune",
+        "git-hash": "409d111f4c3f423b86090269d46445b99e4e6016",
+        "status": "complete",
+        "exec_times_ns": [
+            53447133000,
+            53455872000,
+            53447589000,
+            53429423000,
+            53471517000
+        ],
+        "filtered": [
+            53447133000,
+            53455872000,
+            53447589000,
+            53429423000,
+            53471517000
+        ],
+        "mean_ms": 53450.307,
+        "std_dev": 15.284,
+        "cv": 0.0
+    },
+    {
+        "args": "spmv.py -1gb --disable-llc-stream -pd=54 --matrix-format csr benchmark --repetitions 5 SuiteSparse AGATHA_2015",
+        "time": "2025-02-28 07:03:32.711435",
+        "host": "dune",
+        "git-hash": "409d111f4c3f423b86090269d46445b99e4e6016",
+        "status": "complete",
+        "exec_times_ns": [
+            53511545000,
+            53539838000,
+            53541438000,
+            53527100000,
+            53545835000
+        ],
+        "filtered": [
+            53511545000,
+            53539838000,
+            53541438000,
+            53527100000,
+            53545835000
+        ],
+        "mean_ms": 53533.151,
+        "std_dev": 13.944,
+        "cv": 0.0
+    },
+    {
+        "args": "spmv.py -1gb --disable-llc-stream -pd=55 --matrix-format csr benchmark --repetitions 5 SuiteSparse AGATHA_2015",
+        "time": "2025-02-28 07:12:56.901769",
+        "host": "dune",
+        "git-hash": "409d111f4c3f423b86090269d46445b99e4e6016",
+        "status": "complete",
+        "exec_times_ns": [
+            52965482000,
+            52992370000,
+            52941449000,
+            52942390000,
+            52950579000
+        ],
+        "filtered": [
+            52965482000,
+            52992370000,
+            52941449000,
+            52942390000,
+            52950579000
+        ],
+        "mean_ms": 52958.454,
+        "std_dev": 21.266,
+        "cv": 0.0
+    },
+    {
+        "args": "spmv.py -1gb --disable-llc-stream -pd=56 --matrix-format csr benchmark --repetitions 5 SuiteSparse AGATHA_2015",
+        "time": "2025-02-28 07:22:16.895417",
+        "host": "dune",
+        "git-hash": "409d111f4c3f423b86090269d46445b99e4e6016",
+        "status": "complete",
+        "exec_times_ns": [
+            53346247000,
+            53314887000,
+            53247358000,
+            53305467000,
+            53246989000
+        ],
+        "filtered": [
+            53346247000,
+            53314887000,
+            53247358000,
+            53305467000,
+            53246989000
+        ],
+        "mean_ms": 53292.19,
+        "std_dev": 43.78,
+        "cv": 0.001
+    },
+    {
+        "args": "spmv.py -1gb --disable-llc-stream -pd=57 --matrix-format csr benchmark --repetitions 5 SuiteSparse AGATHA_2015",
+        "time": "2025-02-28 07:31:39.687346",
+        "host": "dune",
+        "git-hash": "409d111f4c3f423b86090269d46445b99e4e6016",
+        "status": "complete",
+        "exec_times_ns": [
+            52945921000,
+            52892295000,
+            52928988000,
+            52916346000,
+            52960728000
+        ],
+        "filtered": [
+            52945921000,
+            52892295000,
+            52928988000,
+            52916346000,
+            52960728000
+        ],
+        "mean_ms": 52928.856,
+        "std_dev": 26.459,
+        "cv": 0.0
+    },
+    {
+        "args": "spmv.py -1gb --disable-llc-stream -pd=58 --matrix-format csr benchmark --repetitions 5 SuiteSparse AGATHA_2015",
+        "time": "2025-02-28 07:40:59.730411",
+        "host": "dune",
+        "git-hash": "409d111f4c3f423b86090269d46445b99e4e6016",
+        "status": "complete",
+        "exec_times_ns": [
+            52974558000,
+            52998933000,
+            52997881000,
+            53018621000,
+            53046996000
+        ],
+        "filtered": [
+            52974558000,
+            52998933000,
+            52997881000,
+            53018621000,
+            53046996000
+        ],
+        "mean_ms": 53007.398,
+        "std_dev": 27.086,
+        "cv": 0.001
+    },
+    {
+        "args": "spmv.py -1gb --disable-llc-stream -pd=59 --matrix-format csr benchmark --repetitions 5 SuiteSparse AGATHA_2015",
+        "time": "2025-02-28 07:50:18.543989",
+        "host": "dune",
+        "git-hash": "409d111f4c3f423b86090269d46445b99e4e6016",
+        "status": "complete",
+        "exec_times_ns": [
+            51411584000,
+            51439739000,
+            51419067000,
+            51394104000,
+            51397889000
+        ],
+        "filtered": [
+            51411584000,
+            51439739000,
+            51419067000,
+            51394104000,
+            51397889000
+        ],
+        "mean_ms": 51412.477,
+        "std_dev": 18.288,
+        "cv": 0.0
+    },
+    {
+        "args": "spmv.py -1gb --disable-llc-stream -pd=60 --matrix-format csr benchmark --repetitions 5 SuiteSparse AGATHA_2015",
+        "time": "2025-02-28 07:59:31.518934",
+        "host": "dune",
+        "git-hash": "409d111f4c3f423b86090269d46445b99e4e6016",
+        "status": "complete",
+        "exec_times_ns": [
+            52837698000,
+            52868373000,
+            52884291000,
+            52869225000,
+            52853340000
+        ],
+        "filtered": [
+            52837698000,
+            52868373000,
+            52884291000,
+            52869225000,
+            52853340000
+        ],
+        "mean_ms": 52862.585,
+        "std_dev": 17.703,
+        "cv": 0.0
+    },
+    {
+        "args": "spmv.py -1gb --disable-llc-stream -pd=61 --matrix-format csr benchmark --repetitions 5 SuiteSparse AGATHA_2015",
+        "time": "2025-02-28 08:08:51.723620",
+        "host": "dune",
+        "git-hash": "409d111f4c3f423b86090269d46445b99e4e6016",
+        "status": "complete",
+        "exec_times_ns": [
+            52473771000,
+            52427385000,
+            52453451000,
+            52446867000,
+            52478841000
+        ],
+        "filtered": [
+            52473771000,
+            52427385000,
+            52453451000,
+            52446867000,
+            52478841000
+        ],
+        "mean_ms": 52456.063,
+        "std_dev": 20.894,
+        "cv": 0.0
+    },
+    {
+        "args": "spmv.py -1gb --disable-llc-stream -pd=62 --matrix-format csr benchmark --repetitions 5 SuiteSparse AGATHA_2015",
+        "time": "2025-02-28 08:18:09.465558",
+        "host": "dune",
+        "git-hash": "409d111f4c3f423b86090269d46445b99e4e6016",
+        "status": "complete",
+        "exec_times_ns": [
+            52255534000,
+            52228745000,
+            52259670000,
+            52300433000,
+            52280072000
+        ],
+        "filtered": [
+            52255534000,
+            52228745000,
+            52259670000,
+            52300433000,
+            52280072000
+        ],
+        "mean_ms": 52264.891,
+        "std_dev": 26.996,
+        "cv": 0.001
+    },
+    {
+        "args": "spmv.py -1gb --disable-llc-stream -pd=63 --matrix-format csr benchmark --repetitions 5 SuiteSparse AGATHA_2015",
+        "time": "2025-02-28 08:27:25.286609",
+        "host": "dune",
+        "git-hash": "409d111f4c3f423b86090269d46445b99e4e6016",
+        "status": "complete",
+        "exec_times_ns": [
+            49192328000,
+            49220062000,
+            49208470000,
+            49215745000,
+            49212905000
+        ],
+        "filtered": [
+            49192328000,
+            49220062000,
+            49208470000,
+            49215745000,
+            49212905000
+        ],
+        "mean_ms": 49209.902,
+        "std_dev": 10.692,
+        "cv": 0.0
+    },
+    {
+        "args": "spmv.py -1gb --disable-llc-stream -pd=64 --matrix-format csr benchmark --repetitions 5 SuiteSparse AGATHA_2015",
+        "time": "2025-02-28 08:36:25.855046",
+        "host": "dune",
+        "git-hash": "409d111f4c3f423b86090269d46445b99e4e6016",
+        "status": "complete",
+        "exec_times_ns": [
+            52420460000,
+            52438107000,
+            52448101000,
+            52401293000,
+            52485256000
+        ],
+        "filtered": [
+            52420460000,
+            52438107000,
+            52448101000,
+            52401293000,
+            52485256000
+        ],
+        "mean_ms": 52438.643,
+        "std_dev": 31.576,
+        "cv": 0.001
+    },
+    {
+        "args": "spmv.py -1gb --disable-llc-stream -pd=65 --matrix-format csr benchmark --repetitions 5 SuiteSparse AGATHA_2015",
+        "time": "2025-02-28 08:45:43.885215",
+        "host": "dune",
+        "git-hash": "409d111f4c3f423b86090269d46445b99e4e6016",
+        "status": "complete",
+        "exec_times_ns": [
+            52345743000,
+            52309303000,
+            52300731000,
+            52319115000,
+            52299519000
+        ],
+        "filtered": [
+            52345743000,
+            52309303000,
+            52300731000,
+            52319115000,
+            52299519000
+        ],
+        "mean_ms": 52314.882,
+        "std_dev": 18.959,
+        "cv": 0.0
+    },
+    {
+        "args": "spmv.py -1gb --disable-llc-stream -pd=66 --matrix-format csr benchmark --repetitions 5 SuiteSparse AGATHA_2015",
+        "time": "2025-02-28 08:55:01.856680",
+        "host": "dune",
+        "git-hash": "409d111f4c3f423b86090269d46445b99e4e6016",
+        "status": "complete",
+        "exec_times_ns": [
+            52059520000,
+            52044347000,
+            52043359000,
+            52025486000,
+            52046149000
+        ],
+        "filtered": [
+            52059520000,
+            52044347000,
+            52043359000,
+            52025486000,
+            52046149000
+        ],
+        "mean_ms": 52043.772,
+        "std_dev": 12.13,
+        "cv": 0.0
+    },
+    {
+        "args": "spmv.py -1gb --disable-llc-stream -pd=67 --matrix-format csr benchmark --repetitions 5 SuiteSparse AGATHA_2015",
+        "time": "2025-02-28 09:04:16.253009",
+        "host": "dune",
+        "git-hash": "409d111f4c3f423b86090269d46445b99e4e6016",
+        "status": "complete",
+        "exec_times_ns": [
+            49085491000,
+            49060549000,
+            49081054000,
+            49076589000,
+            49074995000
+        ],
+        "filtered": [
+            49085491000,
+            49060549000,
+            49081054000,
+            49076589000,
+            49074995000
+        ],
+        "mean_ms": 49075.736,
+        "std_dev": 9.426,
+        "cv": 0.0
+    },
+    {
+        "args": "spmv.py -1gb --disable-llc-stream -pd=68 --matrix-format csr benchmark --repetitions 5 SuiteSparse AGATHA_2015",
+        "time": "2025-02-28 09:13:15.684463",
+        "host": "dune",
+        "git-hash": "409d111f4c3f423b86090269d46445b99e4e6016",
+        "status": "complete",
+        "exec_times_ns": [
+            52218046000,
+            52204805000,
+            52214747000,
+            52256166000,
+            52245003000
+        ],
+        "filtered": [
+            52218046000,
+            52204805000,
+            52214747000,
+            52256166000,
+            52245003000
+        ],
+        "mean_ms": 52227.753,
+        "std_dev": 21.765,
+        "cv": 0.0
+    },
+    {
+        "args": "spmv.py -1gb --disable-llc-stream -pd=69 --matrix-format csr benchmark --repetitions 5 SuiteSparse AGATHA_2015",
+        "time": "2025-02-28 09:22:33.062074",
+        "host": "dune",
+        "git-hash": "409d111f4c3f423b86090269d46445b99e4e6016",
+        "status": "complete",
+        "exec_times_ns": [
+            51957094000,
+            51964667000,
+            51964738000,
+            51953390000,
+            51935471000
+        ],
+        "filtered": [
+            51957094000,
+            51964667000,
+            51964738000,
+            51953390000,
+            51935471000
+        ],
+        "mean_ms": 51955.072,
+        "std_dev": 12.006,
+        "cv": 0.0
+    },
+    {
+        "args": "spmv.py -1gb --disable-llc-stream -pd=70 --matrix-format csr benchmark --repetitions 5 SuiteSparse AGATHA_2015",
+        "time": "2025-02-28 09:31:48.330281",
+        "host": "dune",
+        "git-hash": "409d111f4c3f423b86090269d46445b99e4e6016",
+        "status": "complete",
+        "exec_times_ns": [
+            51649454000,
+            51637191000,
+            51663512000,
+            51673280000,
+            51627408000
+        ],
+        "filtered": [
+            51649454000,
+            51637191000,
+            51663512000,
+            51673280000,
+            51627408000
+        ],
+        "mean_ms": 51650.169,
+        "std_dev": 18.703,
+        "cv": 0.0
+    },
+    {
+        "args": "spmv.py -1gb --disable-llc-stream -pd=71 --matrix-format csr benchmark --repetitions 5 SuiteSparse AGATHA_2015",
+        "time": "2025-02-28 09:41:02.335128",
+        "host": "dune",
+        "git-hash": "409d111f4c3f423b86090269d46445b99e4e6016",
+        "status": "complete",
+        "exec_times_ns": [
+            48706480000,
+            48712898000,
+            48751695000,
+            48714980000,
+            48741877000
+        ],
+        "filtered": [
+            48706480000,
+            48712898000,
+            48751695000,
+            48714980000,
+            48741877000
+        ],
+        "mean_ms": 48725.586,
+        "std_dev": 19.91,
+        "cv": 0.0
+    },
+    {
+        "args": "spmv.py -1gb --disable-llc-stream -pd=72 --matrix-format csr benchmark --repetitions 5 SuiteSparse AGATHA_2015",
+        "time": "2025-02-28 09:50:01.212059",
+        "host": "dune",
+        "git-hash": "409d111f4c3f423b86090269d46445b99e4e6016",
+        "status": "complete",
+        "exec_times_ns": [
+            51873946000,
+            51920687000,
+            51902905000,
+            51893463000,
+            51869110000
+        ],
+        "filtered": [
+            51873946000,
+            51920687000,
+            51902905000,
+            51893463000,
+            51869110000
+        ],
+        "mean_ms": 51892.022,
+        "std_dev": 21.177,
+        "cv": 0.0
+    },
+    {
+        "args": "spmv.py -1gb --disable-llc-stream -pd=73 --matrix-format csr benchmark --repetitions 5 SuiteSparse AGATHA_2015",
+        "time": "2025-02-28 09:59:19.043029",
+        "host": "dune",
+        "git-hash": "409d111f4c3f423b86090269d46445b99e4e6016",
+        "status": "complete",
+        "exec_times_ns": [
+            51907937000,
+            51993999000,
+            51927140000,
+            51929220000,
+            51964249000
+        ],
+        "filtered": [
+            51907937000,
+            51993999000,
+            51927140000,
+            51929220000,
+            51964249000
+        ],
+        "mean_ms": 51944.509,
+        "std_dev": 34.322,
+        "cv": 0.001
+    },
+    {
+        "args": "spmv.py -1gb --disable-llc-stream -pd=74 --matrix-format csr benchmark --repetitions 5 SuiteSparse AGATHA_2015",
+        "time": "2025-02-28 10:08:35.245832",
+        "host": "dune",
+        "git-hash": "409d111f4c3f423b86090269d46445b99e4e6016",
+        "status": "complete",
+        "exec_times_ns": [
+            51215611000,
+            51233043000,
+            51249403000,
+            51264433000,
+            51241813000
+        ],
+        "filtered": [
+            51215611000,
+            51233043000,
+            51249403000,
+            51264433000,
+            51241813000
+        ],
+        "mean_ms": 51240.861,
+        "std_dev": 18.222,
+        "cv": 0.0
+    },
+    {
+        "args": "spmv.py -1gb --disable-llc-stream -pd=75 --matrix-format csr benchmark --repetitions 5 SuiteSparse AGATHA_2015",
+        "time": "2025-02-28 10:17:46.853132",
+        "host": "dune",
+        "git-hash": "409d111f4c3f423b86090269d46445b99e4e6016",
+        "status": "complete",
+        "exec_times_ns": [
+            48911525000,
+            48892136000,
+            48938731000,
+            48945544000,
+            48913875000
+        ],
+        "filtered": [
+            48911525000,
+            48892136000,
+            48938731000,
+            48945544000,
+            48913875000
+        ],
+        "mean_ms": 48920.362,
+        "std_dev": 21.728,
+        "cv": 0.0
+    },
+    {
+        "args": "spmv.py -1gb --disable-llc-stream -pd=76 --matrix-format csr benchmark --repetitions 5 SuiteSparse AGATHA_2015",
+        "time": "2025-02-28 10:26:45.364425",
+        "host": "dune",
+        "git-hash": "409d111f4c3f423b86090269d46445b99e4e6016",
+        "status": "complete",
+        "exec_times_ns": [
+            51890747000,
+            51894052000,
+            51915519000,
+            51930177000,
+            51892023000
+        ],
+        "filtered": [
+            51890747000,
+            51894052000,
+            51915519000,
+            51930177000,
+            51892023000
+        ],
+        "mean_ms": 51904.504,
+        "std_dev": 17.569,
+        "cv": 0.0
+    },
+    {
+        "args": "spmv.py -1gb --disable-llc-stream -pd=77 --matrix-format csr benchmark --repetitions 5 SuiteSparse AGATHA_2015",
+        "time": "2025-02-28 10:36:02.713614",
+        "host": "dune",
+        "git-hash": "409d111f4c3f423b86090269d46445b99e4e6016",
+        "status": "complete",
+        "exec_times_ns": [
+            51824045000,
+            51858924000,
+            51852600000,
+            51806481000,
+            51862431000
+        ],
+        "filtered": [
+            51824045000,
+            51858924000,
+            51852600000,
+            51806481000,
+            51862431000
+        ],
+        "mean_ms": 51840.896,
+        "std_dev": 24.465,
+        "cv": 0.0
+    },
+    {
+        "args": "spmv.py -1gb --disable-llc-stream -pd=78 --matrix-format csr benchmark --repetitions 5 SuiteSparse AGATHA_2015",
+        "time": "2025-02-28 10:45:17.256276",
+        "host": "dune",
+        "git-hash": "409d111f4c3f423b86090269d46445b99e4e6016",
+        "status": "complete",
+        "exec_times_ns": [
+            50215288000,
+            50188329000,
+            50190413000,
+            50202336000,
+            50167983000
+        ],
+        "filtered": [
+            50215288000,
+            50188329000,
+            50190413000,
+            50202336000,
+            50167983000
+        ],
+        "mean_ms": 50192.87,
+        "std_dev": 17.594,
+        "cv": 0.0
+    },
+    {
+        "args": "spmv.py -1gb --disable-llc-stream -pd=79 --matrix-format csr benchmark --repetitions 5 SuiteSparse AGATHA_2015",
+        "time": "2025-02-28 10:54:22.653441",
+        "host": "dune",
+        "git-hash": "409d111f4c3f423b86090269d46445b99e4e6016",
+        "status": "complete",
+        "exec_times_ns": [
+            48731350000,
+            48711502000,
+            48708288000,
+            48730526000,
+            49117597000
+        ],
+        "filtered": [
+            48731350000,
+            48711502000,
+            48708288000,
+            48730526000,
+            49117597000
+        ],
+        "mean_ms": 48799.853,
+        "std_dev": 177.94,
+        "cv": 0.004
+    },
+    {
+        "args": "spmv.py -1gb --disable-llc-stream -pd=80 --matrix-format csr benchmark --repetitions 5 SuiteSparse AGATHA_2015",
+        "time": "2025-02-28 11:03:21.484380",
+        "host": "dune",
+        "git-hash": "409d111f4c3f423b86090269d46445b99e4e6016",
+        "status": "complete",
+        "exec_times_ns": [
+            51944525000,
+            51990960000,
+            51964150000,
+            51991416000,
+            51951724000
+        ],
+        "filtered": [
+            51944525000,
+            51990960000,
+            51964150000,
+            51991416000,
+            51951724000
+        ],
+        "mean_ms": 51968.555,
+        "std_dev": 21.822,
+        "cv": 0.0
+    },
+    {
+        "args": "spmv.py -1gb --disable-llc-stream -pd=81 --matrix-format csr benchmark --repetitions 5 SuiteSparse AGATHA_2015",
+        "time": "2025-02-28 11:12:37.103938",
+        "host": "dune",
+        "git-hash": "409d111f4c3f423b86090269d46445b99e4e6016",
+        "status": "complete",
+        "exec_times_ns": [
+            51905402000,
+            51945124000,
+            51935699000,
+            51940456000,
+            51916930000
+        ],
+        "filtered": [
+            51905402000,
+            51945124000,
+            51935699000,
+            51940456000,
+            51916930000
+        ],
+        "mean_ms": 51928.722,
+        "std_dev": 16.869,
+        "cv": 0.0
+    },
+    {
+        "args": "spmv.py -1gb --disable-llc-stream -pd=82 --matrix-format csr benchmark --repetitions 5 SuiteSparse AGATHA_2015",
+        "time": "2025-02-28 11:21:52.696149",
+        "host": "dune",
+        "git-hash": "409d111f4c3f423b86090269d46445b99e4e6016",
+        "status": "complete",
+        "exec_times_ns": [
+            50484598000,
+            50538264000,
+            50530349000,
+            50493007000,
+            50531043000
+        ],
+        "filtered": [
+            50484598000,
+            50538264000,
+            50530349000,
+            50493007000,
+            50531043000
+        ],
+        "mean_ms": 50515.452,
+        "std_dev": 24.704,
+        "cv": 0.0
+    },
+    {
+        "args": "spmv.py -1gb --disable-llc-stream -pd=83 --matrix-format csr benchmark --repetitions 5 SuiteSparse AGATHA_2015",
+        "time": "2025-02-28 11:31:04.188517",
+        "host": "dune",
+        "git-hash": "409d111f4c3f423b86090269d46445b99e4e6016",
+        "status": "complete",
+        "exec_times_ns": [
+            48842103000,
+            48871759000,
+            48886388000,
+            48863330000,
+            48865911000
+        ],
+        "filtered": [
+            48842103000,
+            48871759000,
+            48886388000,
+            48863330000,
+            48865911000
+        ],
+        "mean_ms": 48865.898,
+        "std_dev": 16.023,
+        "cv": 0.0
+    },
+    {
+        "args": "spmv.py -1gb --disable-llc-stream -pd=84 --matrix-format csr benchmark --repetitions 5 SuiteSparse AGATHA_2015",
+        "time": "2025-02-28 11:40:03.610642",
+        "host": "dune",
+        "git-hash": "409d111f4c3f423b86090269d46445b99e4e6016",
+        "status": "complete",
+        "exec_times_ns": [
+            51937796000,
+            51971599000,
+            51976929000,
+            51944608000,
+            51949828000
+        ],
+        "filtered": [
+            51937796000,
+            51971599000,
+            51976929000,
+            51944608000,
+            51949828000
+        ],
+        "mean_ms": 51956.152,
+        "std_dev": 17.179,
+        "cv": 0.0
+    },
+    {
+        "args": "spmv.py -1gb --disable-llc-stream -pd=85 --matrix-format csr benchmark --repetitions 5 SuiteSparse AGATHA_2015",
+        "time": "2025-02-28 11:49:19.061417",
+        "host": "dune",
+        "git-hash": "409d111f4c3f423b86090269d46445b99e4e6016",
+        "status": "complete",
+        "exec_times_ns": [
+            50775625000,
+            50755005000,
+            50751746000,
+            50770144000,
+            50742255000
+        ],
+        "filtered": [
+            50775625000,
+            50755005000,
+            50751746000,
+            50770144000,
+            50742255000
+        ],
+        "mean_ms": 50758.955,
+        "std_dev": 13.689,
+        "cv": 0.0
+    },
+    {
+        "args": "spmv.py -1gb --disable-llc-stream -pd=86 --matrix-format csr benchmark --repetitions 5 SuiteSparse AGATHA_2015",
+        "time": "2025-02-28 11:58:29.164595",
+        "host": "dune",
+        "git-hash": "409d111f4c3f423b86090269d46445b99e4e6016",
+        "status": "complete",
+        "exec_times_ns": [
+            50201443000,
+            50197999000,
+            50213401000,
+            50173088000,
+            50203292000
+        ],
+        "filtered": [
+            50201443000,
+            50197999000,
+            50213401000,
+            50173088000,
+            50203292000
+        ],
+        "mean_ms": 50197.845,
+        "std_dev": 14.979,
+        "cv": 0.0
+    },
+    {
+        "args": "spmv.py -1gb --disable-llc-stream -pd=87 --matrix-format csr benchmark --repetitions 5 SuiteSparse AGATHA_2015",
+        "time": "2025-02-28 12:07:37.632613",
+        "host": "dune",
+        "git-hash": "409d111f4c3f423b86090269d46445b99e4e6016",
+        "status": "complete",
+        "exec_times_ns": [
+            48608804000,
+            48617099000,
+            48654874000,
+            48642504000,
+            48650688000
+        ],
+        "filtered": [
+            48608804000,
+            48617099000,
+            48654874000,
+            48642504000,
+            48650688000
+        ],
+        "mean_ms": 48634.794,
+        "std_dev": 20.639,
+        "cv": 0.0
+    },
+    {
+        "args": "spmv.py -1gb --disable-llc-stream -pd=88 --matrix-format csr benchmark --repetitions 5 SuiteSparse AGATHA_2015",
+        "time": "2025-02-28 12:16:36.853258",
+        "host": "dune",
+        "git-hash": "409d111f4c3f423b86090269d46445b99e4e6016",
+        "status": "complete",
+        "exec_times_ns": [
+            51832698000,
+            51831555000,
+            51894428000,
+            51846628000,
+            51829303000
+        ],
+        "filtered": [
+            51832698000,
+            51831555000,
+            51894428000,
+            51846628000,
+            51829303000
+        ],
+        "mean_ms": 51846.922,
+        "std_dev": 27.413,
+        "cv": 0.001
+    },
+    {
+        "args": "spmv.py -1gb --disable-llc-stream -pd=89 --matrix-format csr benchmark --repetitions 5 SuiteSparse AGATHA_2015",
+        "time": "2025-02-28 12:25:49.809836",
+        "host": "dune",
+        "git-hash": "409d111f4c3f423b86090269d46445b99e4e6016",
+        "status": "complete",
+        "exec_times_ns": [
+            50030900000,
+            49996799000,
+            50011694000,
+            50052711000,
+            50021378000
+        ],
+        "filtered": [
+            50030900000,
+            49996799000,
+            50011694000,
+            50052711000,
+            50021378000
+        ],
+        "mean_ms": 50022.696,
+        "std_dev": 20.986,
+        "cv": 0.0
+    },
+    {
+        "args": "spmv.py -1gb --disable-llc-stream -pd=90 --matrix-format csr benchmark --repetitions 5 SuiteSparse AGATHA_2015",
+        "time": "2025-02-28 12:34:55.543587",
+        "host": "dune",
+        "git-hash": "409d111f4c3f423b86090269d46445b99e4e6016",
+        "status": "complete",
+        "exec_times_ns": [
+            49615862000,
+            49627335000,
+            49625027000,
+            49605053000,
+            49658445000
+        ],
+        "filtered": [
+            49615862000,
+            49627335000,
+            49625027000,
+            49605053000,
+            49658445000
+        ],
+        "mean_ms": 49626.344,
+        "std_dev": 19.977,
+        "cv": 0.0
+    },
+    {
+        "args": "spmv.py -1gb --disable-llc-stream -pd=91 --matrix-format csr benchmark --repetitions 5 SuiteSparse AGATHA_2015",
+        "time": "2025-02-28 12:44:00.226910",
+        "host": "dune",
+        "git-hash": "409d111f4c3f423b86090269d46445b99e4e6016",
+        "status": "complete",
+        "exec_times_ns": [
+            48877009000,
+            48850308000,
+            48866145000,
+            48896240000,
+            48862428000
+        ],
+        "filtered": [
+            48877009000,
+            48850308000,
+            48866145000,
+            48896240000,
+            48862428000
+        ],
+        "mean_ms": 48870.426,
+        "std_dev": 17.297,
+        "cv": 0.0
+    },
+    {
+        "args": "spmv.py -1gb --disable-llc-stream -pd=92 --matrix-format csr benchmark --repetitions 5 SuiteSparse AGATHA_2015",
+        "time": "2025-02-28 12:53:00.739404",
+        "host": "dune",
+        "git-hash": "409d111f4c3f423b86090269d46445b99e4e6016",
+        "status": "complete",
+        "exec_times_ns": [
+            51913040000,
+            51923407000,
+            51912811000,
+            51926292000,
+            51870588000
+        ],
+        "filtered": [
+            51913040000,
+            51923407000,
+            51912811000,
+            51926292000,
+            51870588000
+        ],
+        "mean_ms": 51909.228,
+        "std_dev": 22.431,
+        "cv": 0.0
+    },
+    {
+        "args": "spmv.py -1gb --disable-llc-stream -pd=93 --matrix-format csr benchmark --repetitions 5 SuiteSparse AGATHA_2015",
+        "time": "2025-02-28 13:02:16.001388",
+        "host": "dune",
+        "git-hash": "409d111f4c3f423b86090269d46445b99e4e6016",
+        "status": "complete",
+        "exec_times_ns": [
+            50924068000,
+            50923509000,
+            50921426000,
+            50908998000,
+            50893846000
+        ],
+        "filtered": [
+            50924068000,
+            50923509000,
+            50921426000,
+            50908998000,
+            50893846000
+        ],
+        "mean_ms": 50914.369,
+        "std_dev": 13.014,
+        "cv": 0.0
+    },
+    {
+        "args": "spmv.py -1gb --disable-llc-stream -pd=94 --matrix-format csr benchmark --repetitions 5 SuiteSparse AGATHA_2015",
+        "time": "2025-02-28 13:11:26.008148",
+        "host": "dune",
+        "git-hash": "409d111f4c3f423b86090269d46445b99e4e6016",
+        "status": "complete",
+        "exec_times_ns": [
+            48477834000,
+            48520844000,
+            48492159000,
+            48478249000,
+            48489007000
+        ],
+        "filtered": [
+            48477834000,
+            48520844000,
+            48492159000,
+            48478249000,
+            48489007000
+        ],
+        "mean_ms": 48491.619,
+        "std_dev": 17.536,
+        "cv": 0.0
+    },
+    {
+        "args": "spmv.py -1gb --disable-llc-stream -pd=95 --matrix-format csr benchmark --repetitions 5 SuiteSparse AGATHA_2015",
+        "time": "2025-02-28 13:20:23.789230",
+        "host": "dune",
+        "git-hash": "409d111f4c3f423b86090269d46445b99e4e6016",
+        "status": "complete",
+        "exec_times_ns": [
+            48655371000,
+            48703148000,
+            48676613000,
+            48698923000,
+            48654787000
+        ],
+        "filtered": [
+            48655371000,
+            48703148000,
+            48676613000,
+            48698923000,
+            48654787000
+        ],
+        "mean_ms": 48677.768,
+        "std_dev": 23.037,
+        "cv": 0.0
+    },
+    {
+        "args": "spmv.py -1gb --disable-llc-stream -pd=96 --matrix-format csr benchmark --repetitions 5 SuiteSparse AGATHA_2015",
+        "time": "2025-02-28 13:29:22.840714",
+        "host": "dune",
+        "git-hash": "409d111f4c3f423b86090269d46445b99e4e6016",
+        "status": "complete",
+        "exec_times_ns": [
+            51864198000,
+            51853754000,
+            51813500000,
+            51891817000,
+            51887516000
+        ],
+        "filtered": [
+            51864198000,
+            51853754000,
+            51813500000,
+            51891817000,
+            51887516000
+        ],
+        "mean_ms": 51862.157,
+        "std_dev": 31.484,
+        "cv": 0.001
+    },
+    {
+        "args": "spmv.py -1gb --disable-llc-stream -pd=97 --matrix-format csr benchmark --repetitions 5 SuiteSparse AGATHA_2015",
+        "time": "2025-02-28 13:38:37.559580",
+        "host": "dune",
+        "git-hash": "409d111f4c3f423b86090269d46445b99e4e6016",
+        "status": "complete",
+        "exec_times_ns": [
+            51802368000,
+            51812011000,
+            51850543000,
+            51883911000,
+            51868038000
+        ],
+        "filtered": [
+            51802368000,
+            51812011000,
+            51850543000,
+            51883911000,
+            51868038000
+        ],
+        "mean_ms": 51843.374,
+        "std_dev": 35.242,
+        "cv": 0.001
+    },
+    {
+        "args": "spmv.py -1gb --disable-llc-stream -pd=98 --matrix-format csr benchmark --repetitions 5 SuiteSparse AGATHA_2015",
+        "time": "2025-02-28 13:47:53.138206",
+        "host": "dune",
+        "git-hash": "409d111f4c3f423b86090269d46445b99e4e6016",
+        "status": "complete",
+        "exec_times_ns": [
+            48863610000,
+            48901174000,
+            48939434000,
+            48936689000,
+            48953007000
+        ],
+        "filtered": [
+            48863610000,
+            48901174000,
+            48939434000,
+            48936689000,
+            48953007000
+        ],
+        "mean_ms": 48918.783,
+        "std_dev": 36.306,
+        "cv": 0.001
+    },
+    {
+        "args": "spmv.py -1gb --disable-llc-stream -pd=99 --matrix-format csr benchmark --repetitions 5 SuiteSparse AGATHA_2015",
+        "time": "2025-02-28 13:56:53.128430",
+        "host": "dune",
+        "git-hash": "409d111f4c3f423b86090269d46445b99e4e6016",
+        "status": "complete",
+        "exec_times_ns": [
+            48712715000,
+            48691558000,
+            48714927000,
+            48727829000,
+            48713742000
+        ],
+        "filtered": [
+            48712715000,
+            48691558000,
+            48714927000,
+            48727829000,
+            48713742000
+        ],
+        "mean_ms": 48712.154,
+        "std_dev": 13.042,
+        "cv": 0.0
+    },
+    {
+        "args": "spmv.py -1gb --disable-llc-stream -pd=100 --matrix-format csr benchmark --repetitions 5 SuiteSparse AGATHA_2015",
+        "time": "2025-02-28 14:05:52.292094",
+        "host": "dune",
+        "git-hash": "409d111f4c3f423b86090269d46445b99e4e6016",
+        "status": "complete",
+        "exec_times_ns": [
+            51812395000,
+            51850733000,
+            51860775000,
+            51825218000,
+            51892701000
+        ],
+        "filtered": [
+            51812395000,
+            51850733000,
+            51860775000,
+            51825218000,
+            51892701000
+        ],
+        "mean_ms": 51848.364,
+        "std_dev": 31.444,
+        "cv": 0.001
+    },
+    {
+        "args": "spmv.py -1gb --disable-llc-stream -pd=101 --matrix-format csr benchmark --repetitions 5 SuiteSparse AGATHA_2015",
+        "time": "2025-02-28 14:15:05.217613",
+        "host": "dune",
+        "git-hash": "409d111f4c3f423b86090269d46445b99e4e6016",
+        "status": "complete",
+        "exec_times_ns": [
+            51772311000,
+            51823876000,
+            51815284000,
+            51788944000,
+            51813603000
+        ],
+        "filtered": [
+            51772311000,
+            51823876000,
+            51815284000,
+            51788944000,
+            51813603000
+        ],
+        "mean_ms": 51802.804,
+        "std_dev": 21.438,
+        "cv": 0.0
+    },
+    {
+        "args": "spmv.py -1gb --disable-llc-stream -pd=102 --matrix-format csr benchmark --repetitions 5 SuiteSparse AGATHA_2015",
+        "time": "2025-02-28 14:24:20.500424",
+        "host": "dune",
+        "git-hash": "409d111f4c3f423b86090269d46445b99e4e6016",
+        "status": "complete",
+        "exec_times_ns": [
+            48555982000,
+            48561049000,
+            48566808000,
+            48580882000,
+            48585827000
+        ],
+        "filtered": [
+            48555982000,
+            48561049000,
+            48566808000,
+            48580882000,
+            48585827000
+        ],
+        "mean_ms": 48570.11,
+        "std_dev": 12.803,
+        "cv": 0.0
+    },
+    {
+        "args": "spmv.py -1gb --disable-llc-stream -pd=103 --matrix-format csr benchmark --repetitions 5 SuiteSparse AGATHA_2015",
+        "time": "2025-02-28 14:33:18.194609",
+        "host": "dune",
+        "git-hash": "409d111f4c3f423b86090269d46445b99e4e6016",
+        "status": "complete",
+        "exec_times_ns": [
+            48538834000,
+            48543224000,
+            48547003000,
+            48555456000,
+            48536205000
+        ],
+        "filtered": [
+            48538834000,
+            48543224000,
+            48547003000,
+            48555456000,
+            48536205000
+        ],
+        "mean_ms": 48544.144,
+        "std_dev": 7.553,
+        "cv": 0.0
+    },
+    {
+        "args": "spmv.py -1gb --disable-llc-stream -pd=104 --matrix-format csr benchmark --repetitions 5 SuiteSparse AGATHA_2015",
+        "time": "2025-02-28 14:42:18.773404",
+        "host": "dune",
+        "git-hash": "409d111f4c3f423b86090269d46445b99e4e6016",
+        "status": "complete",
+        "exec_times_ns": [
+            51839237000,
+            51850180000,
+            51813080000,
+            51815478000,
+            51829197000
+        ],
+        "filtered": [
+            51839237000,
+            51850180000,
+            51813080000,
+            51815478000,
+            51829197000
+        ],
+        "mean_ms": 51829.434,
+        "std_dev": 15.722,
+        "cv": 0.0
+    },
+    {
+        "args": "spmv.py -1gb --disable-llc-stream -pd=105 --matrix-format csr benchmark --repetitions 5 SuiteSparse AGATHA_2015",
+        "time": "2025-02-28 14:51:31.571937",
+        "host": "dune",
+        "git-hash": "409d111f4c3f423b86090269d46445b99e4e6016",
+        "status": "complete",
+        "exec_times_ns": [
+            51942761000,
+            51895530000,
+            51953793000,
+            51915093000,
+            51926576000
+        ],
+        "filtered": [
+            51942761000,
+            51895530000,
+            51953793000,
+            51915093000,
+            51926576000
+        ],
+        "mean_ms": 51926.751,
+        "std_dev": 22.903,
+        "cv": 0.0
+    },
+    {
+        "args": "spmv.py -1gb --disable-llc-stream -pd=106 --matrix-format csr benchmark --repetitions 5 SuiteSparse AGATHA_2015",
+        "time": "2025-02-28 15:00:45.517048",
+        "host": "dune",
+        "git-hash": "409d111f4c3f423b86090269d46445b99e4e6016",
+        "status": "complete",
+        "exec_times_ns": [
+            48717983000,
+            48695745000,
+            48670894000,
+            48683855000,
+            48698225000
+        ],
+        "filtered": [
+            48717983000,
+            48695745000,
+            48670894000,
+            48683855000,
+            48698225000
+        ],
+        "mean_ms": 48693.34,
+        "std_dev": 17.541,
+        "cv": 0.0
+    },
+    {
+        "args": "spmv.py -1gb --disable-llc-stream -pd=107 --matrix-format csr benchmark --repetitions 5 SuiteSparse AGATHA_2015",
+        "time": "2025-02-28 15:09:44.373005",
+        "host": "dune",
+        "git-hash": "409d111f4c3f423b86090269d46445b99e4e6016",
+        "status": "complete",
+        "exec_times_ns": [
+            48680932000,
+            48725759000,
+            48731261000,
+            48704276000,
+            48721942000
+        ],
+        "filtered": [
+            48680932000,
+            48725759000,
+            48731261000,
+            48704276000,
+            48721942000
+        ],
+        "mean_ms": 48712.834,
+        "std_dev": 20.497,
+        "cv": 0.0
+    },
+    {
+        "args": "spmv.py -1gb --disable-llc-stream -pd=108 --matrix-format csr benchmark --repetitions 5 SuiteSparse AGATHA_2015",
+        "time": "2025-02-28 15:18:43.052220",
+        "host": "dune",
+        "git-hash": "409d111f4c3f423b86090269d46445b99e4e6016",
+        "status": "complete",
+        "exec_times_ns": [
+            51833761000,
+            51813401000,
+            51789857000,
+            51853299000,
+            51848434000
+        ],
+        "filtered": [
+            51833761000,
+            51813401000,
+            51789857000,
+            51853299000,
+            51848434000
+        ],
+        "mean_ms": 51827.75,
+        "std_dev": 26.261,
+        "cv": 0.001
+    },
+    {
+        "args": "spmv.py -1gb --disable-llc-stream -pd=109 --matrix-format csr benchmark --repetitions 5 SuiteSparse AGATHA_2015",
+        "time": "2025-02-28 15:27:56.735127",
+        "host": "dune",
+        "git-hash": "409d111f4c3f423b86090269d46445b99e4e6016",
+        "status": "complete",
+        "exec_times_ns": [
+            51843587000,
+            51790103000,
+            51845198000,
+            51822557000,
+            51782319000
+        ],
+        "filtered": [
+            51843587000,
+            51790103000,
+            51845198000,
+            51822557000,
+            51782319000
+        ],
+        "mean_ms": 51816.753,
+        "std_dev": 29.406,
+        "cv": 0.001
+    },
+    {
+        "args": "spmv.py -1gb --disable-llc-stream -pd=110 --matrix-format csr benchmark --repetitions 5 SuiteSparse AGATHA_2015",
+        "time": "2025-02-28 15:37:11.713786",
+        "host": "dune",
+        "git-hash": "409d111f4c3f423b86090269d46445b99e4e6016",
+        "status": "complete",
+        "exec_times_ns": [
+            50072006000,
+            50027723000,
+            50022502000,
+            50049587000,
+            50024946000
+        ],
+        "filtered": [
+            50072006000,
+            50027723000,
+            50022502000,
+            50049587000,
+            50024946000
+        ],
+        "mean_ms": 50039.353,
+        "std_dev": 21.2,
+        "cv": 0.0
+    },
+    {
+        "args": "spmv.py -1gb --disable-llc-stream -pd=111 --matrix-format csr benchmark --repetitions 5 SuiteSparse AGATHA_2015",
+        "time": "2025-02-28 15:46:18.982030",
+        "host": "dune",
+        "git-hash": "409d111f4c3f423b86090269d46445b99e4e6016",
+        "status": "complete",
+        "exec_times_ns": [
+            48745462000,
+            48741188000,
+            48717310000,
+            48747834000,
+            48749550000
+        ],
+        "filtered": [
+            48745462000,
+            48741188000,
+            48717310000,
+            48747834000,
+            48749550000
+        ],
+        "mean_ms": 48740.269,
+        "std_dev": 13.213,
+        "cv": 0.0
+    },
+    {
+        "args": "spmv.py -1gb --disable-llc-stream -pd=112 --matrix-format csr benchmark --repetitions 5 SuiteSparse AGATHA_2015",
+        "time": "2025-02-28 15:55:18.500246",
+        "host": "dune",
+        "git-hash": "409d111f4c3f423b86090269d46445b99e4e6016",
+        "status": "complete",
+        "exec_times_ns": [
+            51859636000,
+            51860475000,
+            51816061000,
+            51798463000,
+            51816375000
+        ],
+        "filtered": [
+            51859636000,
+            51860475000,
+            51816061000,
+            51798463000,
+            51816375000
+        ],
+        "mean_ms": 51830.202,
+        "std_dev": 28.202,
+        "cv": 0.001
+    },
+    {
+        "args": "spmv.py -1gb --disable-llc-stream -pd=113 --matrix-format csr benchmark --repetitions 5 SuiteSparse AGATHA_2015",
+        "time": "2025-02-28 16:04:33.081810",
+        "host": "dune",
+        "git-hash": "409d111f4c3f423b86090269d46445b99e4e6016",
+        "status": "complete",
+        "exec_times_ns": [
+            51919371000,
+            51887589000,
+            51904206000,
+            51922263000,
+            51858187000
+        ],
+        "filtered": [
+            51919371000,
+            51887589000,
+            51904206000,
+            51922263000,
+            51858187000
+        ],
+        "mean_ms": 51898.323,
+        "std_dev": 26.348,
+        "cv": 0.001
+    },
+    {
+        "args": "spmv.py -1gb --disable-llc-stream -pd=114 --matrix-format csr benchmark --repetitions 5 SuiteSparse AGATHA_2015",
+        "time": "2025-02-28 16:13:48.672158",
+        "host": "dune",
+        "git-hash": "409d111f4c3f423b86090269d46445b99e4e6016",
+        "status": "complete",
+        "exec_times_ns": [
+            50368310000,
+            50363659000,
+            50386128000,
+            50352667000,
+            50373035000
+        ],
+        "filtered": [
+            50368310000,
+            50363659000,
+            50386128000,
+            50352667000,
+            50373035000
+        ],
+        "mean_ms": 50368.76,
+        "std_dev": 12.3,
+        "cv": 0.0
+    },
+    {
+        "args": "spmv.py -1gb --disable-llc-stream -pd=115 --matrix-format csr benchmark --repetitions 5 SuiteSparse AGATHA_2015",
+        "time": "2025-02-28 16:22:54.913283",
+        "host": "dune",
+        "git-hash": "409d111f4c3f423b86090269d46445b99e4e6016",
+        "status": "complete",
+        "exec_times_ns": [
+            49147208000,
+            49150275000,
+            49158007000,
+            49180884000,
+            49152529000
+        ],
+        "filtered": [
+            49147208000,
+            49150275000,
+            49158007000,
+            49180884000,
+            49152529000
+        ],
+        "mean_ms": 49157.781,
+        "std_dev": 13.505,
+        "cv": 0.0
+    },
+    {
+        "args": "spmv.py -1gb --disable-llc-stream -pd=116 --matrix-format csr benchmark --repetitions 5 SuiteSparse AGATHA_2015",
+        "time": "2025-02-28 16:31:55.115247",
+        "host": "dune",
+        "git-hash": "409d111f4c3f423b86090269d46445b99e4e6016",
+        "status": "complete",
+        "exec_times_ns": [
+            51825895000,
+            51812464000,
+            51844221000,
+            51793810000,
+            51746571000
+        ],
+        "filtered": [
+            51825895000,
+            51812464000,
+            51844221000,
+            51793810000,
+            51746571000
+        ],
+        "mean_ms": 51804.592,
+        "std_dev": 37.313,
+        "cv": 0.001
+    },
+    {
+        "args": "spmv.py -1gb --disable-llc-stream -pd=117 --matrix-format csr benchmark --repetitions 5 SuiteSparse AGATHA_2015",
+        "time": "2025-02-28 16:41:08.759073",
+        "host": "dune",
+        "git-hash": "409d111f4c3f423b86090269d46445b99e4e6016",
+        "status": "complete",
+        "exec_times_ns": [
+            51753340000,
+            51810549000,
+            51807794000,
+            51785695000,
+            51800318000
+        ],
+        "filtered": [
+            51753340000,
+            51810549000,
+            51807794000,
+            51785695000,
+            51800318000
+        ],
+        "mean_ms": 51791.539,
+        "std_dev": 23.431,
+        "cv": 0.0
+    },
+    {
+        "args": "spmv.py -1gb --disable-llc-stream -pd=118 --matrix-format csr benchmark --repetitions 5 SuiteSparse AGATHA_2015",
+        "time": "2025-02-28 16:50:22.225113",
+        "host": "dune",
+        "git-hash": "409d111f4c3f423b86090269d46445b99e4e6016",
+        "status": "complete",
+        "exec_times_ns": [
+            49244582000,
+            49270239000,
+            49206065000,
+            49223096000,
+            49216487000
+        ],
+        "filtered": [
+            49244582000,
+            49270239000,
+            49206065000,
+            49223096000,
+            49216487000
+        ],
+        "mean_ms": 49232.094,
+        "std_dev": 25.559,
+        "cv": 0.001
+    },
+    {
+        "args": "spmv.py -1gb --disable-llc-stream -pd=119 --matrix-format csr benchmark --repetitions 5 SuiteSparse AGATHA_2015",
+        "time": "2025-02-28 16:59:23.949444",
+        "host": "dune",
+        "git-hash": "409d111f4c3f423b86090269d46445b99e4e6016",
+        "status": "complete",
+        "exec_times_ns": [
+            48886752000,
+            48883425000,
+            48857852000,
+            48922108000,
+            48839431000
+        ],
+        "filtered": [
+            48886752000,
+            48883425000,
+            48857852000,
+            48922108000,
+            48839431000
+        ],
+        "mean_ms": 48877.914,
+        "std_dev": 31.405,
+        "cv": 0.001
+    },
+    {
+        "args": "spmv.py -1gb --disable-llc-stream -pd=120 --matrix-format csr benchmark --repetitions 5 SuiteSparse AGATHA_2015",
+        "time": "2025-02-28 17:08:21.612060",
+        "host": "dune",
+        "git-hash": "409d111f4c3f423b86090269d46445b99e4e6016",
+        "status": "complete",
+        "exec_times_ns": [
+            51735211000,
+            51852098000,
+            51815487000,
+            51805975000,
+            51806249000
+        ],
+        "filtered": [
+            51735211000,
+            51852098000,
+            51815487000,
+            51805975000,
+            51806249000
+        ],
+        "mean_ms": 51803.004,
+        "std_dev": 42.371,
+        "cv": 0.001
+    },
+    {
+        "args": "spmv.py -1gb --disable-llc-stream -pd=121 --matrix-format csr benchmark --repetitions 5 SuiteSparse AGATHA_2015",
+        "time": "2025-02-28 17:17:40.154549",
+        "host": "dune",
+        "git-hash": "409d111f4c3f423b86090269d46445b99e4e6016",
+        "status": "complete",
+        "exec_times_ns": [
+            51876198000,
+            51880921000,
+            51861835000,
+            51857440000,
+            51905797000
+        ],
+        "filtered": [
+            51876198000,
+            51880921000,
+            51861835000,
+            51857440000,
+            51905797000
+        ],
+        "mean_ms": 51876.438,
+        "std_dev": 19.081,
+        "cv": 0.0
+    },
+    {
+        "args": "spmv.py -1gb --disable-llc-stream -pd=122 --matrix-format csr benchmark --repetitions 5 SuiteSparse AGATHA_2015",
+        "time": "2025-02-28 17:26:57.317190",
+        "host": "dune",
+        "git-hash": "409d111f4c3f423b86090269d46445b99e4e6016",
+        "status": "complete",
+        "exec_times_ns": [
+            48671764000,
+            48702196000,
+            48672080000,
+            48699410000,
+            48650782000
+        ],
+        "filtered": [
+            48671764000,
+            48702196000,
+            48672080000,
+            48699410000,
+            48650782000
+        ],
+        "mean_ms": 48679.246,
+        "std_dev": 21.511,
+        "cv": 0.0
+    },
+    {
+        "args": "spmv.py -1gb --disable-llc-stream -pd=123 --matrix-format csr benchmark --repetitions 5 SuiteSparse AGATHA_2015",
+        "time": "2025-02-28 17:35:56.743691",
+        "host": "dune",
+        "git-hash": "409d111f4c3f423b86090269d46445b99e4e6016",
+        "status": "complete",
+        "exec_times_ns": [
+            49122150000,
+            49111235000,
+            49139844000,
+            49113941000,
+            49100062000
+        ],
+        "filtered": [
+            49122150000,
+            49111235000,
+            49139844000,
+            49113941000,
+            49100062000
+        ],
+        "mean_ms": 49117.446,
+        "std_dev": 14.806,
+        "cv": 0.0
+    },
+    {
+        "args": "spmv.py -1gb --disable-llc-stream -pd=124 --matrix-format csr benchmark --repetitions 5 SuiteSparse AGATHA_2015",
+        "time": "2025-02-28 17:44:59.980495",
+        "host": "dune",
+        "git-hash": "409d111f4c3f423b86090269d46445b99e4e6016",
+        "status": "complete",
+        "exec_times_ns": [
+            51777260000,
+            51871770000,
+            51834641000,
+            51828538000,
+            51845497000
+        ],
+        "filtered": [
+            51777260000,
+            51871770000,
+            51834641000,
+            51828538000,
+            51845497000
+        ],
+        "mean_ms": 51831.541,
+        "std_dev": 34.562,
+        "cv": 0.001
+    },
+    {
+        "args": "spmv.py -1gb --disable-llc-stream -pd=125 --matrix-format csr benchmark --repetitions 5 SuiteSparse AGATHA_2015",
+        "time": "2025-02-28 17:54:16.613198",
+        "host": "dune",
+        "git-hash": "409d111f4c3f423b86090269d46445b99e4e6016",
+        "status": "complete",
+        "exec_times_ns": [
+            51809208000,
+            51797651000,
+            51773275000,
+            51799809000,
+            51800030000
+        ],
+        "filtered": [
+            51809208000,
+            51797651000,
+            51773275000,
+            51799809000,
+            51800030000
+        ],
+        "mean_ms": 51795.995,
+        "std_dev": 13.457,
+        "cv": 0.0
+    },
+    {
+        "args": "spmv.py -1gb --disable-llc-stream -pd=126 --matrix-format csr benchmark --repetitions 5 SuiteSparse AGATHA_2015",
+        "time": "2025-02-28 18:03:29.971130",
+        "host": "dune",
+        "git-hash": "409d111f4c3f423b86090269d46445b99e4e6016",
+        "status": "complete",
+        "exec_times_ns": [
+            48402525000,
+            48423931000,
+            48395139000,
+            48419296000,
+            48379320000
+        ],
+        "filtered": [
+            48402525000,
+            48423931000,
+            48395139000,
+            48419296000,
+            48379320000
+        ],
+        "mean_ms": 48404.042,
+        "std_dev": 18.173,
+        "cv": 0.0
+    },
+    {
+        "args": "spmv.py -1gb --disable-llc-stream -pd=127 --matrix-format csr benchmark --repetitions 5 SuiteSparse AGATHA_2015",
+        "time": "2025-02-28 18:12:25.874930",
+        "host": "dune",
+        "git-hash": "409d111f4c3f423b86090269d46445b99e4e6016",
+        "status": "complete",
+        "exec_times_ns": [
+            48946920000,
+            48968852000,
+            48937196000,
+            48948837000,
+            48956825000
+        ],
+        "filtered": [
+            48946920000,
+            48968852000,
+            48937196000,
+            48948837000,
+            48956825000
+        ],
+        "mean_ms": 48951.726,
+        "std_dev": 11.852,
+        "cv": 0.0
+    },
+    {
+        "args": "spmv.py -1gb --disable-llc-stream -pd=128 --matrix-format csr benchmark --repetitions 5 SuiteSparse AGATHA_2015",
+        "time": "2025-02-28 18:21:24.873289",
+        "host": "dune",
+        "git-hash": "409d111f4c3f423b86090269d46445b99e4e6016",
+        "status": "complete",
+        "exec_times_ns": [
+            51967194000,
+            51935994000,
+            51984238000,
+            51932567000,
+            51984473000
+        ],
+        "filtered": [
+            51967194000,
+            51935994000,
+            51984238000,
+            51932567000,
+            51984473000
+        ],
+        "mean_ms": 51960.893,
+        "std_dev": 25.313,
+        "cv": 0.0
+    }
+]
