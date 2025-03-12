@@ -32,6 +32,9 @@ class SuiteSparse(metaclass=Singleton):
         df.to_csv(index_file, index=False)
         self.df = df
 
+    def get_info_url(self, mtx_name: str):
+        return url_base + "/" + self.get_meta(mtx_name, "group") + "/" + mtx_name
+
     def get_meta(self, mtx_name: str, meta: str):
         assert meta in self.column_headers
         return self.df[self.df["name"] == mtx_name][meta].values[0]

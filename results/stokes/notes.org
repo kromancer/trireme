@@ -1,0 +1,380 @@
+* stokes
+
+https://sparse.tamu.edu/VLSI/stokes
+
+num-rows     11,449,53
+non-zeroes 349,321,980
+
+(/ 349321980 1144953) 305 -> quite high -> branch predictor should be ok
+
+* experiment
+
+#+begin_src sh
+#!/bin/bash
+
+source /home/paul/venv/bin/activate
+source /opt/intel/oneapi/setvars.sh
+
+REPS=10
+
+DISABLE_ALL="--disable-l1-nlp --disable-l1-ipp --disable-l2-stream --disable-l2-amp --disable-llc-stream"
+ENABLE_L1_IPP="--disable-l1-nlp --disable-l2-stream --disable-l2-amp --disable-llc-stream"
+ENABLE_MLC_STREAMER="--disable-l1-nlp --disable-l1-ipp --disable-l2-amp --disable-llc-stream"
+ENABLE_L1_NLP="--disable-l1-ipp --disable-l2-stream --disable-l2-amp --disable-llc-stream"
+ENABLE_LLC_STREAMER="--disable-l1-nlp --disable-l1-ipp --disable-l2-stream --disable-l2-amp"
+ENABLE_L2_AMP="--disable-l1-nlp --disable-l1-ipp --disable-l2-stream --disable-llc-stream"
+OPT1="--disable-l1-nlp --disable-l2-amp --disable-llc-stream"
+OPT2="--disable-l1-nlp --disable-l2-amp"
+OPT3="--disable-l2-amp --disable-l2-stream --disable-llc-stream"
+
+MTX=stokes
+
+for i in {0..128}; do
+    python spmv.py -1gb -pd=$i --matrix-format csr benchmark --repetitions $REPS SuiteSparse $MTX
+done
+
+mv results.json $MTX-all-enabled.json
+
+for i in {0..128}; do
+    python spmv.py $DISABLE_ALL -1gb -pd=$i --matrix-format csr benchmark --repetitions $REPS SuiteSparse $MTX
+done
+
+mv results.json $MTX-all-disabled.json
+
+for i in {0..128}; do
+    python spmv.py $ENABLE_L1_NLP -1gb -pd=$i --matrix-format csr benchmark --repetitions $REPS SuiteSparse $MTX
+done
+
+mv results.json $MTX-l1-nlp.json
+
+for i in {0..128}; do
+    python spmv.py $ENABLE_L1_IPP -1gb -pd=$i --matrix-format csr benchmark --repetitions $REPS SuiteSparse $MTX
+done
+
+mv results.json $MTX-l1-ipp.json
+
+for i in {0..128}; do
+    python spmv.py $ENABLE_L2_AMP -1gb -pd=$i --matrix-format csr benchmark --repetitions $REPS SuiteSparse $MTX
+done
+
+mv results.json $MTX-l2-amp.json
+
+for i in {0..128}; do
+    python spmv.py $ENABLE_LLC_STREAMER -1gb -pd=$i --matrix-format csr benchmark --repetitions $REPS SuiteSparse $MTX
+done
+
+mv results.json $MTX-llc-streamer.json
+
+for i in {0..128}; do
+    python spmv.py $ENABLE_MLC_STREAMER -1gb -pd=$i --matrix-format csr benchmark --repetitions $REPS SuiteSparse $MTX
+done
+
+mv results.json $MTX-mlc-streamer.json
+
+for i in {0..128}; do
+    python spmv.py $OPT1 -1gb -pd=$i --matrix-format csr benchmark --repetitions $REPS SuiteSparse $MTX
+done
+
+mv results.json $MTX-l1-ipp-mlc-streamer.json
+
+for i in {0..128}; do
+    python spmv.py $OPT2 -1gb -pd=$i --matrix-format csr benchmark --repetitions $REPS SuiteSparse $MTX
+done
+
+mv results.json $MTX-l1-ipp-mlc-streamer-llc-streamer.json
+
+for i in {0..128}; do
+    python spmv.py $OPT3 -1gb -pd=$i --matrix-format csr benchmark --repetitions $REPS SuiteSparse $MTX
+done
+
+mv results.json $MTX-l1-ipp-l1-npp.json
+
+#+end_src
+
+* plot-config
+
+#+begin_src json
+{
+    "title": "stokes (boolean) SpMV CSR, E-core on i9-12900",
+    "xlabel": "Prefetching Distance",
+    "ylabel": "Normalized exec time on baseline",
+    "normalize": {
+        "file": "./results/stokes/stokes-all-enabled.json",
+        "args_re": "spmv.py -1gb -pd=0"
+    },
+    "series":
+    [
+        {
+            "file": "./results/stokes/stokes-all-enabled.json",
+            "args_re": "stokes",
+            "label": "All on",
+            "x_start": 0,
+            "plot_method": "plot_mean_exec_times"
+        },
+        {
+            "file": "./results/stokes/stokes-all-disabled.json",
+            "args_re": "stokes",
+            "label": "All off",
+            "x_start": 0,
+            "plot_method": "plot_mean_exec_times"
+        },
+        {
+            "file": "./results/stokes/stokes-l1-ipp.json",
+            "args_re": "stokes",
+            "label": "L1-IPP",
+            "x_start": 0,
+            "plot_method": "plot_mean_exec_times"
+        },
+        {
+            "file": "./results/stokes/stokes-l1-ipp-mlc-streamer.json",
+            "args_re": "stokes",
+            "label": "L1-IPP & MLC streamer",
+            "x_start": 0,
+            "plot_method": "plot_mean_exec_times"
+        },
+        {
+            "file": "./results/stokes/stokes-l1-ipp-mlc-streamer-llc-streamer.json",
+            "args_re": "stokes",
+            "label": "L1-IPP & MLC streamer & LLC streamer",
+            "x_start": 0,
+            "plot_method": "plot_mean_exec_times"
+        },
+        {
+            "file": "./results/stokes/stokes-mlc-streamer.json",
+            "args_re": "stokes",
+            "label": "MLC streamer",
+            "x_start": 0,
+            "plot_method": "plot_mean_exec_times"
+        },
+        {
+            "file": "./results/stokes/stokes-l1-nlp.json",
+            "args_re": "stokes",
+            "label": "L1 NLP",
+            "x_start": 0,
+            "plot_method": "plot_mean_exec_times"
+        },
+        {
+            "file": "./results/stokes/stokes-llc-streamer.json",
+            "args_re": "stokes",
+            "label": "LLC streamer",
+            "x_start": 0,
+            "plot_method": "plot_mean_exec_times"
+        },
+        {
+            "file": "./results/stokes/stokes-l2-amp.json",
+            "args_re": "stokes",
+            "label": "L2 AMP",
+            "x_start": 0,
+            "plot_method": "plot_mean_exec_times"
+        },
+        {
+            "file": "./results/stokes/stokes-l1-ipp-l1-nlp.json",
+            "args_re": "stokes",
+            "label": "L1 IPP & L1 NLP",
+            "x_start": 0,
+            "plot_method": "plot_mean_exec_times"
+        }
+    ]
+}
+#+end_src
+
+* profiling
+
+** experiment
+
+#+begin_src shell
+    "bottlenecks": [
+	"--verbose",
+	"--long-desc",
+        "--no-multiplex",
+        "--user",
+	"--all",
+	"--frequency",
+        "--cputype", "atom",
+        "--level", "6",
+	"--single-thread"
+    ]
+#+end_src
+#+begin_src sh
+#!/bin/bash
+
+source /home/paul/venv/bin/activate
+source /opt/intel/oneapi/setvars.sh
+
+export LC_ALL=C
+
+REPS=10
+
+dd="100"
+ovr="0"
+
+MLC_STREAMER="--disable-l1-nlp --disable-l1-ipp --disable-l2-amp --disable-llc-stream"
+L1_IPP_MLC_STREAMER="--disable-l1-nlp --disable-l2-amp --disable-llc-stream"
+L1_IPP_MLC_STREAMER_LLC_STREAMER="--disable-l1-nlp --disable-l2-amp"
+
+MTX=stokes
+
+pd=?
+python spmv.py --l2-stream-dd $dd --l2-stream-dd-ovr $ovr $L1_IPP_MLC_STREAMER_LLC_STREAMER -1gb -pd=$pd --matrix-format csr profile toplev bottlenecks SuiteSparse $MTX
+#+end_src
+
+** pd=45
+
+695.1ms
+
+#+begin_example
+
+-- Percentage of time that retirement is stalled due to an L1 miss. See Info.Load_Miss_Bound --
+atom Info.Bottleneck  PCT_Load_Miss_Bound_Cycles                           Cycles                       9.37 (100 * MEM_BOUND_STALLS.LOAD / #CLKS)
+atom Info.Load_Miss_Bound PCT_LoadMissBound_with_L2Hit                                                 55.43 (100 * MEM_BOUND_STALLS.LOAD_L2_HIT / MEM_BOUND_STALLS.LOAD)
+atom Info.Load_Miss_Bound PCT_LoadMissBound_with_L2Miss                                                44.39
+atom Info.Load_Miss_Bound PCT_LoadMissBound_with_L3Hit                                                  1.35
+atom Info.Load_Miss_Bound PCT_LoadMissBound_with_L3Miss                                                43.22
+
+-- Percentage of time that retirement is stalled by the Memory Cluster due to a pipeline stall. See Info.Mem_Exec_Bound --
+atom Info.Bottleneck  PCT_Mem_Exec_Bound_Cycles                            Cycles                       5.59 (100 * LD_HEAD.ANY_AT_RET / #CLKS)
+atom Info.Mem_Exec_Bound PCT_LoadHead_with_L1miss                                                      98.33 (100 * LD_HEAD.L1_MISS_AT_RET / LD_HEAD.ANY_AT_RET)
+atom Info.Mem_Exec_Blocks PCT_Loads_with_AdressAliasing                                                 0.45
+atom Info.Mem_Exec_Bound PCT_LoadHead_with_STLBHit                                                      0.20
+atom Info.Mem_Exec_Bound PCT_LoadHead_with_Pagewalk                                                     0.78
+atom Info.Mem_Exec_Bound PCT_LoadHead_with_StoreFwding                                                  0.08
+atom Info.Mem_Exec_Bound PCT_LoadHead_with_OtherPipelineBlks                                            0.60
+
+
+-- Counts the number of cycles that the oldest load of the load buffer is stalled at retirement --
+atom Info.Load_Store_Bound Load_Bound                                                                   9.47 (100 * ( LD_HEAD.L1_BOUND_AT_RET + MEM_BOUND_STALLS.LOAD ) / #CLSK)
+
+-- Counts the number of cycles that the oldest load of the load buffer is stalled at retirement due to a pipeline block --
+atom Info.Load_Store_Bound L1_Bound                                                                     0.09 (100 * LD_HEAD.L1_BOUND_AT_RET / #CLKS)
+
+
+atom Info.Buffer_Stalls PCT_Store_Buffer_Stall_Cycles                                                   0.00
+atom Info.Buffer_Stalls PCT_Load_Buffer_Stall_Cycles                                                    4.00
+atom Info.Buffer_Stalls PCT_Mem_RSV_Stall_Cycles                                                        1.61
+
+
+atom Info.Core        IPC                                                                               3.82
+atom Info.Core        CPI                                                                               0.26
+atom Info.Core        UPI                                                                               1.00 (UOPS_RETIRED.ALL / INST_RETIRED.ANY)
+atom Info.Mem_Mix     IpLoad                                                                            2.89 (INST_RETIRED.ANY / MEM_UOPS_RETIRED.ALL_LOADS)
+atom Info.Br_Inst_Mix IpBranch                                                                         16.10
+atom Info.Mem_Mix     IpStore                                                                         538.04
+atom Info.Mem_Mix     MemLoad_Ratio                                                                   346.56
+
+# 4 on 12th Gen Intel(R) Core(TM) i9-12900K [adl]
+atom FE               Frontend_Bound                                     % Slots                        9.6  <
+atom FE               Frontend_Bound.IFetch_Latency                      % Slots                        0.2  <
+atom FE               Frontend_Bound.IFetch_Latency.ICache_Misses        % Slots                        0.1  <
+atom FE               Frontend_Bound.IFetch_Latency.ITLB_Misses          % Slots                        0.0  <
+atom FE               Frontend_Bound.IFetch_Latency.Branch_Detect        % Slots                        0.0  <
+atom FE               Frontend_Bound.IFetch_Latency.Branch_Resteer       % Slots                        0.1  <
+atom FE               Frontend_Bound.IFetch_Bandwidth                    % Slots                        9.4  <
+atom FE               Frontend_Bound.IFetch_Bandwidth.Cisc               % Slots                        0.0  <
+atom FE               Frontend_Bound.IFetch_Bandwidth.Decode             % Slots                        8.2  <
+atom FE               Frontend_Bound.IFetch_Bandwidth.Predecode          % Slots                        0.0  <
+atom FE               Frontend_Bound.IFetch_Bandwidth.Other_FB           % Slots                        1.1  <
+atom BAD              Bad_Speculation                                    % Slots                        4.9  <
+atom BAD              Bad_Speculation.Branch_Mispredicts                 % Slots                        4.9  <
+atom BAD              Bad_Speculation.Machine_Clears                     % Slots                        0.0  <
+atom BAD              Bad_Speculation.Machine_Clears.Nuke                % Slots                        0.0  <
+atom BAD              Bad_Speculation.Machine_Clears.Fast_Nuke           % Slots                        0.0  <
+atom BE               Backend_Bound                                      % Slots                        9.2  <
+atom BE               Backend_Bound.Core_Bound                           % Slots                        4.4  <
+atom BE               Backend_Bound.Core_Bound.Allocation_Restriction    % Slots                        4.4  <
+atom BE               Backend_Bound.Resource_Bound                       % Slots                        4.9  <
+atom BE               Backend_Bound.Resource_Bound.Mem_Scheduler         % Slots                        0.2  <
+atom BE               Backend_Bound.Resource_Bound.Non_Mem_Scheduler     % Slots                        0.1  <
+atom BE               Backend_Bound.Resource_Bound.Register              % Slots                        0.0  <
+atom BE               Backend_Bound.Resource_Bound.Reorder_Buffer        % Slots                        4.5  <
+atom BE               Backend_Bound.Resource_Bound.Serialization         % Slots                        0.1  <
+atom RET              Retiring                                           % Slots                       76.2   <==
+        Counts the number of issue slots that result in retirement
+        slots
+#+end_example
+
+** no-opt
+
+494.5ms
+
+#+begin_example
+# 4 on 12th Gen Intel(R) Core(TM) i9-12900K [adl]
+
+-- Percentage of time that retirement is stalled due to an L1 miss. See Info.Load_Miss_Bound --
+atom Info.Bottleneck  PCT_Load_Miss_Bound_Cycles                           Cycles                      24.48 (100 * MEM_BOUND_STALLS.LOAD / #CLKS)
+atom Info.Load_Miss_Bound PCT_LoadMissBound_with_L2Hit                                                 29.99 (100 * MEM_BOUND_STALLS.LOAD_L2_HIT / MEM_BOUND_STALLS.LOAD)
+atom Info.Load_Miss_Bound PCT_LoadMissBound_with_L2Miss                                                70.00
+atom Info.Load_Miss_Bound PCT_LoadMissBound_with_L3Hit                                                  9.03
+atom Info.Load_Miss_Bound PCT_LoadMissBound_with_L3Miss                                                60.97
+
+
+-- Percentage of time that retirement is stalled by the Memory Cluster due to a pipeline stall. See Info.Mem_Exec_Bound --
+atom Info.Bottleneck  PCT_Mem_Exec_Bound_Cycles                            Cycles                      11.91 (100 * LD_HEAD.ANY_AT_RET / #CLKS)
+atom Info.Mem_Exec_Bound PCT_LoadHead_with_L1miss                                                      99.03 (100 * LD_HEAD.L1_MISS_AT_RET / LD_HEAD.ANY_AT_RET)
+atom Info.Mem_Exec_Bound PCT_LoadHead_with_STLBHit                                                      0.04
+atom Info.Mem_Exec_Bound PCT_LoadHead_with_Pagewalk                                                     0.11
+atom Info.Mem_Exec_Bound PCT_LoadHead_with_StoreFwding                                                  0.34
+atom Info.Mem_Exec_Bound PCT_LoadHead_with_OtherPipelineBlks                                            0.48
+
+
+-- Counts the number of cycles that the oldest load of the load buffer is stalled at retirement --
+atom Info.Load_Store_Bound Load_Bound                                                                  24.64 (100 * ( LD_HEAD.L1_BOUND_AT_RET + MEM_BOUND_STALLS.LOAD ) / #CLSK)
+
+-- Counts the number of cycles that the oldest load of the load buffer is stalled at retirement due to a pipeline block --
+atom Info.Load_Store_Bound L1_Bound                                                                     0.12 (100 * LD_HEAD.L1_BOUND_AT_RET / #CLKS)
+
+-- Percentage of time that allocation is stalled due to load buffer full --
+atom Info.Buffer_Stalls PCT_Load_Buffer_Stall_Cycles                                                   35.21 (100 * MEM_SCHEDULER_BLOCK.LD_BUF / #CLKS)
+
+-- Percentage of time that allocation is stalled due to memory reservation stations full --
+atom Info.Buffer_Stalls PCT_Mem_RSV_Stall_Cycles                                                        4.98 (100 * MEM_SCHEDULER_BLOCK.RSV / #CLKS)
+
+
+atom Info.Core        IPC                                                                               1.68
+atom Info.Core        CPI                                                                               0.60
+atom Info.Core        UPI                                                                               1.00 (uops per instruction)
+atom Info.Mem_Mix     IpLoad                                                                            1.78 (INST_RETIRED.ANY / MEM_UOPS_RETIRED.ALL_LOADS)
+atom Info.Br_Inst_Mix IpBranch                                                                         12.30
+atom Info.Mem_Mix     IpStore                                                                         167.46
+atom Info.Mem_Mix     MemLoad_Ratio                                                                   562.54
+
+
+atom FE               Frontend_Bound                                     % Slots                        0.4  <
+atom FE               Frontend_Bound.IFetch_Latency                      % Slots                        0.0  <
+atom FE               Frontend_Bound.IFetch_Latency.ICache_Misses        % Slots                        0.0  <
+atom FE               Frontend_Bound.IFetch_Latency.ITLB_Misses          % Slots                        0.0  <
+atom FE               Frontend_Bound.IFetch_Latency.Branch_Detect        % Slots                        0.0  <
+atom FE               Frontend_Bound.IFetch_Latency.Branch_Resteer       % Slots                        0.0  <
+atom FE               Frontend_Bound.IFetch_Bandwidth                    % Slots                        0.3  <
+atom FE               Frontend_Bound.IFetch_Bandwidth.Cisc               % Slots                        0.0  <
+atom FE               Frontend_Bound.IFetch_Bandwidth.Decode             % Slots                        0.2  <
+atom FE               Frontend_Bound.IFetch_Bandwidth.Predecode          % Slots                        0.1  <
+atom FE               Frontend_Bound.IFetch_Bandwidth.Other_FB           % Slots                        0.0  <
+atom BAD              Bad_Speculation                                    % Slots                       11.6  <
+atom BAD              Bad_Speculation.Branch_Mispredicts                 % Slots                       11.5  < (/ 685002055  (* 5 1188001782.0))
+atom BAD              Bad_Speculation.Machine_Clears                     % Slots                        0.0  <
+atom BAD              Bad_Speculation.Machine_Clears.Nuke                % Slots                        0.0  <
+atom BAD              Bad_Speculation.Machine_Clears.Fast_Nuke           % Slots                        0.0  <
+
+atom BE               Backend_Bound                                      % Slots                       54.5
+atom BE               Backend_Bound.Core_Bound                           % Slots                        0.0  <
+atom BE               Backend_Bound.Core_Bound.Allocation_Restriction    % Slots                        0.0  <
+atom BE               Backend_Bound.Resource_Bound                       % Slots                       54.4
+atom BE               Backend_Bound.Resource_Bound.Mem_Scheduler         % Slots                       36.8   <==
+        Counts the number of issue slots that were not consumed by
+        the backend due to memory reservation stalls in which a
+        scheduler is not able to accept uops
+atom BE               Backend_Bound.Resource_Bound.Non_Mem_Scheduler     % Slots                        0.0  <
+atom BE               Backend_Bound.Resource_Bound.Register              % Slots                        0.0  <
+atom BE               Backend_Bound.Resource_Bound.Reorder_Buffer        % Slots                       17.4
+atom BE               Backend_Bound.Resource_Bound.Serialization         % Slots                        0.1  <
+atom RET              Retiring                                           % Slots                       33.6  <
+#+end_example
+
+
+num_of_non_zeroes:             349,321,980
+mem_uops_retired.all_loads:  1,082,393,144.0
+mem_load_uops_retired.l2_hit:   24,511,276.0
+mem_load_uops_retired.dram_hit:    850,816.0
+mem_load_uops_retired.l3_hit:      909,808.0
+
+97.6% L1 hit rate

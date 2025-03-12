@@ -1,0 +1,80 @@
+* pd-dd-ovr-sweep.json
+
+#+begin_src shell
+#!/bin/bash
+
+source /home/paul/venv/bin/activate
+source /opt/intel/oneapi/setvars.sh
+
+export LC_ALL=C
+
+REPS=10
+
+MTX=Delor64K
+
+L1_IPP_MLC_STREAMER_LLC_STREAMER="--disable-l1-nlp --disable-l2-amp"
+
+for pd in 0 32 48 64 80 96; do
+    for dd in 0 32 64 96 128 160 192 224 255; do
+	for ovr in 0 5 10 15; do
+	    python spmv.py --l2-stream-dd $dd --l2-stream-dd-ovr $ovr $L1_IPP_MLC_STREAMER_LLC_STREAMER -1gb -pd=$pd --matrix-format csr benchmark --repetitions 10 SuiteSparse $MTX
+	done
+    done
+done
+
+#+end_src
+
+* profiling no-opt
+
+_Info.Bottleneck.Load_Miss_Bound_Cycles_:
+Percentage of time that retirement is stalled due to an L1 miss. See Info.Load_Miss_Bound
+100 * MEM_BOUND_STALLS.LOAD / #CLKS
+
+_Info.Buffer_Stalls.Load_Buffer_Stall_Cycles_:
+Percentage of time that allocation is stalled due to load buffer full
+100 * MEM_SCHEDULER_BLOCK.LD_BUF / #CLKS
+
+_Info.Buffer_Stalls.Mem_RSV_Stall_Cycles_:
+Percentage of time that allocation is stalled due to memory reservation stations full
+100 * MEM_SCHEDULER_BLOCK.RSV / #CLKS
+
+_Backend_Bound.Resource_Bound.Mem_Scheduler_:
+Counts the number of issue slots that were not consumed by the backend due to memory reservation stalls in which a scheduler is not able to accept uops
+
+_Backend_Bound.Resource_Bound.Reorder_Buffer_:
+Counts the number of issue slots that were not consumed by the backend due to the reorder buffer being full (ROB stalls)
+
+_Bad_Speculation.Branch_Mispredicts_:
+Counts the number of issue slots that were not consumed by the backend due to branch mispredicts
+
+no-opt
+{"counter-value" : "*5525682*.000000", "unit" : "", "event" : "cpu_atom/cpu_clk_unhalted.core:u/", "event-runtime" : 11278963, "pcnt-running" : 100.00, "metric-value" : "0.000000", "metric-unit" : "(null)"}
+{"counter-value" : "3602340.000000", "unit" : "", "event" : "cpu_atom/mem_bound_stalls.load:u/", "event-runtime" : 11278963, "pcnt-running" : 100.00, "metric-value" : "0.000000", "metric-unit" : "(null)"}
+{"counter-value" : "15337535.000000", "unit" : "", "event" : "cpu_atom/topdown_be_bound.mem_scheduler:u/", "event-runtime" : 11278963, "pcnt-running" : 100.00, "metric-value" : "0.000000", "metric-unit" : "(null)"}
+{"counter-value" : "964245.000000", "unit" : "", "event" : "cpu_atom/topdown_be_bound.reorder_buffer:u/", "event-runtime" : 11278963, "pcnt-running" : 100.00, "metric-value" : "0.000000", "metric-unit" : "(null)"}
+{"counter-value" : "3265913.000000", "unit" : "", "event" : "cpu_atom/mem_scheduler_block.ld_buf:u/", "event-runtime" : 11278963, "pcnt-running" : 100.00, "metric-value" : "0.000000", "metric-unit" : "(null)"}
+{"counter-value" : "84726.000000", "unit" : "", "event" : "cpu_atom/mem_scheduler_block.rsv:u/", "event-runtime" : 11278963, "pcnt-running" : 100.00, "metric-value" : "0.000000", "metric-unit" : "(null)"}
+
+Info.Bottleneck.Load_Miss_Bound_Cycles:
+(/ 3602340 5525682.0) *0.65* vs (/ 993667 4409367.0) *0.225*
+
+Info.Buffer_Stalls.Load_Buffer_Stall_Cycles
+(/ 3265913 5525682.0) *0.59* vs (/ 406851 4409367.0) *0.09*
+
+Backend_Bound.Resource_Bound.Mem_Scheduler:
+(/ 15337535 (* 5 5525682.0)) *0.55* vs (/ 19915 (* 5 4409367.0)) *0.00*
+
+Backend_Bound.Resource_Bound.Reorder_Buffer:
+(/ 964245 (* 5 5525682.0)) *0.03* vs (/ 2224730 (* 5 4409367.0)) *0.10*
+
+Info.Buffer_Stalls.Mem_RSV_Stall_Cycles:
+(/ 84726 5525682.0) *0.015* vs (/ )
+
+pd=80
+{"counter-value" : "*4409367*.000000", "unit" : "", "event" : "cpu_atom/cpu_clk_unhalted.core:u/", "event-runtime" : 10826126, "pcnt-running" : 100.00, "metric-value" : "0.000000", "metric-unit" : "(null)"}
+{"counter-value" : "993667.000000", "unit" : "", "event" : "cpu_atom/mem_bound_stalls.load:u/", "event-runtime" : 10826126, "pcnt-running" : 100.00, "metric-value" : "0.000000", "metric-unit" : "(null)"}
+{"counter-value" : "1338938.000000", "unit" : "", "event" : "cpu_atom/topdown_bad_speculation.mispredict:u/", "event-runtime" : 10826126, "pcnt-running" : 100.00, "metric-value" : "0.000000", "metric-unit" : "(null)"}
+{"counter-value" : "19915.000000", "unit" : "", "event" : "cpu_atom/topdown_be_bound.mem_scheduler:u/", "event-runtime" : 10826126, "pcnt-running" : 100.00, "metric-value" : "0.000000", "metric-unit" : "(null)"}
+{"counter-value" : "2224730.000000", "unit" : "", "event" : "cpu_atom/topdown_be_bound.reorder_buffer:u/", "event-runtime" : 10826126, "pcnt-running" : 100.00, "metric-value" : "0.000000", "metric-unit" : "(null)"}
+{"counter-value" : "406851.000000", "unit" : "", "event" : "cpu_atom/mem_scheduler_block.ld_buf:u/", "event-runtime" : 10826126, "pcnt-running" : 100.00, "metric-value" : "0.000000", "metric-unit" : "(null)"}
+{"counter-value" : "95176.000000", "unit" : "", "event" : "cpu_atom/mem_load_uops_retired.l2_hit:u/", "event-runtime" : 10826126, "pcnt-running" : 100.00, "metric-value" : "0.000000", "metric-unit" : "(null)"}

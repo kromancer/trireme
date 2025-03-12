@@ -1,0 +1,43 @@
+* notes
+
+- AGATHA_2015 performs "half" the computation,
+  maybe I should add the other half and see if it will converge to how the other computations look like
+
+
+* plot configuration
+
+
+#+begin_src json
+{
+    "title": "SpMV CSR, E-core on i9-12900",
+    "xlabel": "Prefetching Distance",
+    "ylabel": "Execution time in ms (Average of 10 runs, CV < 0.2%)",
+    "series":
+    [
+        {
+            "file": "./results/prefetching-distance/hw-on.json",
+            "args_re": "Queen_4147",
+            "label": "Queen_4147",
+            "x_start": 16,
+            "plot_method": "plot_mean_exec_times",
+            "normalize": true
+        },
+        {
+            "file": "./results/prefetching-distance/hw-on.json",
+            "args_re": "nlpkkt240",
+            "label": "nlpkkt240",
+            "x_start": 16,
+            "plot_method": "plot_mean_exec_times",
+            "normalize": true
+        },
+        {
+            "file": "./results/prefetching-distance/hw-on.json",
+            "args_re": "AGATHA_2015",
+            "label": "AGATHA_2015",
+            "x_start": 16,
+            "plot_method": "plot_mean_exec_times",
+            "normalize": true
+        }
+    ]
+}
+#+end_src
