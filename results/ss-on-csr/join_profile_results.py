@@ -1,5 +1,4 @@
 import re
-import sys
 import json
 
 with open("profile-ss-csr-pref-mlir-45.json", "r") as p1, open("profile-2-ss-csr-pref-mlir-45.json", "r") as p2, open("consolidated-profile.json", "w") as consolidated:

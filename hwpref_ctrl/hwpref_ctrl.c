@@ -47,6 +47,11 @@
 #define SET_L2_STREAM_DD_OVR -1
 #endif
 
+#ifndef SET_L2_STREAM_XQ_THRES
+#warning "SET_L2_STREAM_XQ_THRES not defined, L2's XQ Threshold won't change (applicable for only on intel atom cores)"
+#define SET_L2_STREAM_XQ_THRES -1
+#endif
+
 #if (DISABLE_HW_PREF_L1_NLP == 1) || \
   (DISABLE_HW_PREF_L1_IPP == 1) || \
   (DISABLE_HW_PREF_L1_NPP == 1) || \
@@ -54,7 +59,8 @@
   (DISABLE_HW_PREF_L2_AMP == 1) || \
   (DISABLE_HW_PREF_LLC_STREAM == 1) || \
   (SET_L2_STREAM_DD != -1) || \
-  (SET_L2_STREAM_DD_OVR != -1)
+  (SET_L2_STREAM_DD_OVR != -1) || \
+  (SET_L2_STREAM_XQ_THRES != -1)
 #define HW_PREF_CONTROL_ON 1
 #else
 #define HW_PREF_CONTROL_ON 0
@@ -113,6 +119,10 @@ int init_hw_pref_control(void) {
     msr_set_l2ddovr(msr, SET_L2_STREAM_DD_OVR);
 #endif
 
+#if SET_L2_STREAM_XQ_THRES != -1
+    msr_set_l2xq(msr, SET_L2_STREAM_XQ_THRES);
+#endif
+
 #if HW_PREF_CONTROL_ON == 1
     assert(msr_write_all(msr_file, msr) >= 0);
 #endif
@@ -158,6 +168,10 @@ void deinit_hw_pref_control(void) {
 
 #if SET_L2_STREAM_DD_OVR != -1
     assert(msr_get_l2ddovr(msr) == SET_L2_STREAM_DD_OVR);
+#endif
+
+#if SET_L2_STREAM_XQ_THRES != -1
+    assert(msr_get_l2xq(msr) == SET_L2_STREAM_XQ_THRES);
 #endif
 
 #if HW_PREF_CONTROL_ON == 1
