@@ -8,7 +8,7 @@ From: ubuntu:22.04
 %post
     # Install dependencies
     apt update && apt upgrade -y && apt-get install -y \
-        git bc make gcc-12 g++-12 cmake ninja-build patchelf \
+        git bc make gcc-12 g++-12 cmake ninja-build patchelf ccache \
         libreadline-dev libncursesw5-dev libssl-dev \
         libsqlite3-dev libgdbm-dev libc6-dev libbz2-dev \
         libffi-dev zlib1g-dev \
@@ -110,8 +110,9 @@ From: ubuntu:22.04
     mkdir /opt/llvm
     mkdir -p build
     cd build
-    cmake -G Ninja ../llvm -DLLVM_ENABLE_PROJECTS="clang;openmp;lldb;mlir" -DCMAKE_CXX_COMPILER=g++-12 -DCMAKE_C_COMPILER=gcc-12 -DCMAKE_INSTALL_PREFIX=/opt/llvm -DLLVM_TARGETS_TO_BUILD="Native" -DLLVM_INSTALL_UTILS=ON -DCMAKE_BUILD_TYPE=RelWithDebInfo -DPython3_EXECUTABLE=python -DMLIR_ENABLE_BINDINGS_PYTHON=ON -DLLVM_USE_PERF=ON
-    ninja -j10 install
+    cmake -G Ninja ../llvm -DLLVM_ENABLE_PROJECTS="clang;openmp;lldb;mlir" -DCMAKE_CXX_COMPILER=g++-12 -DCMAKE_C_COMPILER=gcc-12 -DCMAKE_INSTALL_PREFIX=/opt/llvm -DLLVM_TARGETS_TO_BUILD="Native" -DLLVM_INSTALL_UTILS=ON -DCMAKE_BUILD_TYPE=RelWithDebInfo -DPython3_EXECUTABLE=python -DMLIR_ENABLE_BINDINGS_PYTHON=ON -DLLVM_USE_PERF=ON -DLLVM_CCACHE_BUILD=On -DLLVM_CCACHE_DIR=$TMP/ccache -DLLVM_BUILD_EXAMPLES=Off
+
+    ninja -j6 install
 
     #####################################################################
     # Get the linux kernel and build perf
