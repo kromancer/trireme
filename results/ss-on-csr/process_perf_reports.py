@@ -77,7 +77,10 @@ def compute_metrics(data: dict[str, dict[str, Any]]) -> dict[str, dict[str, Any]
 
 
 if __name__ == "__main__":
-    data = compute_metrics(process_perf_report(sys.argv[1]))
+    dict_data = process_perf_report(sys.argv[1])
+    with open("tmp.json", "w") as f:
+        f.write(json.dumps(dict_data, indent=4))
+    data = compute_metrics(dict_data)
     with open(sys.argv[1] + ".processed.json", "w") as f:
         f.write(json.dumps(data, indent=4))
 
