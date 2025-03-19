@@ -16,7 +16,7 @@
     ],
     "roofline": [
         "--collect", "roofline",
-        "--project-dir", "/home/paul/advi_results",
+        "--project-dir", "/home/paul/advi-results",
         "--enable-cache-simulation",
         "--auto-finalize"
     ]

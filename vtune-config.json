@@ -11,7 +11,7 @@
         "-data-limit=0",
         "-knob", "sampling-interval=0.01",
         "-knob", "sampling-mode=hw",
-        "-knob", "enable-stack-collection=true"
+        "-knob", "enable-stack-collection=false"
     ],
     "threading": [
         "-collect", "threading",

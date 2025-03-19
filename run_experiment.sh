@@ -7,19 +7,17 @@ check_turbo() {
             echo "✅ Turbo Boost is DISABLED (intel_pstate)."
         else
             echo "❌ Turbo Boost is ENABLED (intel_pstate)."
-            exit 1
         fi
     fi
 }
 
 check_hwp() {
     if [ -f "/sys/devices/system/cpu/intel_pstate/status" ]; then
-        hwp_status=$(cat /sys/devices/system/cpu/intel_pstate/no_turbo)
+        hwp_status=$(cat /sys/devices/system/cpu/intel_pstate/status)
         if [ "$hwp_status" = "active" ]; then
             echo "✅ HWP is disabled."
         else
             echo "❌ HWP is NOT disabled: $hwp_status"
-            exit 1
         fi
     fi
 }
@@ -34,23 +32,41 @@ set_performance_governor() {
         return 0
     else
         echo "❌ CPU core $core is NOT set to performance mode (current: $governor)."
-        return 1
     fi
 }
 
 set_cpu_to_max_freq() {
-    local core=$1
-
     # Get the frequency limits line from cpupower output
-    local freq_info=$(cpupower -c "$core" frequency-info | grep "hardware limits")
+    freq_info=$(cpupower -c "$1" frequency-info | grep "hardware limits")
 
     # Extract the upper frequency limit (handles decimal numbers correctly)
-    local max_freq=$(echo "$freq_info" | grep -oP ' - \K[0-9]+\.[0-9]+ [MG]Hz')
+    max_freq=$(echo "$freq_info" | grep -oP ' - \K[0-9]+\.[0-9]+ [MG]Hz')
 
     # Set both upper and lower frequency limits to the max frequency
-    sudo cpupower -c "$core" frequency-set -d "${max_freq// /}" -u "${max_freq// /}" > /dev/null
+    sudo cpupower -c "$1" frequency-set -d "${max_freq// /}" -u "${max_freq// /}" > /dev/null
 
-    echo "✅ CPU core $core set to fixed frequency: ${max_freq}"
+    echo "✅ CPU core $1 set to fixed frequency: $max_freq"
+}
+
+set_uncore_freq() {
+    base_path="/sys/devices/system/cpu/intel_uncore_frequency/package_00_die_00"
+    min_freq_file="$base_path/min_freq_khz"
+    max_freq_file="$base_path/max_freq_khz"
+    init_max_freq_file="$base_path/initial_max_freq_khz"
+
+    # Check if the initial_max_freq_khz file exists
+    if [[ -f "$init_max_freq_file" ]]; then
+        # Read the frequency value from initial_max_freq_khz
+        init_freq=$(cat "$init_max_freq_file")
+
+        # Write the frequency value to min and max freq files
+        echo "$init_freq" > "$min_freq_file"
+        echo "$init_freq" > "$max_freq_file"
+
+        echo "✅ Uncore frequency set to ${init_freq} kHz."
+    else
+	echo "❌ initial_max_freq_khz file not found!"
+    fi
 }
 
 prevent_swaps() {
@@ -72,6 +88,7 @@ check_turbo
 check_hwp
 set_performance_governor $1
 set_cpu_to_max_freq $1
+set_uncore_freq
 prevent_swaps
 disable_deep_idle_states $1
 

@@ -1,21 +1,11 @@
 {
-"exclude-from-all": [
-    "AGATHA_2015",
-    "GAP-urand",
-    "GAP-kron",
-    "MOLIERE_2016",
-    "com-Friendster",
-    "mycielskian20"
-],
-"no-opt-bench": [
-    "Spielman_k600",
-    "Spielman_k500",
-    "GAP-twitter",
-    "GAP-web",
-    "twitter7"
-],
-"no-opt-prof": [
-    "GAP-web",
-    "Spielman_k600"
-]
+    "exclude-from-all": [],
+    "biggest": [
+        "AGATHA_2015",
+        "GAP-urand",
+        "GAP-kron",
+        "MOLIERE_2016",
+        "com-Friendster",
+        "mycielskian20"
+    ]
 }
