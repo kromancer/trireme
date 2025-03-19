@@ -64,7 +64,8 @@ class HwprefController:
     def __enter__(self):
         if self.skip:
             return self
-        assert self.init_hw_pref_control() >= 0
+        if self.init_hw_pref_control() < 0:
+            print("Failed to initiliaze HW Pref Controls")
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         if self.skip:
