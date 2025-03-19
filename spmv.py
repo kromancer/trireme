@@ -51,7 +51,7 @@ def render_template_for_main(args: argparse.Namespace) -> str:
 
 def flush_cache(cache_size=100 * 1024 * 1024):
     a = np.arange(cache_size, dtype=np.uint8)
-    a.sum() # forces reading the array
+    a.sum()  # forces reading the array
 
 
 def run_with_aot(args: argparse.Namespace, exe: Path, nnz: int, mat_buffs: List[np.array], vec: np.ndarray,
@@ -95,7 +95,7 @@ def main():
     with open("spmv.0. mlir", "w") as f:
         f.write(spmv)
 
-    if args.optimization in ["omp", "pref-mlir-omp"]:
+    if args.optimization in ["omp", "pref-mlir-omp", "pref-ains-omp"]:
         pipeline = "omp"
     elif args.optimization == "vect-vl4":
         pipeline = "vect-vl4"

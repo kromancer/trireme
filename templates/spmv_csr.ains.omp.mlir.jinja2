@@ -1,0 +1,103 @@
+#sparse = {{ encoding }}
+
+// Computes: a(i) = B(i,j) * c(j)
+func.func @spmv(%a_t: {{ out_type }},
+                %B: {{ mat_type }},
+                %c_t: {{ vtype }}) -> {{ out_type }} {
+
+    %c3 = arith.constant {{ rows }} : index
+    %c0 = arith.constant 0 : index
+    %c1 = arith.constant 1 : index
+    %c2 = arith.constant 2 : index
+
+    %Bj_pos = sparse_tensor.positions %B {level = 1 : index} : {{ mat_type }} to memref<?xindex>
+    %Bj_crd = sparse_tensor.coordinates %B {level = 1 : index} : {{ mat_type }} to memref<?xindex>
+    %B_vals = sparse_tensor.values %B : {{ mat_type }} to memref<?x{{ dtype }}>
+
+    %c = bufferization.to_memref %c_t : {{ vtype }} to memref<{{ cols }}x{{ dtype }}>
+    %a = bufferization.to_memref %a_t : {{ out_type }} to memref<{{ rows }}x{{ dtype }}>
+
+    // Fixed lookahead distance
+    %dist = arith.constant {{ pd }} : index
+    %double_dist = arith.muli %dist, %c2 : index
+
+    scf.parallel %i = %c0 to %c3 step %c1 {
+        %6 = memref.load %a[%i] : memref<{{ rows }}x{{ dtype }}>
+
+        // Load position of Bj segment start
+        %seg_start = memref.load %Bj_pos[%i] : memref<?xindex>
+
+        // Load position of Bj segment end
+        %i_plus_one = arith.addi %i, %c1 : index
+        %seg_end = memref.load %Bj_pos[%i_plus_one] : memref<?xindex>
+        %bound = arith.subi %seg_end, %c1 : index
+
+        %a_i = scf.for %jj = %seg_start to %seg_end step %c1 iter_args(%arg5 = %6) -> ({{ dtype }}) {
+            %j = memref.load %Bj_crd[%jj] : memref<?xindex>
+
+            // Prefetch Bj_crd[jj + 2 * dist]
+            %jj_plus_double_dist = arith.addi %jj, %double_dist : index
+            memref.prefetch %Bj_crd[%jj_plus_double_dist], read, locality<{{ loc_hint }}>, data : memref<?xindex>
+
+            // Load Bj_crd[min(j + dist, bound)]
+            %jj_plus_dist = arith.addi %jj, %dist : index
+            %jj_plus_dist_or_bound = arith.minui %jj_plus_dist, %bound : index
+            %Bj_crd_jj_plus_dist_or_bound = memref.load %Bj_crd[%jj_plus_dist_or_bound] : memref<?xindex>
+
+            // Prefetch c[Bj_crd[%Bj_crd_jj_plus_dist_or_seg_end]]
+            memref.prefetch %c[%Bj_crd_jj_plus_dist_or_bound], read, locality<{{ loc_hint }}>, data : memref<{{ cols }}x{{ dtype }}>
+
+            %Bij = memref.load %B_vals[%jj] : memref<?x{{ dtype }}>
+            %cj = memref.load %c[%j] : memref<{{ cols }}x{{ dtype }}>
+            %mul = {{ mul_op }} %Bij, %cj : {{ dtype }}
+            %a_i = {{ add_op }} %arg5, %mul : {{ dtype }}
+            scf.yield %a_i : {{ dtype }}
+        }
+        memref.store %a_i, %a[%i] : memref<{{ rows }}x{{ dtype }}>
+        scf.reduce
+    }
+
+{% if is_symmetric %}
+    scf.parallel %i = %c0 to %c3 step %c1 {
+        %ci = memref.load %c[%i] : memref<{{ cols }}x{{ dtype }}>
+
+        // Load position of Bj segment start
+        %seg_start = memref.load %Bj_pos[%i] : memref<?xindex>
+
+        // Load position of Bj segment end
+        %i_plus_one = arith.addi %i, %c1 : index
+        %seg_end = memref.load %Bj_pos[%i_plus_one] : memref<?xindex>
+        %bound = arith.subi %seg_end, %c1 : index
+
+        scf.for %jj = %seg_start to %seg_end step %c1 {
+            %j = memref.load %Bj_crd[%jj] : memref<?xindex>
+
+            // Prefetch Bj_crd[jj + 2 * dist]
+            %jj_plus_double_dist = arith.addi %jj, %double_dist : index
+            memref.prefetch %Bj_crd[%jj_plus_double_dist], read, locality<{{ loc_hint }}>, data : memref<?xindex>
+
+            // Load Bj_crd[min(j + dist, j_end)]
+            %jj_plus_dist = arith.addi %jj, %dist : index
+            %jj_plus_dist_or_bound = arith.minui %jj_plus_dist, %bound : index
+            %Bj_crd_jj_plus_dist_or_bound = memref.load %Bj_crd[%jj_plus_dist_or_bound] : memref<?xindex>
+
+            // Prefetch a[Bj_crd[%Bj_crd_jj_plus_dist_or_seg_end]]
+            memref.prefetch %a[%Bj_crd_jj_plus_dist_or_bound], read, locality<{{ loc_hint }}>, data : memref<{{ rows }}x{{ dtype }}>
+
+            %Bij = memref.load %B_vals[%jj] : memref<?x{{ dtype }}>
+            %aj = memref.load %a[%j] : memref<{{ rows }}x{{ dtype }}>
+            %mul = {{ mul_op }} %Bij, %ci : {{ dtype }}
+            %res = {{ add_op }} %aj, %mul : {{ dtype }}
+
+            // Only update a if not on main diagonal of B
+            %is_diag = arith.cmpi eq, %i, %j : index
+            %store = arith.select %is_diag, %aj, %res : {{ dtype }}
+            memref.store %store, %a[%j] : memref<{{ rows }}x{{ dtype }}>
+        }
+        scf.reduce
+    }
+{% endif %}
+
+    %tmp = bufferization.to_tensor %a restrict : memref<{{ rows }}x{{ dtype }}> to {{ out_type }}
+    return %tmp : {{ out_type }}
+}

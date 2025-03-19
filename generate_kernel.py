@@ -180,6 +180,7 @@ def render_template_for_spmv(args: argparse.Namespace) -> str:
                       "pref-mlir": f"spmv.mlir.jinja2",
                       "pref-mlir-omp": f"spmv.mlir.jinja2",
                       "pref-ains": f"spmv_{args.matrix_format}.ains.mlir.jinja2",
+                      "pref-ains-omp": f"spmv_{args.matrix_format}.ains.mlir.jinja2",
                       "pref-spe": f"spmv_{args.matrix_format}.spe.mlir.jinja2"}
 
     spmv_template = jinja.get_template(template_names[args.optimization])
