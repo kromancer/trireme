@@ -26,7 +26,8 @@ set_performance_governor() {
     cpupower frequency-set -g performance > /dev/null
     local core=$1
     local gov_file="/sys/devices/system/cpu/cpu${core}/cpufreq/scaling_governor"
-    local governor=$(cat "$gov_file")
+    local governor
+    governor=$(cat "$gov_file")
     if [ "$governor" = "performance" ]; then
         echo "✅ CPU core $core is set to performance mode."
         return 0
@@ -80,16 +81,29 @@ prevent_swaps() {
 disable_deep_idle_states() {
     local core=$1
 
-    cpupower -c $core idle-set -D 0
+    cpupower -c "$core" idle-set -D 0
     echo "✅ Deep idle states disabled"
 }
 
+# Check input
+if [ -z "$1" ]; then
+    echo "❌ No cores provided. Usage: $0 0,1,2,3"
+    exit 1
+fi
+
+# Convert comma-separated list to space-separated and store in array
+cores=(${1//,/ })
+
 check_turbo
 check_hwp
-set_performance_governor $1
-set_cpu_to_max_freq $1
 set_uncore_freq
 prevent_swaps
-disable_deep_idle_states $1
+
+for core in "${cores[@]}"; do
+    set_performance_governor "$core"
+    set_cpu_to_max_freq "$core"
+    disable_deep_idle_states "$core"
+done
 
 cset shield -e -- apptainer exec --writable-tmpfs --memory 120G --memory-swap 120G trireme.sif sh -c "cd trireme && taskset -c $1 ./experiment.sh"
+
