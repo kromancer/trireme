@@ -1,7 +1,7 @@
 import json
 
 
-with open("consolidated-pref-mlir-45.json", "r") as f, open("consolidated-no-opt.json", "r") as g:
+with open("consolidated-pref-ains-45.json", "r") as f, open("consolidated-no-opt.json", "r") as g:
     pref = json.load(f)
     no_opt = json.load(g)
 
