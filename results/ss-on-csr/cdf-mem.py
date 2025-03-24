@@ -5,7 +5,7 @@ import numpy as np
 plt.rcParams['font.serif'] = ['Linux Libertine O']
 plt.rcParams['font.family'] = 'serif'
 
-with open("consolidated-no-opt.json", "r") as f:
+with open("no-opt.json", "r") as f:
     data = json.load(f)
 
 # Extract and sort values
@@ -26,8 +26,8 @@ cdf = np.arange(1, n + 1) / n
 
 # Plot
 plt.figure(figsize=(8, 5))
-plt.plot(load_miss * 100, cdf * 100, label='%Cycles retirement is stalled due to an L1 miss', linewidth=3)
-plt.plot(x * 100, cdf * 100, label='%L1 misses that hit L2/L3 (structure score)', linewidth=3)
+plt.plot(load_miss * 100, cdf * 100, label='%Cycles retirement is stalled due to an L1 miss', linewidth=2)
+plt.plot(x * 100, cdf * 100, label='%L1 misses that hit L2/L3 (structure score)', linewidth=2)
 
 # Find the index of the last value ≤ 0.9
 threshold = 0.9315

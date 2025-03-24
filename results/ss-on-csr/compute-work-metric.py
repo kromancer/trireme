@@ -4,23 +4,34 @@ import json
 
 from suite_sparse import SuiteSparse
 
-with open("consolidated-no-opt.json", "r") as f, open("consolidated-pref-mlir-45.json", "r") as g:
+with open("no-opt.json", "r") as f, open("pref-mlir-45.json", "r") as m, open("pref-ains-45.json", "r") as a:
     no_opt = json.load(f)
-    pref_mlir = json.load(g)
+    pref_mlir = json.load(m)
+    pref_ains = json.load(a)
+
+assert len(no_opt) == len(pref_mlir) == len(pref_ains)
 
 ss = SuiteSparse(Path("."))
-work_metrics_no_opt = []
-for mtx, data in no_opt.items():
-    nnz = int(ss.get_meta(mtx, "num_of_entries"))
-    work_metrics_no_opt.append(nnz / data["time_ms"])
 
-work_metrics_pref_mlir = []
-for mtx, data in pref_mlir.items():
-    nnz = int(ss.get_meta(mtx, "num_of_entries"))
-    work_metrics_pref_mlir.append(nnz / data["time_ms"])
 
-print("HA no_opt:", harmonic_mean(work_metrics_no_opt))
-print("HA pref_mlir:", harmonic_mean(work_metrics_pref_mlir))
+def compute_hms_for_work_metrics(prof_data):
+    nnz_per_llc = []
+    nnz_per_ms = []
+    for mtx, data in prof_data.items():
+        nnz = int(ss.get_meta(mtx, "num_of_entries"))
+        nnz_per_llc.append((data["mem_load_uops_retired.dram_hit"] * 1000) / nnz)
+        nnz_per_ms.append(nnz / data["time_ms"])
+
+    return harmonic_mean(nnz_per_llc), harmonic_mean(nnz_per_ms)
+
+
+base_llc, base_ms = compute_hms_for_work_metrics(no_opt)
+mlir_llc, mlir_ms = compute_hms_for_work_metrics(pref_mlir)
+ains_llc, ains_ms = compute_hms_for_work_metrics(pref_ains)
+
+print("Baseline:", base_llc, base_ms)
+print("MLIR-Pref:", mlir_llc, mlir_ms)
+print("Pref-Ains:", ains_llc, ains_ms)
 
 
 
