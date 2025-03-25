@@ -1,4 +1,4 @@
-from argparse import ArgumentParser
+from argparse import ArgumentParser, ArgumentTypeError
 import ctypes
 from pathlib import Path
 
@@ -21,11 +21,23 @@ class HwprefController:
                                 help='Disable the L2 Adaptive Multi-Path Prefetcher')
         arg_parser.add_argument('--disable-llc-stream', action='store_true',
                                 help='Disable the LLC Stream Prefetcher')
-        arg_parser.add_argument('--l2-stream-dd', type=int, choices=range(-1, 256), default=-1,
+
+        def in_range_validator(min_val, max_val):
+            def validator(val):
+                i = int(val)
+                if i < min_val or i > max_val:
+                    raise ArgumentTypeError(f"Value must be between {min_val} and {max_val}")
+                return i
+            return validator
+
+        arg_parser.add_argument('--l2-stream-dd', type=in_range_validator(-1, 255),
+                                metavar='[-1, 255]', default=-1,
                                 help="Set the L2 Stream's Demand Density Threshold")
-        arg_parser.add_argument('--l2-stream-dd-ovr', type=int, choices=range(-1, 16), default=-1,
+        arg_parser.add_argument('--l2-stream-dd-ovr', type=in_range_validator(-1, 16),
+                                metavar='[-1, 16]', default=-1,
                                 help="Set the L2 Stream's Demand Density Threshold Override")
-        arg_parser.add_argument('--l2-stream-xq-thres', type=int, choices=range(-1, 32), default=-1,
+        arg_parser.add_argument('--l2-stream-xq-thres', type=in_range_validator(-1, 32),
+                                metavar='[-1, 32]', default=-1,
                                 help="Set the L2 Stream's XQ Threshold")
 
     @staticmethod
