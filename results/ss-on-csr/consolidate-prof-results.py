@@ -7,7 +7,7 @@ with open("no-opt.json", "r") as f, open("pref-mlir-45.json", "r") as g, open("p
     mlir_before = json.load(g)
     ains_before = json.load(h)
 
-with open("inst-no-opt.json", "r") as f, open("inst-pref-mlir.json", "r") as g, open("inst-pref-ains.json", "r") as h:
+with open("no-opt-br.json", "r") as f, open("pref-mlir-br.json", "r") as g, open("pref-ains-br.json", "r") as h:
     no_opt_unparsed = json.load(f)
     mlir_unparsed = json.load(g)
     ains_unparsed = json.load(h)
@@ -41,7 +41,7 @@ add_to_before(no_opt_before, no_opt_new)
 add_to_before(mlir_before, mlir_new)
 add_to_before(ains_before, ains_new)
 
-with open("consolidated-no-opt.json", "w") as f, open("consolidated-pref-mlir-45.json", "w") as g, open("consolidated-pref-ains-45.json", "w") as h:
+with open("no-opt.json", "w") as f, open("pref-mlir-45.json", "w") as g, open("pref-ains-45.json", "w") as h:
     f.write(json.dumps(no_opt_before, indent=4))
     g.write(json.dumps(mlir_before, indent=4))
     h.write(json.dumps(ains_before, indent=4))

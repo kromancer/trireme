@@ -35,13 +35,13 @@ idx = np.searchsorted(x, threshold, side='right') - 1
 y_val = cdf[idx] * 100  # Convert to percent for plotting
 
 # Add vertical line for 90% structure score
-plt.axvline(x=threshold * 100, color='red', linestyle='--', linewidth=1)
-plt.text(threshold * 100 - 3, 50, '93% structure score', color='red', rotation=90, va='center')
+plt.axvline(x=threshold * 100, color='orange', linestyle='--', linewidth=1)
+plt.text(threshold * 100 - 3, 50, '93% structure score', color='orange', rotation=90, va='center')
 
 # Add horizontal marker
-plt.plot([0, threshold * 100], [y_val, y_val], color='red', linestyle='--', linewidth=1)
-plt.scatter([threshold * 100], [y_val], color='red')
-plt.text(threshold * 100 + 3, y_val, f'{y_val:.1f}%', color='red', va='bottom')
+plt.plot([0, threshold * 100], [y_val, y_val], color='orange', linestyle='--', linewidth=1)
+plt.scatter([threshold * 100], [y_val], color='orange')
+plt.text(threshold * 100 + 3, y_val, f'{y_val:.1f}%', color='orange', va='bottom')
 
 # For the load_miss CDF (also in [0,1] range, so 90% = 0.9)
 threshold = 0.252
@@ -58,7 +58,7 @@ plt.scatter([threshold * 100], [y_val_miss], color='blue')
 plt.text(threshold * 100 + 3, y_val_miss, f'{y_val_miss:.1f}%', color='blue', va='bottom')
 
 plt.xlabel('x (%)')
-plt.ylabel('Percentage of Matrices ≤ x')
+plt.ylabel('Matrices (%) ≤ x')
 plt.title('SpMV-Baseline on SuiteSparse, single threaded')
 plt.legend(bbox_to_anchor=(0.55, 0.55))
 plt.grid(True, linewidth=0.5, linestyle='--', alpha=0.5)

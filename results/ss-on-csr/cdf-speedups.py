@@ -24,8 +24,8 @@ speedups_ains = np.array(sorted(
 # Plot
 plt.figure(figsize=(8, 5))
 plt.xscale('log')
-plt.plot(speedups, cdf * 100, label='Speed-up', linewidth=2)
-plt.plot(speedups_ains, cdf * 100, label='Speed-up ains', linewidth=2)
+plt.plot(speedups, cdf * 100, label='Speedup MLIR-Pref', linewidth=2)
+plt.plot(speedups_ains, cdf * 100, label='Speedup Ainsworth & Jones', linewidth=2)
 
 # Find the index of the last value ≤ 1
 threshold = 1
@@ -36,7 +36,7 @@ y_val_ains = cdf[idx_ains] * 100
 
 # Add vertical line for x1 speedup
 plt.axvline(x=threshold, color='grey', linestyle='--', linewidth=1)
-plt.text(threshold + 0.01, 50, 'x1', color='grey', rotation=90, va='center')
+plt.text(threshold + 0.01, 50, '1x', color='grey', rotation=90, va='center')
 
 # Add horizontal marker
 plt.plot([0, threshold], [y_val, y_val], color='blue', linestyle='--', linewidth=1)
@@ -53,14 +53,14 @@ max_ains = speedups_ains[-1]
 
 # Draw vertical lines for each maximum
 plt.axvline(x=max_mlir, color='blue', linestyle=':', linewidth=1)
-plt.text(max_mlir + 0.02, 50, f'x{max_mlir:.2f}', color='blue', rotation=90, va='center')
+plt.text(max_mlir + 0.02, 50, f'{max_mlir:.2f}x', color='blue', rotation=90, va='center')
 
 plt.axvline(x=max_ains, color='orange', linestyle=':', linewidth=1)
-plt.text(max_ains + 0.02, 50, f'x{max_ains:.2f}', color='orange', rotation=90, va='center')
+plt.text(max_ains + 0.02, 50, f'{max_ains:.2f}x', color='orange', rotation=90, va='center')
 
-plt.xlabel('Speed-up Factor (log scale)')
+plt.xlabel('Speedup Factor (log scale)')
 plt.ylabel('Matrices (%) ≤ x')
-plt.title('CDF of SpMV Speed-ups on SuiteSparse (Single-Threaded)')
+plt.title('CDF of SpMV Speedups on SuiteSparse (Single-Threaded)')
 plt.legend(bbox_to_anchor=(0.55, 0.55))
 plt.grid(True, linewidth=0.5, linestyle='--', alpha=0.5)
 plt.tight_layout()

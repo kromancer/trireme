@@ -14,10 +14,10 @@ cdf = np.arange(1, len(sizes) + 1) / len(sizes)
 
 # Plot
 plt.figure(figsize=(8, 5))
-plt.plot(sizes / 1024, cdf * 100, linewidth=3)  # convert to KB for readability
+plt.plot(sizes / 1024, cdf * 100, linewidth=2)  # convert to KB for readability
 plt.xscale('log')
 plt.xlabel('Vector Size (KB)')
-plt.ylabel('Cumulative % of Matrices')
+plt.ylabel('Matrices (%) ≤ x')
 plt.title('CDF of Vector Sizes in SpMV')
 
 # Sizes in KB for x-axis
