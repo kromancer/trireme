@@ -211,3 +211,8 @@ def change_dir(destination: Path = None):
         chdir(current_dir)
         if temp_dir is not None:
             temp_dir.cleanup()
+
+
+def flush_cache(cache_size=100 * 1024 * 1024):
+    a = np.arange(cache_size, dtype=np.uint8)
+    a.sum()  # forces reading the array

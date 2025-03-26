@@ -47,7 +47,6 @@ class RAMDisk:
 
         new_buffers = []
         for i, buf in enumerate(self.buffers):
-            # Path for the hugepage-backed storage
             mmap_path = Path(self.mount_point, f"buffer_{i}")
             self.buffer_paths.append(mmap_path)
 

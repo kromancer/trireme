@@ -75,6 +75,13 @@ class InputManager:
         print(f"vector size: {print_size(self.args.j * np.dtype(self.args.dtype).itemsize)}")
         return dense_vec
 
+    @timeit
+    def create_dense_mat(self) -> np.ndarray:
+        dense_mat = np.ones((self.args.j, self.args.k), dtype=self.args.dtype)
+        assert dense_mat.flags["C_CONTIGUOUS"], "Dense mat must be in row-major"
+        print(f"dense mat size: {print_size(self.args.j * self.args.k * np.dtype(self.args.dtype).itemsize)}")
+        return dense_mat
+
     def create_synth_sparse_mat(self) -> Union[sp.coo_array, sp.csr_array]:
         def print_sparse_mat_info(m):
             print(f"sparse matrix nnz: {m.nnz}, "
@@ -154,5 +161,8 @@ class InputManager:
 
             return mat
 
-    def create_sparse_mat_and_dense_vec(self) -> Tuple[Union[sp.coo_array, sp.csr_array], np.ndarray]:
+    def create_sparse_mat_and_dense_vec(self) -> Tuple[Union[sp.coo_array, sp.csc_array, sp.csr_array], np.ndarray]:
         return self.create_sparse_mat(), self.create_dense_vec()
+
+    def create_sparse_mat_and_dense_mat(self) -> Tuple[Union[sp.coo_array, sp.csc_array, sp.csr_array], np.ndarray]:
+        return self.create_sparse_mat(), self.create_dense_mat()

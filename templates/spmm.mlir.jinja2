@@ -1,0 +1,28 @@
+#map  = affine_map<(i, j, k) -> (i, j)>
+#map1 = affine_map<(i, j, k) -> (j, k)>
+#map2 = affine_map<(i, j, k) -> (i, k)>
+
+#sparse = {{ encoding }}
+
+module {
+  func.func @spmm(%arg0: {{ out_type }},
+                  %arg1: {{ sp_mat_type }},
+                  %arg2: {{ dense_mat_type }}) -> {{ out_type }} {
+    %0 = linalg.generic {
+        indexing_maps = [#map, #map1, #map2],
+        iterator_types = ["parallel", "reduction", "parallel"]}
+        ins(%arg1, %arg2 : {{ sp_mat_type }}, {{ dense_mat_type }})
+        outs(%arg0 : {{ out_type }}) {
+    ^bb0(%in: {{ dtype }}, %in_0: {{ dtype }}, %out: {{ dtype }}):
+      %1 = {{ mul_op }} %in, %in_0 : {{ dtype }}
+      %2 = {{ add_op }} %out, %1 : {{ dtype }}
+      linalg.yield %2 : {{ dtype }}
+    } -> {{ out_type }}
+
+{% if is_symmetric %}
+    // TODO: Resolve this
+{% else %}
+    return %0 : {{ out_type }}
+{% endif %}
+  }
+}

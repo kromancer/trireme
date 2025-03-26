@@ -1,0 +1,1 @@
+# RUN: env %{LIBVAR}=/opt/SuiteSparse/lib python %S/../../spmm.py --check-output -o no-opt -k 2 --matrix-format csr benchmark --repetitions 3 SuiteSparse b1_ss

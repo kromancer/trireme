@@ -1,66 +1,29 @@
 import argparse
-import ctypes
 from pathlib import Path
-from typing import Callable, List, Union
+from platform import system
+import re
+from typing import List
+from subprocess import run, PIPE
 
 import jinja2
-import numpy as np
-from scipy.sparse import coo_array, csr_array
-
-from mlir import runtime as rt
-from mlir.execution_engine import *
 from mlir import ir
+import numpy as np
 
-from argument_parsers import add_args_for_benchmark, add_output_check_arg, add_sparse_format_arg, add_synth_tensor_arg
-from common import SparseFormats, make_work_dir_and_cd_to_it
-from decorators import benchmark, profile, RunFuncType
-from generate_kernel import apply_passes, make_spmm_mlir_module
+from argument_parsers import (add_args_for_benchmark, add_opt_arg, add_synth_tensor_arg, add_output_check_arg,
+                              add_sparse_format_arg, add_prefetch_distance_arg, add_locality_hint_arg,
+                              add_args_for_profile)
+from common import build_with_cmake, flush_cache, make_work_dir_and_cd_to_it, SparseFormats
+from generate_kernel import apply_passes, render_template_for_spmm, translate_to_llvm_ir
 from hwpref_controller import HwprefController
 from input_manager import get_storage_buffers, InputManager
-from log_plot import append_placeholder
-from mlir_exec_engine import create_exec_engine
-from np_to_memref import make_nd_memref_descriptor
+from log_plot import append_placeholder, log_execution_times_secs
 from spmv import to_mlir_type
 
-
-def run_spmm(exec_engine: ExecutionEngine, args: argparse.Namespace,
-             mat: Union[coo_array, csr_array],
-             mat_buffs: List[np.ndarray], dtype: np.dtype, itype: np.dtype,
-             decorator:  Callable[[ExecutionEngine, argparse.Namespace], Callable[[RunFuncType], RunFuncType]]):
-
-    mat_memrefs = [ctypes.pointer(ctypes.pointer(rt.get_ranked_memref_descriptor(b))) for b in mat_buffs]
-
-    # Allocate a buffer to receive the output
-    res_buff = (np.ctypeslib.as_ctypes_type(dtype) * (args.i * args.j))(0)
-    res_memref = make_nd_memref_descriptor(2, dtype=dtype, itype=itype)()
-    c_dtype = np.ctypeslib.as_ctypes_type(dtype)
-    c_itype = np.ctypeslib.as_ctypes_type(itype)
-    res_memref.allocated = ctypes.addressof(res_buff)
-    res_memref.aligned = ctypes.cast(res_buff, ctypes.POINTER(c_dtype))
-    res_memref.offset = c_itype(0)
-    res_memref.shape = (c_itype * 2)(args.i, args.j)
-    res_memref.strides = (c_itype * 2)(1, 1)
-
-    # Allocate a MemRefDescriptor to receive the output
-    ref_out = make_nd_memref_descriptor(2, dtype=dtype, itype=itype)()
-    mem_out = ctypes.pointer(ctypes.pointer(ref_out))
-
-    def run():
-        exec_engine.invoke("main", mem_out, ctypes.pointer(ctypes.pointer(res_memref)),
-                           *mat_memrefs, *mat_memrefs)
-        exec_engine.dump_to_object_file("spmm.o")
-
-        # Sanity check on computed result.
-        if args.check_output:
-            expected = mat * mat
-            res = rt.ranked_memref_to_numpy(mem_out[0])
-            assert np.allclose(res, expected.toarray()), "Wrong output!"
-
-        # reset output
-        ctypes.memset(ctypes.addressof(res_buff), 0, ctypes.sizeof(res_buff))
-
-    decorated_run = decorator(exec_engine, args)(run)
-    decorated_run()
+if system() == "Linux":
+    from ramdisk_linux import RAMDisk
+else:
+    assert system() == "Darwin", "Unsupported system!"
+    from ramdisk_macos import RAMDisk
 
 
 def get_jinja() -> jinja2.Environment:
@@ -78,55 +41,85 @@ def render_main_template(args: argparse.Namespace) -> str:
     return main_rendered
 
 
+def run_with_aot(args: argparse.Namespace, exe: Path, nnz: int, sp_mat_buffs: List[np.array], dense_mat: np.ndarray,
+                 exp_out: np.ndarray, in_man: InputManager):
+    res = np.zeros((args.i, args.k), dtype=dense_mat.dtype)
+    assert res.flags["C_CONTIGUOUS"], "Result matrix must be in row-major order"
+    with (RAMDisk(args, in_man, dense_mat, *sp_mat_buffs, res) as ramdisk, HwprefController(args)):
+        if args.action == "profile":
+            assert False, "TODO: add support for profiling"
+        else:
+            spmm_cmd = [str(exe), str(args.i), str(args.j), str(args.k), str(nnz)] + ramdisk.buffer_paths
+
+            exec_times = []
+            for _ in range(args.repetitions):
+                result = run(spmm_cmd, check=True, stdout=PIPE, stderr=PIPE, text=True)
+
+                if args.check_output:
+                    assert np.allclose(exp_out, ramdisk.buffers[-1]), "Wrong output!"
+
+                ramdisk.reset_res_buff()
+                flush_cache()
+
+                match = re.search(r"Exec time: ([0-9.]+)s", result.stdout)
+                assert match is not None, "Execution time not found in the output."
+                exec_times.append(float(match.group(1)))
+
+            log_execution_times_secs(exec_times)
+
+
 def main():
     append_placeholder()
     args = parse_args()
     make_work_dir_and_cd_to_it(__file__)
 
     in_man = InputManager(args)
-    mat = in_man.create_sparse_mat()
-    mat_format = SparseFormats(args.matrix_format)
-    mat_buffers, dtype, itype = get_storage_buffers(mat, mat_format)
+    sp_mat, dense_mat = in_man.create_sparse_mat_and_dense_mat()
+    sp_mat_buffers, dtype, itype = get_storage_buffers(sp_mat, SparseFormats(args.matrix_format))
+
+    spmm = render_template_for_spmm(args)
+    with open("spmm.0. mlir", "w") as f:
+        f.write(spmm)
+
+    if args.optimization in ["omp", "pref-mlir-omp", "pref-ains-omp"]:
+        pipeline = "omp"
+    elif args.optimization == "vect-vl4":
+        pipeline = "vect-vl4"
+    else:
+        pipeline = "base"
 
     with ir.Context(), ir.Location.unknown():
-        if not args.optimization or args.optimization == "pref-mlir":
-            spmm = str(make_spmm_mlir_module(args.i, args.j, args.j, mat_format, mat_format, dtype, args.dense_output))
-            pipeline = "pref" if args.optimization == "pref-mlir" else "no-opt"
-        else:
-            assert False, "Unsupported optimization"
+        llvm_mlir, out = apply_passes(args=args, src=spmm, kernel="spmv", pipeline=pipeline, index_type=itype)
 
-        with open(f"spmm.no_main.mlir", "w") as f:
-            f.write(spmm)
+    # Translate MLIR's llvm dialect to llvm IR, compile and link
+    llvm_ir = translate_to_llvm_ir(out, "spmm").resolve()
+    src_path = Path(__file__).parent.resolve() / "templates"
+    exe = build_with_cmake(
+        [f"-DMAIN_FILE=spmm_{'csx' if args.matrix_format in ['csr', 'csc'] else args.matrix_format}.main.c",
+         f"-DINDEX_TYPE={itype}", f"-DKERNEL_LLVM_IR={llvm_ir}"],
+        target="main", src_path=src_path)
 
-        main_fun = render_main_template(args)
-        with open(f"main.mlir", "w") as f:
-            f.write(main_fun)
+    expected = None
+    if args.check_output:
+        expected = sp_mat.dot(dense_mat)
+        if args.symmetric:
+            assert False, "TODO: support symmetric matrices in spmm"
 
-        llvm_mlir, _ = apply_passes(args=args, src=spmm, kernel="spmm", pipeline=pipeline, main_fun=main_fun,
-                                    index_type=itype)
-
-        with HwprefController(args):
-            if args.action == "benchmark":
-                decorator = benchmark
-            elif args.action == "profile":
-                decorator = profile
-
-            exec_engine = create_exec_engine(llvm_mlir)
-            run_spmm(exec_engine, args, mat, mat_buffers, dtype=dtype, itype=itype, decorator=decorator)
+    run_with_aot(args, exe, sp_mat.nnz, sp_mat_buffers, dense_mat, expected, in_man)
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="(Sparse Matrix)x(Sparse Matrix) Multiplication (SpMM)")
+    parser = argparse.ArgumentParser(description="(Sparse Matrix)x(Matrix) Multiplication (SpMM)")
 
     # common arguments
-    parser.add_argument("-o", "--optimization",
-                        choices=["vect-vl4", "pref-mlir", "pref-ains", "pref-spe"],
-                        help="Use an optimized version of the kernel")
-    parser.add_argument("--dense-output", action="store_true",
-                        help="If not set the result matrix will be sparse in the CSR format")
+    add_prefetch_distance_arg(parser)
+    add_locality_hint_arg(parser)
+    add_opt_arg(parser)
     add_sparse_format_arg(parser, "matrix")
     add_output_check_arg(parser)
+    RAMDisk.add_args(parser)
     HwprefController.add_args(parser)
+    parser.add_argument("-k", type=int, default=2, help=f"Width of dense mat")
 
     # 1st level subparsers, benchmark or profile
     action_subparser = parser.add_subparsers(dest="action", help="Choose action: benchmark or profile")
@@ -137,8 +130,7 @@ def parse_args() -> argparse.Namespace:
 
     # Subcommand: profile
     profile_parser = action_subparser.add_parser("profile")
-    profile_parser.add_argument("analysis", choices=["toplev", "vtune", "events"],
-                                help="Choose an analysis type")
+    add_args_for_profile(profile_parser)
 
     # 2nd level subparsers, matrix type, synthetic or from SuiteSparse
     for p in benchmark_parser, profile_parser:

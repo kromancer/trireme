@@ -150,6 +150,20 @@ def get_jinja() -> jinja2.Environment:
     return jinja2.Environment(loader=jinja2.FileSystemLoader(template_dir))
 
 
+def get_semiring(dtype: str) -> Tuple[str, str]:
+    if dtype == "i1":
+        add_op = "arith.ori"
+        mul_op = "arith.andi"
+    elif dtype.startswith("f"):
+        add_op = "arith.addf"
+        mul_op = "arith.mulf"
+    else:
+        add_op = "arith.addi"
+        mul_op = "arith.muli"
+
+    return add_op, mul_op
+
+
 def render_template_for_spmv(args: argparse.Namespace) -> str:
     jinja = get_jinja()
 
@@ -164,15 +178,7 @@ def render_template_for_spmv(args: argparse.Namespace) -> str:
     mat_type = f"tensor<{args.i}x{args.j}x{dtype}, #sparse>"
     out_type = f"tensor<{args.i}x{dtype}>"
 
-    if dtype == "i1":
-        add_op = "arith.ori"
-        mul_op = "arith.andi"
-    elif dtype.startswith("f"):
-        add_op = "arith.addf"
-        mul_op = "arith.mulf"
-    else:
-        add_op = "arith.addi"
-        mul_op = "arith.muli"
+    add_op, mul_op = get_semiring(dtype)
 
     template_names = {"no-opt": f"spmv.mlir.jinja2",
                       "vect-vl4": f"spmv.mlir.jinja2",
@@ -186,6 +192,34 @@ def render_template_for_spmv(args: argparse.Namespace) -> str:
     spmv_template = jinja.get_template(template_names[args.optimization])
     spmv_rendered = spmv_template.render(encoding=encoding, mat_type=mat_type, vtype=vtype, out_type=out_type,
                                          add_op=add_op, mul_op=mul_op, dtype=dtype, rows=args.i, cols=args.j,
+                                         pd=args.prefetch_distance, loc_hint=args.locality_hint,
+                                         is_symmetric=args.symmetric)
+    return spmv_rendered
+
+
+def render_template_for_spmm(args: argparse.Namespace) -> str:
+    jinja = get_jinja()
+
+    # Prepare template parameters
+    encoding = encodings[SparseFormats(args.matrix_format)]
+    dtype = to_mlir_type[args.dtype]
+
+    dense_mat_type = f"tensor<{args.j}x{args.k}x{dtype}>"
+    sp_mat_type = f"tensor<{args.i}x{args.j}x{dtype}, #sparse>"
+    out_type = f"tensor<{args.i}x{args.k}x{dtype}>"
+
+    add_op, mul_op = get_semiring(dtype)
+
+    template_names = {"no-opt": f"spmm.mlir.jinja2",
+                      "vect-vl4": f"spmv.mlir.jinja2",
+                      "omp": f"spmv.mlir.jinja2",
+                      "pref-mlir": f"spmm.mlir.jinja2",
+                      "pref-mlir-omp": f"spmv.mlir.jinja2"}
+
+    spmm_template = jinja.get_template(template_names[args.optimization])
+    spmv_rendered = spmm_template.render(encoding=encoding, sp_mat_type=sp_mat_type, dense_mat_type=dense_mat_type,
+                                         out_type=out_type, add_op=add_op, mul_op=mul_op, dtype=dtype,
+                                         rows=args.i, cols=args.j,
                                          pd=args.prefetch_distance, loc_hint=args.locality_hint,
                                          is_symmetric=args.symmetric)
     return spmv_rendered
@@ -232,6 +266,12 @@ def generate_spmv(args: argparse.Namespace):
         generate(args, module, f"spmv_{args.matrix_format}" + ("_spvec" if args.sparse_vec else ""), translate=True)
 
 
+def generate_spmm(args: argparse.Namespace):
+    with ir.Context() as ctx, ir.Location.unknown():
+        module = ir.Module.parse(render_template_for_spmm(args))
+        generate(args, module, f"spmm_{args.matrix_format}", translate=True)
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Generate mlir, from the linalg to the llvm dialect, for given kernel")
     add_sparse_format_arg(parser, "matrix")
@@ -240,7 +280,7 @@ def parse_args() -> argparse.Namespace:
     add_locality_hint_arg(parser)
     add_prefetch_distance_arg(parser)
     parser.add_argument("--symmetric", action="store_true",
-                        help="Assume that the matrix is symmetric (only for spmv)")
+                        help="Assume that the sparse matrix is symmetric")
 
     subparsers = parser.add_subparsers(dest="kernel", help="Which kernel to generate")
 
@@ -267,15 +307,12 @@ def main():
     args = parse_args()
     make_work_dir_and_cd_to_it(__file__)
 
-    if args.kernel == "spvv":
-        # generate_spvv(args.i)
-        pass
     if args.kernel == "spmv":
         generate_spmv(args)
     elif args.kernel == "spmm":
-        # generate_spmm(args.i, args.j, args.k, SparseFormats.CSR, SparseFormats.CSR)
-        # generate_spmm(args.i, args.j, args.k, SparseFormats.COO, SparseFormats.COO)
-        pass
+        generate_spmm(args)
+    else:
+        assert False, "Kernel not supported"
 
 
 if __name__ == "__main__":

@@ -7,7 +7,7 @@
 
 
 #ifndef INDEX_BITWIDTH
-#error "INDEX_BITWIDTH is not defined!"
+#define INDEX_BITWIDTH 64
 #endif
 
 #if INDEX_BITWIDTH == 32
@@ -34,7 +34,20 @@ typedef struct {
   index_t strides;
 }  memref_descriptor_t;
 
+typedef struct {
+  void *allocated;
+  void *aligned;
+  index_t offset;
+  index_t rows;
+  index_t cols;
+  index_t stride_rows;
+  index_t stride_cols;
+}  mat_memref_descriptor_t;
+
 #define MEMREF_DESC_ARGS(desc) \
     (desc).allocated, (desc).aligned, (desc).offset, (desc).sizes, (desc).strides
+
+#define MAT_MEMREF_DESC_ARGS(desc) \
+    (desc).allocated, (desc).aligned, (desc).offset, (desc).rows, (desc).cols, (desc).stride_rows, (desc).stride_cols
 
 #endif

@@ -6,19 +6,17 @@ from typing import List
 from subprocess import run, PIPE
 
 import jinja2
-import numpy as np
-
-from log_plot import append_placeholder
 from mlir import ir
+import numpy as np
 
 from argument_parsers import (add_args_for_benchmark, add_opt_arg, add_synth_tensor_arg, add_output_check_arg,
                               add_sparse_format_arg, add_prefetch_distance_arg, add_locality_hint_arg,
                               add_args_for_profile)
-from common import build_with_cmake, make_work_dir_and_cd_to_it, SparseFormats
+from common import build_with_cmake, flush_cache, make_work_dir_and_cd_to_it, SparseFormats
 from generate_kernel import apply_passes, render_template_for_spmv, translate_to_llvm_ir
 from hwpref_controller import HwprefController
 from input_manager import InputManager, get_storage_buffers
-from log_plot import log_execution_times_secs
+from log_plot import append_placeholder, log_execution_times_secs
 from prof import profile_spmv
 
 if system() == "Linux":
@@ -47,11 +45,6 @@ def render_template_for_main(args: argparse.Namespace) -> str:
     # Function "main" will be injected after the sparse-assembler pass
     main_template = jinja.get_template(f"spmv_{args.matrix_format}.main.mlir.jinja2")
     return main_template.render(rows=args.i, cols=args.j, dtype=to_mlir_type[args.dtype])
-
-
-def flush_cache(cache_size=100 * 1024 * 1024):
-    a = np.arange(cache_size, dtype=np.uint8)
-    a.sum()  # forces reading the array
 
 
 def run_with_aot(args: argparse.Namespace, exe: Path, nnz: int, mat_buffs: List[np.array], vec: np.ndarray,
@@ -156,7 +149,8 @@ def parse_args() -> argparse.Namespace:
 
     # 2nd level subparsers, matrix type, synthetic or from SuiteSparse
     for p in benchmark_parser, profile_parser:
-        matrix_subparser = p.add_subparsers(dest="in_source", help="Choose input matrix source: synthetic or SuiteSparse")
+        matrix_subparser = p.add_subparsers(dest="in_source",
+                                            help="Choose input matrix source: synthetic or SuiteSparse")
 
         # Subcommand: synthetic
         synthetic_parser = matrix_subparser.add_parser("synthetic", help="Generate a synthetic matrix")

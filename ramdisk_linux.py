@@ -11,16 +11,16 @@ from input_manager import InputManager
 class RAMDisk:
     @staticmethod
     def add_args(parser: ArgumentParser):
-        parser.add_argument("-1gb", "--use-1gb-pages-for-vec", action="store_true",
+        parser.add_argument("-1gb", "--use-1gb-pages-for-dense-arg", action="store_true",
                             help="Use 1GB pages for the vector to reduce TLB misses when prefetching")
 
-    def __init__(self, args: Namespace, in_man: InputManager, vec_buff: np.ndarray, *buffers: np.ndarray):
+    def __init__(self, args: Namespace, in_man: InputManager, dense_arg_buff: np.ndarray, *buffers: np.ndarray):
         self.ramdisks = []
-        if args.use_1gb_pages_for_vec:
-            self.ramdisks.append(_RAMDisk("1G", in_man, vec_buff))
+        if args.use_1gb_pages_for_dense_arg:
+            self.ramdisks.append(_RAMDisk("1G", in_man, dense_arg_buff))
             self.ramdisks.append(_RAMDisk("2M", in_man, *buffers))
         else:
-            self.ramdisks.append(_RAMDisk("2M", in_man, vec_buff, *buffers))
+            self.ramdisks.append(_RAMDisk("2M", in_man, dense_arg_buff, *buffers))
 
     def reset_res_buff(self):
         self.buffers[-1].fill(0)
