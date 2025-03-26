@@ -1,4 +1,4 @@
-From 71c8d8b88728e9d52f72372e1e5f7dfe4f145823 Mon Sep 17 00:00:00 2001
+From 0624be13332a72995f909f506e9d946b58d131c1 Mon Sep 17 00:00:00 2001
 From: Konstantinos Sotiropoulos <konstantinos.sotiropoulos@chalmers.se>
 Date: Thu, 6 Mar 2025 22:13:57 +0100
 Subject: [PATCH 5/5] [mlir][vector] Add `index-bitwidth` option for llvm

@@ -1,20 +1,20 @@
-From 4ab84d9c642f13622a4f90b5164d4f053108afb7 Mon Sep 17 00:00:00 2001
+From 5bec79a08a5609c4cca01ad021b2a604ab868df1 Mon Sep 17 00:00:00 2001
 From: Konstantinos Sotiropoulos <konstantinos.sotiropoulos@chalmers.se>
 Date: Fri, 3 Jan 2025 10:42:07 +0100
 Subject: [PATCH 2/5] [mlir][sparse] Add prefetching for irregular accesses
 
 ---
- .../Dialect/SparseTensor/Pipelines/Passes.h   |  6 +-
- .../Dialect/SparseTensor/Transforms/Passes.h  | 10 +-
- .../Dialect/SparseTensor/Transforms/Passes.td |  2 +
- .../Transforms/SparseTensorPasses.cpp         |  3 +-
- .../Transforms/Utils/CodegenEnv.cpp           |  4 +-
- .../Transforms/Utils/CodegenEnv.h             |  2 +-
- .../Transforms/Utils/LoopEmitter.cpp          | 98 ++++++++++++++++++-
- .../Transforms/Utils/LoopEmitter.h            | 14 ++-
- .../Transforms/Utils/SparseTensorIterator.cpp |  2 -
- .../Transforms/Utils/SparseTensorIterator.h   |  1 -
- 10 files changed, 125 insertions(+), 17 deletions(-)
+ .../Dialect/SparseTensor/Pipelines/Passes.h   |   6 +-
+ .../Dialect/SparseTensor/Transforms/Passes.h  |  10 +-
+ .../Dialect/SparseTensor/Transforms/Passes.td |   2 +
+ .../Transforms/SparseTensorPasses.cpp         |   3 +-
+ .../Transforms/Utils/CodegenEnv.cpp           |   4 +-
+ .../Transforms/Utils/CodegenEnv.h             |   2 +-
+ .../Transforms/Utils/LoopEmitter.cpp          | 108 +++++++++++++++++-
+ .../Transforms/Utils/LoopEmitter.h            |  14 ++-
+ .../Transforms/Utils/SparseTensorIterator.cpp |   2 -
+ .../Transforms/Utils/SparseTensorIterator.h   |   1 -
+ 10 files changed, 135 insertions(+), 17 deletions(-)
 
 diff --git a/mlir/include/mlir/Dialect/SparseTensor/Pipelines/Passes.h b/mlir/include/mlir/Dialect/SparseTensor/Pipelines/Passes.h
 index efbe5c56a219..14ab25c4ee9f 100644
@@ -140,20 +140,10 @@ index 34b793ee11e4..dc1d9e7d4fb4 100644
    /// Generates loop boundary statements (entering/exiting loops). The function
    /// passes and updates the passed-in parameters.
 diff --git a/mlir/lib/Dialect/SparseTensor/Transforms/Utils/LoopEmitter.cpp b/mlir/lib/Dialect/SparseTensor/Transforms/Utils/LoopEmitter.cpp
-index ea5533dfc6ba..26f1362c41ab 100644
+index ea5533dfc6ba..82530c1c033a 100644
 --- a/mlir/lib/Dialect/SparseTensor/Transforms/Utils/LoopEmitter.cpp
 +++ b/mlir/lib/Dialect/SparseTensor/Transforms/Utils/LoopEmitter.cpp
-@@ -7,6 +7,9 @@
- //===----------------------------------------------------------------------===//
- 
- #include "LoopEmitter.h"
-+
-+#include <mlir/Dialect/LLVMIR/NVVMOpsEnums.h.inc>
-+
- #include "CodegenUtils.h"
- 
- #include "mlir/Dialect/Arith/IR/Arith.h"
-@@ -116,19 +119,22 @@ static Value tryFoldTensors(Value t) {
+@@ -116,19 +116,22 @@ static Value tryFoldTensors(Value t) {
  LoopEmitter::LoopEmitter(ValueRange tensors, StringAttr loopTag, bool hasOutput,
                           bool isSparseOut, unsigned numLoops,
                           DependentLvlGetter dimGetter,
@@ -178,7 +168,7 @@ index ea5533dfc6ba..26f1362c41ab 100644
  
    const unsigned numManifestTensors = ts.size();
    const unsigned synTensorId = numManifestTensors;
-@@ -138,6 +144,7 @@ void LoopEmitter::initialize(ValueRange ts, StringAttr loopTag, bool hasOutput,
+@@ -138,6 +141,7 @@ void LoopEmitter::initialize(ValueRange ts, StringAttr loopTag, bool hasOutput,
    // Arrays with len == numTensor.
    this->valBuffer.assign(numTensors, nullptr);
    this->lvls.resize(numTensors);
@@ -186,7 +176,7 @@ index ea5533dfc6ba..26f1362c41ab 100644
    this->iters.resize(numTensors);
    this->spIterVals.resize(numTensors);
  
-@@ -173,6 +180,7 @@ void LoopEmitter::initialize(ValueRange ts, StringAttr loopTag, bool hasOutput,
+@@ -173,6 +177,7 @@ void LoopEmitter::initialize(ValueRange ts, StringAttr loopTag, bool hasOutput,
      }
  
      lvls[tid].resize(lvlRank);
@@ -194,7 +184,7 @@ index ea5533dfc6ba..26f1362c41ab 100644
      iters[tid].resize(lvlRank);
      spIterVals[tid].resize(lvlRank);
      loopHighs.assign(numLoops, nullptr);
-@@ -316,11 +324,33 @@ void LoopEmitter::initializeLoopEmit(
+@@ -316,11 +321,33 @@ void LoopEmitter::initializeLoopEmit(
      for (Level l = 0; l < lvlRank; l++) {
        // Find upper bound in current dimension.
        lvls[t][l] = makeSparseTensorLevel(builder, loc, tensor, t, l);
@@ -228,7 +218,7 @@ index ea5533dfc6ba..26f1362c41ab 100644
      }
      // NOTE: we can also prepare for 0 lvl here in advance, this will hoist
      // some loop preparation from tensor iteration, but will also (undesirably)
-@@ -683,9 +713,71 @@ Operation *LoopEmitter::enterCoIterationOverTensorsAtLvls(
+@@ -683,9 +710,84 @@ Operation *LoopEmitter::enterCoIterationOverTensorsAtLvls(
    }
  
    // Enter dense tensor levels.
@@ -244,9 +234,7 @@ index ea5533dfc6ba..26f1362c41ab 100644
 +    // - c is a dense/batch level
 +    // - ii is the position of the iterator of a compressed level
 +    if (auto loadOp = dyn_cast_or_null<memref::LoadOp>(iv.getDefiningOp())) {
-+
 +      const auto indices = loadOp.getIndices();
-+      assert(indices.size() == 1 && "Expected crd buffers to have one index");
 +
 +      assert(spIters.size() == 1 && "Expected only one sparse iterator");
 +      const auto numOfCrds = numOfExplicitlyStoredCrds[spIters.front()->tid][spIters.front()->lvl];
@@ -279,21 +267,36 @@ index ea5533dfc6ba..26f1362c41ab 100644
 +      Value loadIdx = SELECT(cmp, plusDist, bound).getResult();
 +      auto prefIdx = sparse_tensor::genIndexLoad(builder, loc, crdBuf, loadIdx);
 +
-+      // prefetch B[crd[min(ii + distance, upperBound)]]
++      // prefetch c[crd[min(ii + distance, upperBound)]]
 +      SmallVector<Value> prefIndices;
 +      bool isWrite = false;
++
 +      Value posOrValbuf;
-+      if (isLastLvl) {
++      if (it->isBatchIterator()) {
 +        posOrValbuf = getValBuffer()[it->tid];
-+        if (isOutputTensor(it->tid))
-+          isWrite = true;
-+        SmallVector<Value> valPosits = getValPosits(it->tid);
-+        prefIndices.append(valPosits.begin(), valPosits.begin() + it->lvl);
 +      } else {
 +        const auto &stl = *lvls[it->tid][it->lvl + 1];
 +        posOrValbuf = stl.getLvlBuffers()[0]; // Pos buffer
 +      }
++
++      // Prepare the indices for the prefetch
++      // First, get all indices before current level
++      SmallVector<Value> valPosits = getValPosits(it->tid);
++      prefIndices.append(valPosits.begin(), valPosits.begin() + it->lvl);
 +      prefIndices.push_back(prefIdx);
++
++      if (isLastLvl) {
++        // Prefetch for writes only on the last level of an output tensor
++        if (isOutputTensor(it->tid))
++          isWrite = true;
++      } else {
++        if (it->isBatchIterator()) {
++          for (unsigned i = it->lvl + 1; i < lvlRank; i++) {
++            prefIndices.push_back(C_IDX(0));
++          }
++        }
++      }
++
 +      builder.create<memref::PrefetchOp>(loc, posOrValbuf, prefIndices, isWrite, 2, true);
 +    }
 +  }
