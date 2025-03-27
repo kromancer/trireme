@@ -21,7 +21,7 @@ class ReportManager:
                 return val + ".json"
             return val
 
-        parser.add_argument("--res-file", type=report_json, default=None)
+        parser.add_argument("--rep-file", type=report_json, default=None)
 
     @staticmethod
     def get_git_commit_hash():
@@ -47,9 +47,9 @@ def create_report_manager(args: Namespace) -> ReportManager:
     """
     Factory function to create either a ReportManager or a no-op implementation.
     """
-    if args.res_file is None:
+    if args.rep_file is None:
         return ReportManagerNoOp()
-    return DefaultReportManager(args.res_file)
+    return DefaultReportManager(args.rep_file)
 
 
 class ReportManagerNoOp(ReportManager):
@@ -66,17 +66,17 @@ class DefaultReportManager(ReportManager):
     Real implementation of the ReportManager that performs file operations.
     """
 
-    def __init__(self, res_file: str):
-        self.res_file = res_file
+    def __init__(self, rep_file: str):
+        self.rep_file = rep_file
         self.append_placeholder()
 
     def append_placeholder(self):
         try:
-            with open(self.res_file, 'r') as file:
+            with open(self.rep_file, 'r') as file:
                 data = json.load(file)
         except FileNotFoundError:
             data = []
-            print(f"Creating: {self.res_file}")
+            print(f"Creating: {self.rep_file}")
         if not isinstance(data, list):
             data = []
         placeholder = {
@@ -87,15 +87,15 @@ class DefaultReportManager(ReportManager):
             "status": "initializing"
         }
         data.append(placeholder)
-        with open(self.res_file, 'w') as f:
+        with open(self.rep_file, 'w') as f:
             f.write(json.dumps(data, indent=4))
 
     def append_result(self, new_entry, status="complete"):
-        with open(self.res_file, 'r') as file:
+        with open(self.rep_file, 'r') as file:
             data = json.load(file)
         data[-1]["status"] = status
         data[-1].update(new_entry)
-        with open(self.res_file, 'w') as f:
+        with open(self.rep_file, 'w') as f:
             f.write(json.dumps(data, indent=4))
 
     def log_execution_times_ns(self, etimes_ns: List[int]):
