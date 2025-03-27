@@ -79,7 +79,7 @@ class DefaultReportManager(ReportManager):
     """
 
     def __init__(self, rep_file: str):
-        self.rep_file = rep_file
+        self.rep_file = Path(rep_file).resolve()
         self.append_placeholder()
 
     def append_placeholder(self):
