@@ -10,11 +10,11 @@
 #include <time.h>
 #include <unistd.h>
 
-extern memref_descriptor_t spmm(void *, void *, index_t, index_t, index_t, index_t, index_t,
-                                void *, void *, index_t, index_t, index_t,
-                                void *, void *, index_t, index_t, index_t,
-                                void *, void *, index_t, index_t, index_t,
-                                void *, void *, index_t, index_t, index_t, index_t, index_t);
+extern mat_memref_descriptor_t spmm(void *, void *, index_t, index_t, index_t, index_t, index_t,
+				    void *, void *, index_t, index_t, index_t,
+				    void *, void *, index_t, index_t, index_t,
+				    void *, void *, index_t, index_t, index_t,
+				    void *, void *, index_t, index_t, index_t, index_t, index_t);
 
 int main(int argc, char **argv) {
 
