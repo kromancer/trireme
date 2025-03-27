@@ -30,6 +30,13 @@ class ReportManager:
         commit_hash = repo.head.commit.hexsha
         return commit_hash
 
+    @staticmethod
+    def get_stats(etimes_ns: List[int]):
+        m = round(mean(etimes_ns) / 1000000, 3)
+        std_dev = round(stdev(etimes_ns) / 1000000, 3)
+        cv = round(std_dev / m, 3) if m != 0 else 0
+        return m, std_dev, cv
+
     def append_placeholder(self):
         pass
 
@@ -40,7 +47,7 @@ class ReportManager:
         pass
 
     def log_execution_times_secs(self, etimes_s: List[float]):
-        pass
+        self.log_execution_times_ns([int(t * 1e9) for t in etimes_s])
 
 
 def create_report_manager(args: Namespace) -> ReportManager:
@@ -48,17 +55,22 @@ def create_report_manager(args: Namespace) -> ReportManager:
     Factory function to create either a ReportManager or a no-op implementation.
     """
     if args.rep_file is None:
-        return ReportManagerNoOp()
+        return ReportManagerStdout()
     return DefaultReportManager(args.rep_file)
 
 
-class ReportManagerNoOp(ReportManager):
+class ReportManagerStdout(ReportManager):
     """
     No-op implementation of ReportManager. Does nothing.
     """
 
     def __init__(self):
-        print("ReportManager is in no-op mode. No operations will be performed.")
+        print("Reporting to stdout, no file given.")
+
+    def log_execution_times_ns(self, etimes_ns: List[int]):
+        m, std_dev, cv = self.get_stats(etimes_ns)
+        print(f"mean execution time: {m} ms")
+        print(f"std dev: {std_dev} ms, CV: {cv * 100} %")
 
 
 class DefaultReportManager(ReportManager):
@@ -99,16 +111,9 @@ class DefaultReportManager(ReportManager):
             f.write(json.dumps(data, indent=4))
 
     def log_execution_times_ns(self, etimes_ns: List[int]):
-        m = round(mean(etimes_ns) / 1000000, 3)
-        std_dev = round(stdev(etimes_ns) / 1000000, 3)
-        cv = round(std_dev / m, 3) if m != 0 else 0
-        print(f"mean execution time: {m} ms")
-        print(f"std dev: {std_dev} ms, CV: {cv * 100} %")
+        m, std_dev, cv = self.get_stats(etimes_ns)
         self.append_result({
             'exec_times_ns': etimes_ns,
             'mean_ms': m,
             'std_dev': std_dev,
             'cv': cv})
-
-    def log_execution_times_secs(self, etimes_s: List[float]):
-        self.log_execution_times_ns([int(t * 1e9) for t in etimes_s])
