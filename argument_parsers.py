@@ -51,12 +51,6 @@ def add_opt_arg(parser: ArgumentParser):
                         help="Use an optimized version of the kernel")
 
 
-def get_spmm_arg_parser() -> ArgumentParser:
-    parser = add_synth_tensor_arg(num_dims=3)
-    parser.add_argument("--enable-prefetches", action='store_true', help='Enable prefetches')
-    return parser
-
-
 def add_args_for_benchmark(parser: ArgumentParser):
     parser.add_argument("--repetitions", type=int, default=5, help="Repeat the kernel with the same input")
 

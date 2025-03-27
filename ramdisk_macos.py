@@ -1,10 +1,15 @@
 from argparse import ArgumentParser, Namespace
+import fcntl
 import mmap
 import numpy as np
 from pathlib import Path
-from subprocess import run
+from subprocess import CalledProcessError, run, PIPE
+from os import getpid
+from time import sleep, time
 
 from input_manager import InputManager
+
+LOCKFILE_PATH = "/tmp/ramdisk_creation.lock"
 
 
 class RAMDisk:
@@ -13,13 +18,26 @@ class RAMDisk:
         pass
 
     def __init__(self, args: Namespace, in_man: InputManager, *buffers: np.ndarray):
-        self.ramdisk_name = "ramdisk"
+        self.ramdisk_name = f"ramdisk-{getpid()}"
         self.mount_point = None
         self.ramdisk_device = None
         self.buffers = buffers
         self.buffer_paths = []
         self.mmaped = []
         self.in_man = in_man
+
+    def _wait_for_device(self, timeout=5.0, interval=0.1):
+        start = time()
+        while True:
+            try:
+                # 'diskutil info <device>' will fail if device isn't ready
+                run(["diskutil", "info", self.ramdisk_device], check=True, stdout=PIPE, stderr=PIPE)
+                return  # success
+            except CalledProcessError:
+                # if we've waited too long, give up
+                if time() - start > timeout:
+                    raise RuntimeError(f"Timeout waiting for device {self.ramdisk_device} to be ready")
+                sleep(interval)
 
     def _mount(self):
         total_bytes = sum(buf.nbytes for buf in self.buffers)
@@ -31,14 +49,22 @@ class RAMDisk:
         if sectors < 16384:
             sectors = 16384
 
-        # Create the RAM disk device
         attach_cmd = ["hdiutil", "attach", "-nomount", f"ram://{sectors}"]
-        result = run(attach_cmd, capture_output=True, text=True, check=True)
-        self.ramdisk_device = result.stdout.strip()
+        with open(LOCKFILE_PATH, "wb") as lockfile:
+            fcntl.flock(lockfile, fcntl.LOCK_EX)
 
-        # Format and mount as HFS+ (ends up in /Volumes/ramdisk)
-        erase_cmd = ["diskutil", "erasevolume", "HFS+", self.ramdisk_name, self.ramdisk_device]
-        run(erase_cmd, check=True)
+            # Attach
+            result = run(attach_cmd, capture_output=True, text=True, check=True)
+            self.ramdisk_device = result.stdout.strip()
+
+            self._wait_for_device()
+
+            # Format and mount as HFS+ (ends up in /Volumes/ramdisk)
+            erase_cmd = ["diskutil", "erasevolume", "HFS+", self.ramdisk_name, self.ramdisk_device]
+            run(erase_cmd, check=True)
+
+            fcntl.flock(lockfile, fcntl.LOCK_UN)
+
         self.mount_point = f"/Volumes/{self.ramdisk_name}"
         print(f"Mounted a RAM disk at {self.mount_point}")
 

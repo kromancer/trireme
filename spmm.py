@@ -8,6 +8,7 @@ from subprocess import run, PIPE
 import jinja2
 from mlir import ir
 import numpy as np
+from scipy.sparse import diags_array
 
 from argument_parsers import (add_args_for_benchmark, add_opt_arg, add_synth_tensor_arg, add_output_check_arg,
                               add_sparse_format_arg, add_prefetch_distance_arg, add_locality_hint_arg,
@@ -16,7 +17,7 @@ from common import build_with_cmake, flush_cache, make_work_dir_and_cd_to_it, Sp
 from generate_kernel import apply_passes, render_template_for_spmm, translate_to_llvm_ir
 from hwpref_controller import HwprefController
 from input_manager import get_storage_buffers, InputManager
-from log_plot import append_placeholder, log_execution_times_secs
+from report_manager import create_report_manager, ReportManager
 from spmv import to_mlir_type
 
 if system() == "Linux":
@@ -42,7 +43,7 @@ def render_main_template(args: argparse.Namespace) -> str:
 
 
 def run_with_aot(args: argparse.Namespace, exe: Path, nnz: int, sp_mat_buffs: List[np.array], dense_mat: np.ndarray,
-                 exp_out: np.ndarray, in_man: InputManager):
+                 exp_out: np.ndarray, in_man: InputManager, rep_man: ReportManager,):
     res = np.zeros((args.i, args.k), dtype=dense_mat.dtype)
     assert res.flags["C_CONTIGUOUS"], "Result matrix must be in row-major order"
     with (RAMDisk(args, in_man, dense_mat, *sp_mat_buffs, res) as ramdisk, HwprefController(args)):
@@ -65,15 +66,15 @@ def run_with_aot(args: argparse.Namespace, exe: Path, nnz: int, sp_mat_buffs: Li
                 assert match is not None, "Execution time not found in the output."
                 exec_times.append(float(match.group(1)))
 
-            log_execution_times_secs(exec_times)
+            rep_man.log_execution_times_secs(exec_times)
 
 
 def main():
-    append_placeholder()
     args = parse_args()
     make_work_dir_and_cd_to_it(__file__)
 
     in_man = InputManager(args)
+    rep_man = create_report_manager(args)
     sp_mat, dense_mat = in_man.create_sparse_mat_and_dense_mat()
     sp_mat_buffers, dtype, itype = get_storage_buffers(sp_mat, SparseFormats(args.matrix_format))
 
@@ -103,9 +104,18 @@ def main():
     if args.check_output:
         expected = sp_mat.dot(dense_mat)
         if args.symmetric:
-            assert False, "TODO: support symmetric matrices in spmm"
+            # "expected" reflects just L * dense_mat
+            # "sp_mat" is symmetric, and is stored as a Lower (L) triangular sparse matrix
+            LT_dot_dense_mat = sp_mat.transpose().dot(dense_mat)
+            if args.dtype == "bool":
+                #  Compute: [ L + L^T ] * dense_mat
+                expected = expected + LT_dot_dense_mat
+            else:
+                #  Compute: [ L + L^T - D(L) ] * dense_mat
+                D_dot_dense_mat = diags_array(sp_mat.diagonal(), offsets=0).dot(dense_mat)
+                expected = expected + LT_dot_dense_mat - D_dot_dense_mat
 
-    run_with_aot(args, exe, sp_mat.nnz, sp_mat_buffers, dense_mat, expected, in_man)
+    run_with_aot(args, exe, sp_mat.nnz, sp_mat_buffers, dense_mat, expected, in_man, rep_man)
 
 
 def parse_args() -> argparse.Namespace:
@@ -119,6 +129,7 @@ def parse_args() -> argparse.Namespace:
     add_output_check_arg(parser)
     RAMDisk.add_args(parser)
     HwprefController.add_args(parser)
+    ReportManager.add_args(parser)
     parser.add_argument("-k", type=int, default=2, help=f"Width of dense mat")
 
     # 1st level subparsers, benchmark or profile

@@ -5,7 +5,7 @@ from enum import Enum
 from functools import wraps
 import json
 import numpy as np
-from os import chdir, close, dup, dup2, environ, fsync, makedirs
+from os import chdir, close, dup, dup2, getpid, environ, fsync, makedirs
 from pathlib import Path
 from platform import system
 from shutil import rmtree, which
@@ -73,7 +73,7 @@ def timeit(func: Callable) -> Callable:
 
 
 def make_work_dir_and_cd_to_it(file_path: str):
-    build_path = Path(f"./workdir-{Path(file_path).name}")
+    build_path = Path(f"./workdir-{getpid()}-{Path(file_path).name}")
 
     if build_path.exists():
         rmtree(build_path)

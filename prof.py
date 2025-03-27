@@ -2,13 +2,13 @@ from argparse import Namespace
 import json
 from pathlib import Path
 from subprocess import run
-from typing import Dict, List
+from typing import List
 
 from common import is_in_path, read_config
-from log_plot import append_result
+from report_manager import ReportManager
 
 
-def gen_and_store_vtune_reports() -> None:
+def gen_and_store_vtune_reports(rep_man: ReportManager):
     reports = [
         {
             "args": ["hw-events", "-format=csv", "-csv-delimiter=comma", "-group-by=source-line"],
@@ -28,10 +28,10 @@ def gen_and_store_vtune_reports() -> None:
         with open(report["output"], "r") as f:
             db_entry[report["output"]] = f.read()
 
-    append_result(db_entry)
+    rep_man.append_result(db_entry)
 
 
-def parse_perf_stat_json_output() -> List[Dict]:
+def parse_perf_stat_json_output(rep_man: ReportManager):
     events = []  # To hold the successfully parsed dictionaries
     with open("perf-stat.json", "r") as f:
         for line in f:
@@ -42,16 +42,16 @@ def parse_perf_stat_json_output() -> List[Dict]:
             except json.JSONDecodeError:
                 # If json.loads() raises an error, skip this line
                 continue
-    append_result({"perf-stat": events})
+    rep_man.append_result({"perf-stat": events})
 
 
-def gen_and_store_perf_record_report() -> None:
+def gen_and_store_perf_record_report(rep_man: ReportManager):
     cmd = ["perf", "report", "--stdio"]
     report = run(cmd, check=True, text=True, capture_output=True)
-    append_result({"perf-record": report.stdout})
+    rep_man.append_result({"perf-record": report.stdout})
 
 
-def profile_spmv(args: Namespace, exe: Path, nnz: int, buffers: List[str]):
+def profile_spmv(args: Namespace, exe: Path, nnz: int, buffers: List[str], rep_man: ReportManager):
     spmv_cmd = [str(exe), str(args.i), str(args.j), str(nnz)] + buffers
 
     post_run_action = None
@@ -80,4 +80,4 @@ def profile_spmv(args: Namespace, exe: Path, nnz: int, buffers: List[str]):
     run(cmd, check=True)
 
     if post_run_action is not None:
-        post_run_action()
+        post_run_action(rep_man)

@@ -16,8 +16,8 @@ from common import build_with_cmake, flush_cache, make_work_dir_and_cd_to_it, Sp
 from generate_kernel import apply_passes, render_template_for_spmv, translate_to_llvm_ir
 from hwpref_controller import HwprefController
 from input_manager import InputManager, get_storage_buffers
-from log_plot import append_placeholder, log_execution_times_secs
 from prof import profile_spmv
+from report_manager import create_report_manager, ReportManager
 
 if system() == "Linux":
     from ramdisk_linux import RAMDisk
@@ -48,11 +48,11 @@ def render_template_for_main(args: argparse.Namespace) -> str:
 
 
 def run_with_aot(args: argparse.Namespace, exe: Path, nnz: int, mat_buffs: List[np.array], vec: np.ndarray,
-                 exp_out: np.ndarray, in_man: InputManager):
+                 exp_out: np.ndarray, in_man: InputManager, rep_man: ReportManager):
     res = np.zeros(args.i, dtype=vec.dtype)
     with (RAMDisk(args, in_man, vec, *mat_buffs, res) as ramdisk, HwprefController(args)):
         if args.action == "profile":
-            profile_spmv(args, exe, nnz, ramdisk.buffer_paths)
+            profile_spmv(args, exe, nnz, ramdisk.buffer_paths, rep_man)
             if args.check_output:
                 assert np.allclose(exp_out, ramdisk.buffers[-1]), "Wrong output!"
         else:
@@ -72,15 +72,15 @@ def run_with_aot(args: argparse.Namespace, exe: Path, nnz: int, mat_buffs: List[
                 assert match is not None, "Execution time not found in the output."
                 exec_times.append(float(match.group(1)))
 
-            log_execution_times_secs(exec_times)
+            rep_man.log_execution_times_secs(exec_times)
 
 
 def main():
-    append_placeholder()
     args = parse_args()
     make_work_dir_and_cd_to_it(__file__)
 
     in_man = InputManager(args)
+    rep_man = create_report_manager(args)
     mat, vec = in_man.create_sparse_mat_and_dense_vec()
     mat_buffs, _, itype = get_storage_buffers(mat, SparseFormats(args.matrix_format))
 
@@ -110,17 +110,18 @@ def main():
     if args.check_output:
         expected = mat.dot(vec)
         if args.symmetric:
-            # "expected" reflects just U * vec
-            # "mat" is symmetric, and is stored as an Upper (U) triangular sparse matrix
-            #  Compute: [ U + U^T - D(U) ] * vec
-            UT_vec = mat.transpose().dot(vec)
-            D_vec = mat.diagonal() * vec
+            # "expected" reflects just L * vec
+            # "mat" is symmetric, and is stored as a Lower (L) triangular sparse matrix
+            LT_dot_vec = mat.transpose().dot(vec)
             if args.dtype == "bool":
-                expected = expected + UT_vec ^ D_vec
+                #  Compute: [ L + L^T ] * vec
+                expected = expected + LT_dot_vec
             else:
-                expected = expected + UT_vec - D_vec
+                #  Compute: [ L + L^T - D(L) ] * vec
+                D_dot_vec = mat.diagonal() * vec
+                expected = expected + LT_dot_vec - D_dot_vec
 
-    run_with_aot(args, exe, mat.nnz, mat_buffs, vec, expected, in_man)
+    run_with_aot(args, exe, mat.nnz, mat_buffs, vec, expected, in_man, rep_man)
 
 
 def parse_args() -> argparse.Namespace:
@@ -135,6 +136,7 @@ def parse_args() -> argparse.Namespace:
     add_output_check_arg(parser)
     RAMDisk.add_args(parser)
     HwprefController.add_args(parser)
+    ReportManager.add_args(parser)
 
     # 1st level subparsers, benchmark or profile
     action_subparser = parser.add_subparsers(dest="action", help="Choose action: benchmark or profile")

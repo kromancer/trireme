@@ -48,7 +48,7 @@ class _RAMDisk:
         self.page_size_bytes = 2 * 2 ** 20 if self.page_size == "2M" else 2 ** 30
         self.page_size_in_kb = self.page_size_bytes // 1024
         self.buffers = buffers
-        self.mount_point = "/tmp/huge-" + self.page_size
+        self.mount_point = f"/tmp/huge-{os.getpid()}-" + self.page_size
         self.buffer_sizes_in_pages = []
         self.mmaped = []
         self.buffer_paths = []

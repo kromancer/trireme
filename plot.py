@@ -1,58 +1,15 @@
 import json
-import sys
-from _socket import gethostname
 from csv import DictReader
-from datetime import datetime
 from io import StringIO
 from pathlib import Path
 import re
-from statistics import harmonic_mean, mean, median, stdev
+from statistics import harmonic_mean
 from typing import Dict, List, Optional
 
-from git import Repo
 from matplotlib import pyplot as plt
 
 from input_manager import InputManager
 from suite_sparse import SuiteSparse
-
-
-def filtered_by_median(data) -> List[int]:
-    r""" Temporary hack until we can guarantee that there is no context switching in the core running the kernel"""
-    median_value = median(data)
-
-    filtered = [x for x in data if x <= 1.5 * median_value]
-    outliers = [x for x in data if x not in filtered]
-
-    if outliers:
-        print("Outliers:", outliers)
-
-    return filtered
-
-
-def log_execution_times_secs(etimes_s: List[float]):
-    log_execution_times_ns([int(t * 1e9) for t in etimes_s])
-
-
-def log_execution_times_ns(etimes_ns: List[int]):
-
-    filtered = filtered_by_median(etimes_ns)
-
-    if len(filtered) <= 2:
-        print(f"Number of measurements, after filtering is < 2, skipping logging")
-        print(f"All entries: {etimes_ns}")
-        return
-
-    m = round(mean(filtered) / 1000000, 3)
-    std_dev = round(stdev(filtered) / 1000000, 3)
-    cv = round(std_dev / m, 3) if m != 0 else 0
-    print(f"mean execution time: {m} ms")
-    print(f"std dev: {std_dev} ms, CV: {cv * 100} %")
-    append_result({
-        'exec_times_ns': etimes_ns,
-        'filtered': filtered,
-        'mean_ms': m,
-        'std_dev': std_dev,
-        'cv': cv})
 
 
 def filter_logs(log: Path, args_re: str) -> List[Dict]:
@@ -60,18 +17,6 @@ def filter_logs(log: Path, args_re: str) -> List[Dict]:
         logs = json.load(f)
     filtered = [log for log in logs if re.search(args_re, log['args'])]
     return filtered
-
-
-def save_hw_event_report_to_csv(log: str, args_re: str) -> Path:
-    log = Path(log)
-    assert log.exists()
-
-    entry = filter_logs(log=log, args_re=args_re)
-    assert len(entry) == 1
-    entry = entry[0]
-
-    with open("hw-events.csv", "w") as f:
-        f.write(entry["vtune-hw-events.csv"])
 
 
 def plot_mean_exec_times(logs: List[Dict], series: Dict, normalize: Optional[float]) -> None:
@@ -180,72 +125,6 @@ def plot_observed_max_bandwidth(logs: List[Dict], series: Dict, normalize: Optio
 
     x_values = list(range(series['x_start'], series['x_start'] + len(bw)))
     plt.plot(x_values, bw, label=series['label'])
-
-
-def append_placeholder(file_path=None):
-    if file_path is None:
-        # Set default file_path to 'results.json' in the current script's directory
-        file_path = Path(__file__).resolve().parent / "results.json"
-    else:
-        file_path = Path(file_path)
-
-    # Attempt to open the file, create a new one if it does not exist
-    try:
-        with open(file_path, 'r') as file:
-            data = json.load(file)
-    except FileNotFoundError:
-        data = []
-        print(f"Creating: {file_path.resolve()}")
-
-    # Check if data is a list, if not, initialize as a list
-    if not isinstance(data, list):
-        data = []
-
-    placeholder = {
-        "args": " ".join(sys.argv),
-        "time": str(datetime.now()),
-        "host": gethostname(),
-        "git-hash": get_git_commit_hash(),
-        "status": "initializing"
-    }
-
-    # Append the new entry
-    data.append(placeholder)
-
-    # Write the updated list back to the JSON file
-    with open(file_path, 'w') as file:
-        json.dump(data, file, indent=4)
-
-
-def append_result(new_entry, status="complete", file_path=None):
-    if file_path is None:
-        # Set default file_path to 'results.json' in the current script's directory
-        file_path = Path(__file__).resolve().parent / "results.json"
-    else:
-        file_path = Path(file_path)
-
-    with open(file_path, 'r') as file:
-        data = json.load(file)
-
-    data[-1]["status"] = status
-    data[-1].update(new_entry)
-
-    # Write the updated list back to the JSON file
-    with open(file_path, 'w') as file:
-        json.dump(data, file, indent=4)
-
-
-def get_git_commit_hash():
-    # Convert script_path to a Path object to find the repo's root directory
-    repo_path = Path(__file__).resolve().parent
-
-    # Initialize a Repo object using the script's directory
-    repo = Repo(repo_path, search_parent_directories=True)
-
-    # Get the current commit hash
-    commit_hash = repo.head.commit.hexsha
-
-    return commit_hash
 
 
 def plot_events_from_vtune(logs: List[Dict], series: Dict, normalize: Optional[float]) -> None:

@@ -1,0 +1,4 @@
+# Symmetric - boolean semiring
+# RUN: env %{LIBVAR}=/opt/SuiteSparse/lib python %S/../../spmv.py --check-output -o omp --matrix-format csr benchmark --repetitions 3 SuiteSparse luxembourg_osm
+# RUN: env %{LIBVAR}=/opt/SuiteSparse/lib python %S/../../spmv.py --check-output -o pref-mlir-omp --matrix-format coo benchmark --repetitions 3 SuiteSparse luxembourg_osm
+# RUN: env %{LIBVAR}=/opt/SuiteSparse/lib python %S/../../spmv.py --check-output -o pref-mlir-omp --matrix-format csr benchmark --repetitions 3 SuiteSparse luxembourg_osm

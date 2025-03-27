@@ -1,0 +1,2 @@
+# RUN: env %{LIBVAR}=/opt/SuiteSparse/lib python %S/../../spmv.py --check-output -o no-opt --matrix-format csr benchmark --repetitions 3 SuiteSparse ex5
+# RUN: env %{LIBVAR}=/opt/SuiteSparse/lib python %S/../../spmv.py --check-output -o no-opt --matrix-format csr benchmark --repetitions 3 SuiteSparse mycielskian3
