@@ -20,7 +20,31 @@ module {
     } -> {{ out_type }}
 
 {% if is_symmetric %}
-    // TODO: Resolve this
+    {% if  dtype.startswith("f") %}
+        %c0 = arith.constant 0.0: {{ dtype }}
+    {% else %}
+        %c0 = arith.constant 0: {{ dtype }}
+    {% endif %}
+
+    %1 = linalg.generic {
+         indexing_maps = [#map, #map2, #map1],
+         iterator_types = ["reduction", "parallel", "parallel"]}
+         ins(%arg1, %arg2: {{ sp_mat_type }}, {{ dense_mat_type }})
+         outs(%0: {{ out_type }}) {
+         ^bb0(%bij: {{ dtype }}, %ci: {{ dtype }}, %aj: {{ dtype }}) :
+           %row = linalg.index 0 : index
+           %col = linalg.index 1 : index
+           %acc = sparse_tensor.reduce %bij, %aj, %c0: {{ dtype }} {
+             ^bb0(%bij_: {{ dtype }}, %aj_: {{ dtype }}):
+               %t1 = {{ mul_op }} %bij_, %ci : {{ dtype }}
+               %t2 = {{ add_op }} %t1, %aj_: {{ dtype }}
+               %is_diag = arith.cmpi eq, %row, %col : index
+               %sel = arith.select %is_diag, %aj_, %t2: {{ dtype }}
+               sparse_tensor.yield %sel: {{ dtype }}
+           }
+           linalg.yield %acc: {{ dtype }}
+         } -> {{ out_type }}
+    return %1 : {{ out_type }}
 {% else %}
     return %0 : {{ out_type }}
 {% endif %}
