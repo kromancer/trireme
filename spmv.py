@@ -77,12 +77,13 @@ def run_with_aot(args: argparse.Namespace, exe: Path, nnz: int, mat_buffs: List[
 
 def main():
     args = parse_args()
-    make_work_dir_and_cd_to_it(__file__)
 
     in_man = InputManager(args)
     rep_man = create_report_manager(args)
     mat, vec = in_man.create_sparse_mat_and_dense_vec()
     mat_buffs, _, itype = get_storage_buffers(mat, SparseFormats(args.matrix_format))
+
+    make_work_dir_and_cd_to_it(__file__)
 
     spmv = render_template_for_spmv(args)
     with open("spmv.0. mlir", "w") as f:
