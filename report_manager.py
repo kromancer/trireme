@@ -65,7 +65,7 @@ class ReportManagerStdout(ReportManager):
     """
 
     def __init__(self):
-        print("Reporting to stdout, no file given.")
+        pass
 
     def log_execution_times_ns(self, etimes_ns: List[int]):
         m, std_dev, cv = self.get_stats(etimes_ns)
@@ -112,8 +112,10 @@ class DefaultReportManager(ReportManager):
 
     def log_execution_times_ns(self, etimes_ns: List[int]):
         m, std_dev, cv = self.get_stats(etimes_ns)
+        print(f"mean execution time: {m} ms")
+        print(f"std dev: {std_dev} ms, CV: {cv * 100} %")
         self.append_result({
             'exec_times_ns': etimes_ns,
             'mean_ms': m,
             'std_dev': std_dev,
-            'cv': cv})
+            'cv%': cv * 100})

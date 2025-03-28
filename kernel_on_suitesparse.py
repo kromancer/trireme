@@ -17,7 +17,7 @@ def main():
 
     args, unknown_args = parse_args(cfg_file)
 
-    command = ["python", "spmv.py"] + unknown_args
+    command = ["python", f"{args.kernel}.py"] + unknown_args
 
     if args.collection == "all":
         matrix_names = SuiteSparse(InputManager.get_working_dir("SuiteSparse")).get_all_matrix_names()
@@ -33,9 +33,9 @@ def main():
 
 
 def parse_args(cfg_file: Path) -> Tuple[argparse.Namespace, List[str]]:
-    parser = argparse.ArgumentParser(description="(Sparse Matrix)x(Dense Vector) Multiplication (SpMV) with MLIR on "
-                                                 "SuiteSparse matrices.",
-                                     epilog="Any arguments not listed above will be forwarded as-is to spmv.py.")
+    parser = argparse.ArgumentParser(description="Run kernel on SuiteSparse matrices.",
+                                     epilog="Any arguments not listed above will be forwarded as-is "
+                                            "to the corresponding <kernel>.py.")
     cfg = {}
     try:
         with open(cfg_file, "r") as f:
@@ -50,6 +50,7 @@ def parse_args(cfg_file: Path) -> Tuple[argparse.Namespace, List[str]]:
                         help="Specify the collection of SuiteSparse matrices to use for SpMV. "
                              "Choose from predefined collections in "
                              f"{cfg_file}, or use 'all' to run on any matrix that is not in 'exclude-from-all'.")
+    parser.add_argument("--kernel", choices=["spmv", "spmv"], default="spmv")
 
     return parser.parse_known_args()
 
