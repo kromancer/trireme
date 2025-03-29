@@ -33,9 +33,8 @@ def sparse_structure_score(matrix: csr_array, is_symmetric: bool):
     col_entropy = entropy(col_probs, base=np.e) / np.log(n_cols)
 
     # 3. Diagonal histogram
-    # For diagonal offsets from -(n_rows-1) to +(n_cols-1)
-    max_offset = n_cols - 1
-    min_offset = -(n_rows - 1)
+    max_offset = n_rows - 1
+    min_offset = -(n_cols - 1)
     offsets = np.arange(min_offset, max_offset + 1)
     diag_nnz = np.zeros_like(offsets, dtype=int)
 

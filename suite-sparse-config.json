@@ -9,6 +9,10 @@
         "mycielskian20"
     ],
     "test": [
-        "mycielskian3"
+        "mycielskian3",
+        "ex5"
+    ],
+    "ortho": [
+        "n4c6-b13"
     ]
 }
