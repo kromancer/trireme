@@ -37,7 +37,7 @@ class ReportManager:
         cv = round(std_dev / m, 3) if m != 0 else 0
         return m, std_dev, cv
 
-    def append_placeholder(self):
+    def append_placeholder(self, args: str = None):
         pass
 
     def append_result(self, new_entry, status="complete"):
@@ -82,7 +82,7 @@ class DefaultReportManager(ReportManager):
         self.rep_file = Path(rep_file).resolve()
         self.append_placeholder()
 
-    def append_placeholder(self):
+    def append_placeholder(self, args: str = None):
         try:
             with open(self.rep_file, 'r') as file:
                 data = json.load(file)
@@ -92,7 +92,7 @@ class DefaultReportManager(ReportManager):
         if not isinstance(data, list):
             data = []
         placeholder = {
-            "args": " ".join(sys.argv),
+            "args": " ".join(sys.argv) if args is None else args,
             "time": str(datetime.now()),
             "host": gethostname(),
             "git-hash": self.get_git_commit_hash(),
