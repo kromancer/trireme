@@ -20,3 +20,4 @@
 /tests/output/
 **/.lit/
 /results.json
+/rep.json
