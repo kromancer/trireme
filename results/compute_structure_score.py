@@ -1,17 +1,14 @@
 import argparse
-import json
 import numpy as np
-from pathlib import Path
 
 from scipy.sparse import csr_array
 from scipy.stats import entropy
 
 from tqdm import tqdm
 
-from common import read_config
 from input_manager import InputManager
 from suite_sparse import SuiteSparse
-from report_manager import ReportManager, create_report_manager
+from report_manager import create_report_manager, ReportManager
 
 
 def sparse_structure_score(matrix: csr_array, is_symmetric: bool):
@@ -47,54 +44,39 @@ def sparse_structure_score(matrix: csr_array, is_symmetric: bool):
     diag_probs = diag_nnz / diag_nnz.sum()
     diag_entropy = entropy(diag_probs, base=np.e) / np.log(len(offsets))
 
+    # Compute sparsity
+    density = matrix.nnz / (n_rows * n_cols)
+
     # Final structure score
     structure_score = 1 - min(row_entropy, col_entropy, diag_entropy)
+    final_score = density + (1-density) * structure_score
 
     return {
+        "density": density,
         "structure_score": structure_score,
+        "final_score": final_score,
         "row_entropy": row_entropy,
         "col_entropy": col_entropy,
         "diag_entropy": diag_entropy
     }
 
 
-def parse_args(cfg_file: Path) -> argparse.Namespace:
+def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Compute structure score for SuiteSparse matrices",)
-    cfg = {}
-    try:
-        with open(cfg_file, "r") as f:
-            cfg = json.load(f)
-    except FileNotFoundError:
-        print(f"Could not locate {cfg_file}")
-    except json.decoder.JSONDecodeError as e:
-        print(f"{cfg_file} could not be decoded {e}")
-
-    parser.add_argument("-c", "--collection",
-                        choices=list(cfg.keys()) + ["all"],
-                        help="Specify the collection of SuiteSparse matrices to compute structure score for. "
-                             "Choose from predefined collections in "
-                             f"{cfg_file}, or use 'all' to run on any matrix that is not in 'exclude-from-all'.")
+    SuiteSparse.add_args(parser)
     ReportManager.add_args(parser)
     return parser.parse_args()
 
 
 def main():
-    script_dir = Path(__file__).parent.resolve()
-    cfg_file = script_dir / "suite-sparse-config.json"
-
-    args = parse_args(cfg_file)
+    args = parse_args()
     args.in_source = "SuiteSparse"
     args.matrix_format = "csr"
     in_man = InputManager(args)
     rep_man = create_report_manager(args)
-    ss = SuiteSparse(InputManager.get_working_dir("SuiteSparse"))
+    ss = SuiteSparse(InputManager.get_working_dir("SuiteSparse"), args)
 
-    if args.collection == "all":
-        matrix_names = ss.get_all_matrix_names()
-        matrix_names -= set(read_config("suite-sparse-config.json", "exclude-from-all"))
-    else:
-        matrix_names = read_config("suite-sparse-config.json", args.collection)
-
+    matrix_names = ss.get_matrices()
     with tqdm(total=len(matrix_names), desc="structure score on SuiteSparse") as pbar:
         for mtx in matrix_names:
             rep_man.append_placeholder(mtx)
@@ -102,6 +84,7 @@ def main():
             m: csr_array = in_man.get_ss_mat()
             structure_metrics = sparse_structure_score(m, args.symmetric)
             rep_man.append_result(structure_metrics)
+            pbar.update(1)
 
 
 if __name__ == "__main__":

@@ -1,5 +1,6 @@
 import argparse
 import json
+from pathlib import Path
 
 
 if __name__ == "__main__":
@@ -8,9 +9,12 @@ if __name__ == "__main__":
     argparser.add_argument("-o", "--optimized", type=str, required=True)
     args = argparser.parse_args()
 
-    with open(args.baseline, "r") as b, open(args.optimized, "r") as o:
+    opt = Path(args.optimized)
+    assert opt.exists(), f"{opt} does not exist"
+    with open(args.baseline, "r") as b, open(opt, "r") as o, open(opt.parent / ("bak-" + opt.name), "w") as bak:
         baseline = json.load(b)
         optimized = json.load(o)
+        bak.write(json.dumps(optimized, indent=4))
 
     new_data = {}
     for mtx, v in optimized.items():
@@ -19,5 +23,5 @@ if __name__ == "__main__":
         new_data[mtx]["speed-up"] = baseline[mtx][time_field] / v[time_field]
 
     new_data = dict(sorted(new_data.items(), key=lambda e: e[1]["speed-up"], reverse=True))
-    with open(f"{args.optimized}.speedups.json", "w") as f:
+    with open(opt, "w") as f:
         f.write(json.dumps(new_data, indent=4))

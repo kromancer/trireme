@@ -1,10 +1,13 @@
+* TACO: generating C code from tensor index notation
+
+An online version of the compiler can be found at:
+http://tensor-compiler.org
+
 * Generating Ains & Jones from TACO generated C source
 
-
+Run something similar to:
 #+begin_src shell
-
 $CLANG10 -O0 -Xclang -disable-O0-optnone -std=c99 -isystem/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1 -c -S -emit-llvm spmv-csr-dense.c -o spmv-csr-dense.ll
 $OPT10 -S -mem2reg spmv-csr-dense.ll -o spmv-csr-dense.mem2reg.ll
 $OPT10 -S -O2 -load $PREFETCH_OPT -debug-only=SwPrefetchPass spmv-csr-dense.mem2reg.ll -o spmv-csr-dense.ainsworth.ll
-
 #+end_src

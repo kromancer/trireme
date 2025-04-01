@@ -43,22 +43,24 @@ def print_size(size):
         return f"{size} Bytes"
 
 
-def read_config(file: str, key: str) -> Optional[Union[int, str, List[str], Dict]]:
+def read_config_file(file: str) -> Dict[str, Any]:
     script_dir = Path(__file__).parent.resolve()
     cfg_file = script_dir / file
-
-    cfg = None
     try:
         with open(cfg_file, "r") as f:
-            cfg = json.load(f)[key]
+            return json.load(f)
     except FileNotFoundError:
         print(f"No {file} in {script_dir}")
     except json.decoder.JSONDecodeError as e:
         print(f"{cfg_file} could not be decoded {e}")
+
+
+def read_config(file: str, key: str) -> Optional[Union[int, str, List[str], Dict]]:
+    cfg = read_config_file(file)
+    try:
+        return cfg[key]
     except KeyError:
-        print(f"{cfg_file} does not have a field for {key}")
-    finally:
-        return cfg
+        print(f"{file} does not have a field for {key}")
 
 
 def timeit(func: Callable) -> Callable:
@@ -213,6 +215,10 @@ def change_dir(destination: Path = None):
             temp_dir.cleanup()
 
 
-def flush_cache(cache_size=100 * 1024 * 1024):
-    a = np.arange(cache_size, dtype=np.uint8)
-    a.sum()  # forces reading the array
+np_to_mlir_type = {
+    "float64": "f64",
+    "float32": "f32",
+    "int64": "i64",
+    "int32": "i32",
+    "bool": "i1"
+}

@@ -1,15 +1,15 @@
+from argparse import ArgumentParser
 import json
-import os
-from pathlib import Path
-import scipy.sparse as sp
 import scipy.sparse.linalg as spla
-import sys
+from typing import Tuple
 
+from tqdm import tqdm
+
+from input_manager import InputManager
 from suite_sparse import SuiteSparse
 
 
-def normalize_bandwidth(mtx, lo, up):
-    ss = SuiteSparse(Path("."))
+def normalize_bandwidth(mtx: str, lo: int, up: int, ss: SuiteSparse) -> Tuple[float, float]:
     rows = int(ss.get_meta(mtx, "num_of_rows"))
     cols = int(ss.get_meta(mtx, "num_of_cols"))
     low_norm = 0
@@ -27,33 +27,39 @@ def normalize_bandwidth(mtx, lo, up):
     return low_norm, up_norm
 
 
-def compute_bandwidths(path_to_ss, output):
+if __name__ == "__main__":
+    parser = ArgumentParser(description="Compute scipy.sparse.linalg.spbandwidth on SuiteSparse matrices.")
+    SuiteSparse.add_args(parser)
+    args = parser.parse_args()
+
+    ss = SuiteSparse(InputManager.get_working_dir("SuiteSparse"), args)
+
+    args.matrix_format = "csr"
+    args.in_source = "SuiteSparse"
+    in_man = InputManager(args)
+
     bandwidth_dict = {}
+    matrices = ss.get_matrices()
+    with tqdm(total=len(matrices), desc=f"{args.kernel} on SuiteSparse") as pbar:
+        for m_name in matrices:
+            pbar.set_description(f"{args.kernel} on {m_name}")
+            args.name = m_name
+            sp_mat = in_man.get_ss_mat()
 
-    for filename in os.listdir(path_to_ss):
-        if filename.endswith(".npz"):
-            file_path = os.path.join(path_to_ss, filename)
-            mtx = os.path.splitext(filename)[0]  # Remove .npz extension
+        try:
+            lo, up = spla.spbandwidth(sp_mat)
+            lo_norm, up_norm = normalize_bandwidth(m_name, lo, up, ss)
+            bandwidth_dict[m_name] = {
+                "low": lo,
+                "low_norm": lo_norm,
+                "upper": up,
+                "upper_norm": up_norm
+            }
+        except Exception as e:
+            print(f"Error processing {m_name}: {e}")
 
-            try:
-                matrix = sp.load_npz(file_path)
-                lo, up = spla.spbandwidth(matrix)
-                lo_norm, up_norm = normalize_bandwidth(mtx, lo, up)
-                bandwidth_dict[mtx] = {
-                    "low": lo,
-                    "low_norm": lo_norm,
-                    "upper": up,
-                    "upper_norm": up_norm
-                }
-            except Exception as e:
-                print(f"Error processing {filename}: {e}")
+        pbar.update(1)
 
-    with open(output, "w") as f:
+    with open("bandwidths.json", "w") as f:
         f.write(json.dumps(bandwidth_dict, indent=4))
 
-
-if __name__ == "__main__":
-    directory = sys.argv[1]
-    output_file = "bandwidths.json"
-    compute_bandwidths(directory, output_file)
-    print(f"Results saved in {output_file}")

@@ -1,9 +1,6 @@
 import argparse
 from pathlib import Path
 from platform import system
-import re
-from typing import List
-from subprocess import run, PIPE
 
 import jinja2
 from mlir import ir
@@ -13,12 +10,12 @@ from scipy.sparse import diags_array
 from argument_parsers import (add_args_for_benchmark, add_opt_arg, add_synth_tensor_arg, add_output_check_arg,
                               add_sparse_format_arg, add_prefetch_distance_arg, add_locality_hint_arg,
                               add_args_for_profile)
-from common import build_with_cmake, flush_cache, make_work_dir_and_cd_to_it, SparseFormats
+from common import build_with_cmake, make_work_dir_and_cd_to_it, np_to_mlir_type, SparseFormats
 from generate_kernel import apply_passes, render_template_for_spmm, translate_to_llvm_ir
 from hwpref_controller import HwprefController
 from input_manager import get_storage_buffers, InputManager
 from report_manager import create_report_manager, ReportManager
-from spmv import to_mlir_type
+from run_kernel import run_with_aot
 
 if system() == "Linux":
     from ramdisk_linux import RAMDisk
@@ -37,36 +34,9 @@ def render_main_template(args: argparse.Namespace) -> str:
 
     # Function "main" will be injected after the sparse-assembler pass
     main_template = jinja.get_template("spmm_csr_csr.main.mlir.jinja2")
-    main_rendered = main_template.render(rows=args.i, cols=args.j, dtype=to_mlir_type[args.dtype],
+    main_rendered = main_template.render(rows=args.i, cols=args.j, dtype=np_to_mlir_type[args.dtype],
                                          dense_output=args.dense_output)
     return main_rendered
-
-
-def run_with_aot(args: argparse.Namespace, exe: Path, nnz: int, sp_mat_buffs: List[np.array], dense_mat: np.ndarray,
-                 exp_out: np.ndarray, in_man: InputManager, rep_man: ReportManager,):
-    res = np.zeros((args.i, args.k), dtype=dense_mat.dtype)
-    assert res.flags["C_CONTIGUOUS"], "Result matrix must be in row-major order"
-    with (RAMDisk(args, in_man, dense_mat, *sp_mat_buffs, res) as ramdisk, HwprefController(args)):
-        if args.action == "profile":
-            assert False, "TODO: add support for profiling"
-        else:
-            spmm_cmd = [str(exe), str(args.i), str(args.j), str(args.k), str(nnz)] + ramdisk.buffer_paths
-
-            exec_times = []
-            for _ in range(args.repetitions):
-                result = run(spmm_cmd, check=True, stdout=PIPE, stderr=PIPE, text=True)
-
-                if args.check_output:
-                    assert np.allclose(exp_out, ramdisk.buffers[-1]), "Wrong output!"
-
-                ramdisk.reset_res_buff()
-                flush_cache()
-
-                match = re.search(r"Exec time: ([0-9.]+)s", result.stdout)
-                assert match is not None, "Execution time not found in the output."
-                exec_times.append(float(match.group(1)))
-
-            rep_man.log_execution_times_secs(exec_times)
 
 
 def main():
@@ -116,7 +86,9 @@ def main():
                 D_dot_dense_mat = diags_array(sp_mat.diagonal(), offsets=0).dot(dense_mat)
                 expected = expected + LT_dot_dense_mat - D_dot_dense_mat
 
-    run_with_aot(args, exe, sp_mat.nnz, sp_mat_buffers, dense_mat, expected, in_man, rep_man)
+    res = np.zeros((args.i, args.k), dtype=dense_mat.dtype)
+    assert res.flags["C_CONTIGUOUS"], "Result matrix must be in row-major order"
+    run_with_aot(args, exe, res, sp_mat.nnz, sp_mat_buffers, dense_mat, expected, in_man, rep_man)
 
 
 def parse_args() -> argparse.Namespace:

@@ -1,18 +1,34 @@
+from argparse import ArgumentParser, Namespace
 from pathlib import Path
 from time import time
-from typing import Dict, Set
+from typing import Dict, List, Set
 
 import pandas as pd
 import requests
 
-from common import change_dir
+from common import change_dir, read_config_file
 from singleton import Singleton
+
 
 url_base = "https://sparse.tamu.edu"
 
 
 class SuiteSparse(metaclass=Singleton):
-    def __init__(self, working_dir: Path):
+    @staticmethod
+    def add_args(parser: ArgumentParser):
+        parser.add_argument("-c", "--collection",
+                            type=str,
+                            help="Specify the collection of SuiteSparse matrices to use. "
+                                 "Choose from predefined collections in <repo>/suite-sparse-config.json "
+                                 "or use 'all' to run on all matrices "
+                                 f"not in 'exclude-from-all'.")
+
+    def __init__(self, working_dir: Path, args: Namespace = None):
+        self.cfg = read_config_file("suite-sparse-config.json")
+        if args is not None and args.collection is not None and args.collection != "all":
+            assert args.collection in self.cfg, f"Unknown collection: {args.collection}, select from: {self.cfg.keys()}"
+        self.args = args
+
         self.dir = working_dir
 
         url_csv = url_base + "/files/ssstats.csv"
@@ -60,6 +76,15 @@ class SuiteSparse(metaclass=Singleton):
     def get_all_matrices(self):
         with change_dir(self.dir):
             self.df.apply(lambda row: self.get_matrix(row["name"], row["group"]), axis=1)
+
+    def get_matrices(self) -> List[str]:
+        if self.args.collection == "all":
+            matrix_names = self.get_all_matrix_names()
+            if "exclude-from-all" in self.cfg:
+                matrix_names -= set(self.cfg["exclude-from-all"])
+        else:
+            matrix_names = self.cfg[self.args.collection]
+        return matrix_names
 
     def get_matrix(self, mtx_name: str, mtx_group: str = None):
         if mtx_group is None:

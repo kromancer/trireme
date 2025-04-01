@@ -51,20 +51,18 @@ def gen_and_store_perf_record_report(rep_man: ReportManager):
     rep_man.append_result({"perf-record": report.stdout})
 
 
-def profile_spmv(args: Namespace, exe: Path, nnz: int, buffers: List[str], rep_man: ReportManager):
-    spmv_cmd = [str(exe), str(args.i), str(args.j), str(nnz)] + buffers
-
+def profile_cmd(args: Namespace, cmd, rep_man: ReportManager):
     post_run_action = None
     if args.analysis == "advisor":
         assert is_in_path("advisor")
-        cmd = ["advisor"] + read_config("advisor-config.json", args.config) + ["--"] + spmv_cmd
+        cmd = ["advisor"] + read_config("advisor-config.json", args.config) + ["--"] + cmd
     elif args.analysis == "vtune":
         assert is_in_path("vtune")
-        cmd = ["vtune"] + read_config("vtune-config.json", args.config) + ["--"] + spmv_cmd
+        cmd = ["vtune"] + read_config("vtune-config.json", args.config) + ["--"] + cmd
         post_run_action = gen_and_store_vtune_reports
     elif args.analysis == "perf":
         assert is_in_path("perf")
-        cmd = ["perf"] + read_config("perf-config.json", args.config) + ["--"] + spmv_cmd
+        cmd = ["perf"] + read_config("perf-config.json", args.config) + ["--"] + cmd
         if args.config.startswith("record"):
             post_run_action = gen_and_store_perf_record_report
         else:
@@ -72,10 +70,10 @@ def profile_spmv(args: Namespace, exe: Path, nnz: int, buffers: List[str], rep_m
             post_run_action = parse_perf_stat_json_output
     elif args.analysis == "toplev":
         assert is_in_path("toplev")
-        cmd = ["toplev"] + read_config("toplev-config.json", args.config) + spmv_cmd
+        cmd = ["toplev"] + read_config("toplev-config.json", args.config) + cmd
     else:
         print("Dry run")
-        cmd = spmv_cmd
+        cmd = cmd
 
     run(cmd, check=True)
 

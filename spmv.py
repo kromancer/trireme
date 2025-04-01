@@ -1,9 +1,6 @@
 import argparse
 from pathlib import Path
 from platform import system
-import re
-from typing import List
-from subprocess import run, PIPE
 
 import jinja2
 from mlir import ir
@@ -12,26 +9,18 @@ import numpy as np
 from argument_parsers import (add_args_for_benchmark, add_opt_arg, add_synth_tensor_arg, add_output_check_arg,
                               add_sparse_format_arg, add_prefetch_distance_arg, add_locality_hint_arg,
                               add_args_for_profile)
-from common import build_with_cmake, flush_cache, make_work_dir_and_cd_to_it, SparseFormats
+from common import build_with_cmake, make_work_dir_and_cd_to_it, np_to_mlir_type, SparseFormats
 from generate_kernel import apply_passes, render_template_for_spmv, translate_to_llvm_ir
 from hwpref_controller import HwprefController
 from input_manager import InputManager, get_storage_buffers
-from prof import profile_spmv
 from report_manager import create_report_manager, ReportManager
+from run_kernel import run_with_aot
 
 if system() == "Linux":
     from ramdisk_linux import RAMDisk
 else:
     assert system() == "Darwin", "Unsupported system!"
     from ramdisk_macos import RAMDisk
-
-to_mlir_type = {
-    "float64": "f64",
-    "float32": "f32",
-    "int64": "i64",
-    "int32": "i32",
-    "bool": "i1"
-}
 
 
 def get_jinja() -> jinja2.Environment:
@@ -44,35 +33,7 @@ def render_template_for_main(args: argparse.Namespace) -> str:
 
     # Function "main" will be injected after the sparse-assembler pass
     main_template = jinja.get_template(f"spmv_{args.matrix_format}.main.mlir.jinja2")
-    return main_template.render(rows=args.i, cols=args.j, dtype=to_mlir_type[args.dtype])
-
-
-def run_with_aot(args: argparse.Namespace, exe: Path, nnz: int, mat_buffs: List[np.array], vec: np.ndarray,
-                 exp_out: np.ndarray, in_man: InputManager, rep_man: ReportManager):
-    res = np.zeros(args.i, dtype=vec.dtype)
-    with (RAMDisk(args, in_man, vec, *mat_buffs, res) as ramdisk, HwprefController(args)):
-        if args.action == "profile":
-            profile_spmv(args, exe, nnz, ramdisk.buffer_paths, rep_man)
-            if args.check_output:
-                assert np.allclose(exp_out, ramdisk.buffers[-1]), "Wrong output!"
-        else:
-            spmv_cmd = [str(exe), str(args.i), str(args.j), str(nnz)] + ramdisk.buffer_paths
-
-            exec_times = []
-            for _ in range(args.repetitions):
-                result = run(spmv_cmd, check=True, stdout=PIPE, stderr=PIPE, text=True)
-
-                if args.check_output:
-                    assert np.allclose(exp_out, ramdisk.buffers[-1]), "Wrong output!"
-
-                ramdisk.reset_res_buff()
-                flush_cache()
-
-                match = re.search(r"Exec time: ([0-9.]+)s", result.stdout)
-                assert match is not None, "Execution time not found in the output."
-                exec_times.append(float(match.group(1)))
-
-            rep_man.log_execution_times_secs(exec_times)
+    return main_template.render(rows=args.i, cols=args.j, dtype=np_to_mlir_type[args.dtype])
 
 
 def main():
@@ -122,7 +83,8 @@ def main():
                 D_dot_vec = mat.diagonal() * vec
                 expected = expected + LT_dot_vec - D_dot_vec
 
-    run_with_aot(args, exe, mat.nnz, mat_buffs, vec, expected, in_man, rep_man)
+    res = np.zeros(args.i, dtype=vec.dtype)
+    run_with_aot(args, exe, res, mat.nnz, mat_buffs, vec, expected, in_man, rep_man)
 
 
 def parse_args() -> argparse.Namespace:
