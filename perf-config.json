@@ -73,6 +73,12 @@
 	"-j",
 	"-o", "perf-stat.json"
     ],
+    "stat-branch-2": [
+	"stat",
+	"-e", "branches,branch-misses",
+	"-j",
+	"-o", "perf-stat.json"
+    ],
     "record-clks": [
 	"record",
 	"-e", "cpu_clk_unhalted.core:ppp",
@@ -81,6 +87,29 @@
     "stat-kernel": [
 	"stat",
 	"-e", "context-switches,page-faults"
+    ],
+    "stat-pfaults": [
+	"stat",
+	"-e", "context-switches,minor-faults,major-faults",
+	"-j",
+	"-o", "perf-stat.json"
+    ],
+    "record-major-faults": [
+	"record",
+	"-e", "major-faults:upp",
+	"-c", "1"
+    ],
+    "stat-clks": [
+	"stat",
+	"-e", "cycles,instructions,task-clock,branch-misses,cache-misses,context-switches",
+	"-j",
+	"-o", "perf-stat.json"
+    ],
+    "stat-stalled": [
+	"stat",
+	"-e", "cycles,stalled-cycles-frontend,stalled-cycles-backend",
+	"-j",
+	"-o", "perf-stat.json"
     ],
     "record-be-bound-mem-scheduler": [
         "record",

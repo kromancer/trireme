@@ -79,7 +79,6 @@ class _RAMDisk:
             if self.extra_pages > 0:
                 with open(kernel_cfg, "w") as f:
                     f.write(str(total_pages))
-                print(f"Reserved {self.extra_pages} extra huge pages of size {self.page_size}.")
 
         except PermissionError:
             raise RuntimeError(f"You need sudo/root privileges to modify {kernel_cfg}.")
@@ -92,7 +91,6 @@ class _RAMDisk:
                 ["mount", "-t", "hugetlbfs", "-o", f"pagesize={self.page_size}", "none", self.mount_point],
                 check=True,
             )
-            print(f"Mounted hugetlbfs at {self.mount_point}.")
         except subprocess.CalledProcessError as e:
             raise RuntimeError(f"Failed to mount hugetlbfs: {e}")
 
@@ -113,17 +111,12 @@ class _RAMDisk:
             if new_pages < current_pages:
                 with open(hugepages_path, "w") as f:
                     f.write(str(new_pages))
-                print(f"Released {self.extra_pages} huge pages. Remaining: {new_pages}.")
-            else:
-                print("No huge pages to release.")
-
         except PermissionError:
             print(f"Warning: You need sudo/root privileges to modify {hugepages_path}.")
 
     def _unmount(self):
         try:
             subprocess.run(["umount", self.mount_point], check=True)
-            print(f"Unmounted hugetlbfs from {self.mount_point}.")
         except subprocess.CalledProcessError:
             print(f"Warning: Could not unmount {self.mount_point}. You may need to do this manually.")
 
@@ -148,7 +141,6 @@ class _RAMDisk:
                 new_buffers.append(new_buf)
 
         self.buffers = tuple(new_buffers)
-        print(f"Buffers have been successfully moved to {self.mount_point}.")
 
     def __enter__(self):
         # no cleanup required here if this action excepts

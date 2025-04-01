@@ -21,32 +21,38 @@ else:
     from ramdisk_macos import RAMDisk
 
 
-def trash_dram_and_flush_cache(size=512 * 1024 * 1024):
+def trash_dram_and_flush_cache(size=128 * 1024 * 1024):
     a = np.random.randint(0, 256, size, dtype=np.uint8)
     a.sum()
 
 
 def run_with_aot(args: Namespace, partial_cmd: List[str], res: np.ndarray, sp_mat_buffs: List[np.array],
                  dense_op: np.ndarray, exp_out: np.ndarray, in_man: InputManager, rep_man: ReportManager):
-    with (RAMDisk(args, in_man, dense_op, *sp_mat_buffs, res) as ramdisk, HwprefController(args)):
-        cmd = partial_cmd + ramdisk.buffer_paths
-        if args.action == "profile":
-            profile_cmd(args, cmd, rep_man)
-            if args.check_output:
-                assert np.allclose(exp_out, ramdisk.buffers[-1]), "Wrong output!"
-        else:
-            exec_times = []
-            for _ in range(args.repetitions):
-                result = run(cmd, check=True, stdout=PIPE, stderr=PIPE, text=True)
+    
+    exec_times = []
+    with HwprefController(args):
+        for _ in range(args.repetitions):
+            with RAMDisk(args, in_man, dense_op, *sp_mat_buffs, res) as ramdisk:
+                cmd = partial_cmd + ramdisk.buffer_paths
+                if args.action == "profile":
+                    profile_cmd(args, cmd, rep_man)
+                    if args.check_output:
+                        assert np.allclose(exp_out, ramdisk.buffers[-1]), "Wrong output!"
+                else:
+                    result = run(cmd, check=True, stdout=PIPE, stderr=PIPE, text=True)
 
-                if args.check_output:
-                    assert np.allclose(exp_out, ramdisk.buffers[-1]), "Wrong output!"
+                    if args.check_output:
+                        assert np.allclose(exp_out, ramdisk.buffers[-1]), "Wrong output!"
 
-                ramdisk.reset_res_buff()
-                trash_dram_and_flush_cache()
+                    ramdisk.reset_res_buff()
+                    trash_dram_and_flush_cache()
 
-                match = re.search(r"Exec time: ([0-9.]+)s", result.stdout)
-                assert match is not None, "Execution time not found in the output."
-                exec_times.append(float(match.group(1)))
+                    with open("/proc/sys/vm/drop_caches", "w") as f:
+                        f.write("3\n")
 
-            rep_man.log_execution_times_secs(exec_times)
+                    match = re.search(r"Exec time: ([0-9.]+)s", result.stdout)
+                    assert match is not None, "Execution time not found in the output."
+                    exec_times.append(float(match.group(1)))
+
+    if args.action == "benchmark":
+        rep_man.log_execution_times_secs(exec_times)
