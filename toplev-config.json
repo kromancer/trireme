@@ -8,15 +8,18 @@
 	"--single-thread",
 	"--json"
     ],
-    "bottlenecks": [
+    "all": [
 	"--verbose",
 	"--long-desc",
         "--no-multiplex",
         "--user",
 	"--all",
+	"--metrics",
+	"--power",
 	"--frequency",
         "--cputype", "atom",
         "--level", "6",
-	"--single-thread"
+	"--single-thread",
+	"--json"
     ]
 }

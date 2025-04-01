@@ -1,12 +1,13 @@
 {
     "useful-events": {
         "ecore": [
-            "cpu_clk_unhalted.core:upp",
-	    "cpu_clk_unhalted.ref_tsc:upp",
-            "mem_uops_retired.all_loads:upp",
-            "mem_load_uops_retired.dram_hit:upp",
-            "mem_load_uops_retired.l3_hit:upp",
-            "mem_load_uops_retired.l2_hit:upp",
+	    "inst_retired.any:u",
+            "cpu_clk_unhalted.core:u",
+	    "cpu_clk_unhalted.ref_tsc:u",
+            "mem_uops_retired.all_loads:u",
+            "mem_load_uops_retired.dram_hit:u",
+            "mem_load_uops_retired.l3_hit:u",
+            "mem_load_uops_retired.l2_hit:u",
 	    "mem_uops_retired.all_loads:u",
 	    "mem_bound_stalls.load_l2_hit:u",
 	    "mem_bound_stalls.load_llc_hit:u",
@@ -18,9 +19,10 @@
             "ld_head.dtlb_miss_at_ret:upp",
 	    "ld_head.l1_miss_at_ret:u",
 	    "ld_head.any_at_ret:u",
-	    "topdown_bad_speculation.mispredict:upp",
-	    "topdown_be_bound.reorder_buffer:upp",
-	    "topdown_be_bound.mem_scheduler:upp",
+	    "topdown_bad_speculation.mispredict:u",
+	    "topdown_be_bound.reorder_buffer:u",
+	    "topdown_be_bound.mem_scheduler:u",
+	    "topdown_be_bound.serialization:u",
 	    "topdown_be_bound.non_mem_scheduler:u",
 	    "topdown_be_bound.register:u",
 	    "topdown_be_bound.alloc_restrictions:u"
@@ -56,6 +58,18 @@
     "stat-clks": [
 	"stat",
 	"-e", "cpu_clk_unhalted.core,cpu_clk_unhalted.ref_tsc",
+	"-j",
+	"-o", "perf-stat.json"
+    ],
+    "stat-misc": [
+	"stat",
+	"-e", "inst_retired.any:u,topdown_be_bound.register:u,topdown_be_bound.serialization:u,topdown_be_bound.alloc_restrictions:u,ld_blocks.4k_alias:u",
+	"-j",
+	"-o", "perf-stat.json"
+    ],
+    "stat-branch": [
+	"stat",
+	"-e", "br_inst_retired.all_branches:u,br_misp_retired.all_branches:u,br_misp_retired.cond:u,br_misp_retired.cond_taken:u,br_misp_retired.indirect:u",
 	"-j",
 	"-o", "perf-stat.json"
     ],

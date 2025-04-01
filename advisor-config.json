@@ -18,6 +18,7 @@
         "--collect", "roofline",
         "--project-dir", "/home/paul/advi-results",
         "--enable-cache-simulation",
+	"--enable-data-transfer-analysis",
         "--auto-finalize"
     ]
 }

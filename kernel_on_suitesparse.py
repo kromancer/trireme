@@ -12,13 +12,13 @@ def main():
                                      epilog="Any arguments not listed above will be forwarded as-is "
                                             "to the corresponding <kernel>.py.")
     SuiteSparse.add_args(parser)
-    parser.add_argument("--kernel", choices=["spmv", "spmv"], default="spmv")
+    parser.add_argument("--kernel", choices=["spmv", "spmm"], default="spmv")
     args, unknown_args = parser.parse_known_args()
-
-    command = ["python", f"{args.kernel}.py"] + unknown_args
 
     ss = SuiteSparse(InputManager.get_working_dir("SuiteSparse"), args)
     matrices = ss.get_matrices()
+
+    command = ["python", f"{args.kernel}.py"] + unknown_args
 
     with tqdm(total=len(matrices), desc=f"{args.kernel} on SuiteSparse") as pbar:
         for m in matrices:
