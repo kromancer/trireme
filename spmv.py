@@ -84,7 +84,8 @@ def main():
                 expected = expected + LT_dot_vec - D_dot_vec
 
     res = np.zeros(args.i, dtype=vec.dtype)
-    run_with_aot(args, exe, res, mat.nnz, mat_buffs, vec, expected, in_man, rep_man)
+    partial_cmd = [str(exe), str(args.i), str(args.j), str(mat.nnz)]
+    run_with_aot(args, partial_cmd, res, mat_buffs, vec, expected, in_man, rep_man)
 
 
 def parse_args() -> argparse.Namespace:

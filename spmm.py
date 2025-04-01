@@ -88,7 +88,8 @@ def main():
 
     res = np.zeros((args.i, args.k), dtype=dense_mat.dtype)
     assert res.flags["C_CONTIGUOUS"], "Result matrix must be in row-major order"
-    run_with_aot(args, exe, res, sp_mat.nnz, sp_mat_buffers, dense_mat, expected, in_man, rep_man)
+    partial_cmd = [str(exe), str(args.i), str(args.j), str(args.k), str(sp_mat.nnz)]
+    run_with_aot(args, partial_cmd, res, sp_mat_buffers, dense_mat, expected, in_man, rep_man)
 
 
 def parse_args() -> argparse.Namespace:
