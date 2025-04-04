@@ -31,7 +31,7 @@ def main():
             rep_man.append_placeholder(mtx)
             args.name = mtx
             m: csr_array = in_man.get_ss_mat()
-            plt.spy(m, aspect="auto", aa=True)
+            plt.spy(m, aspect="auto", aa=True, ms=0.01)
             plt.savefig(f"{mtx}.png")
             rep_man.append_result({})
             pbar.update(1)
