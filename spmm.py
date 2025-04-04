@@ -9,7 +9,7 @@ from scipy.sparse import diags_array
 
 from argument_parsers import (add_args_for_benchmark, add_opt_arg, add_synth_tensor_arg, add_output_check_arg,
                               add_sparse_format_arg, add_prefetch_distance_arg, add_locality_hint_arg,
-                              add_args_for_profile)
+                              add_args_for_profile, add_k_dimension_arg)
 from common import build_with_cmake, make_work_dir_and_cd_to_it, np_to_mlir_type, SparseFormats
 from generate_kernel import apply_passes, render_template_for_spmm, translate_to_llvm_ir
 from hwpref_controller import HwprefController
@@ -101,10 +101,10 @@ def parse_args() -> argparse.Namespace:
     add_opt_arg(parser)
     add_sparse_format_arg(parser, "matrix")
     add_output_check_arg(parser)
+    add_k_dimension_arg(parser)
     RAMDisk.add_args(parser)
     HwprefController.add_args(parser)
     ReportManager.add_args(parser)
-    parser.add_argument("-k", type=int, default=2, help=f"Width of dense mat")
 
     # 1st level subparsers, benchmark or profile
     action_subparser = parser.add_subparsers(dest="action", help="Choose action: benchmark or profile")

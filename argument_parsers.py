@@ -71,3 +71,15 @@ def add_locality_hint_arg(parser: ArgumentParser):
                         help="Temporal locality hint for prefetch instructions, "
                              "3 for maximum temporal locality, 0 for no temporal locality. "
                              "On x86, value 3 will produce PREFETCHT0, while value 0 will produce PREFETCHNTA")
+
+
+def add_k_dimension_arg(parser: ArgumentParser):
+    def parse_k(val):
+        if val == "cache-line":
+            return val
+        return int(val)
+
+    parser.add_argument("-k", type=parse_k, default='cache-line',
+                        help="Width of dense mat, use 'cache-line if you want to automatically adjust the width "
+                             "so that a row fits in a cache line")
+

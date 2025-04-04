@@ -77,6 +77,8 @@ class InputManager:
 
     @timeit
     def create_dense_mat(self) -> np.ndarray:
+        if self.args.k == "cache-line":
+            self.args.k = int(64 / np.dtype(self.args.dtype).itemsize)
         dense_mat = np.ones((self.args.j, self.args.k), dtype=self.args.dtype)
         assert dense_mat.flags["C_CONTIGUOUS"], "Dense mat must be in row-major"
         print(f"dense mat size: {print_size(self.args.j * self.args.k * np.dtype(self.args.dtype).itemsize)}")
