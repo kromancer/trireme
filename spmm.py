@@ -46,6 +46,7 @@ def main():
     rep_man = create_report_manager(args)
     sp_mat, dense_mat = in_man.create_sparse_mat_and_dense_mat()
     sp_mat_buffers, dtype, itype = get_storage_buffers(sp_mat, SparseFormats(args.matrix_format))
+    args.itype = itype
 
     make_work_dir_and_cd_to_it(__file__)
 

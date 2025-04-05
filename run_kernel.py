@@ -1,5 +1,4 @@
 from argparse import Namespace
-from pathlib import Path
 from platform import system
 import re
 from subprocess import run, PIPE
@@ -28,7 +27,7 @@ def trash_dram_and_flush_cache(size=128 * 1024 * 1024):
 
 def run_with_aot(args: Namespace, partial_cmd: List[str], res: np.ndarray, sp_mat_buffs: List[np.array],
                  dense_op: np.ndarray, exp_out: np.ndarray, in_man: InputManager, rep_man: ReportManager):
-    
+
     exec_times = []
     with HwprefController(args):
         for _ in range(args.repetitions):
@@ -47,8 +46,9 @@ def run_with_aot(args: Namespace, partial_cmd: List[str], res: np.ndarray, sp_ma
                     ramdisk.reset_res_buff()
                     trash_dram_and_flush_cache()
 
-                    with open("/proc/sys/vm/drop_caches", "w") as f:
-                        f.write("3\n")
+                    if system() == "Linux":
+                        with open("/proc/sys/vm/drop_caches", "w") as f:
+                            f.write("3\n")
 
                     match = re.search(r"Exec time: ([0-9.]+)s", result.stdout)
                     assert match is not None, "Execution time not found in the output."

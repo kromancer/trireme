@@ -20,20 +20,7 @@ pipelines = {
     "base":
     ["sparse-assembler",
      "sparse-reinterpret-map",
-     "sparsification{enable-runtime-library=false pd=?}",
-     "loop-invariant-code-motion",
-     "sparse-tensor-codegen",
-     "sparse-storage-specifier-to-llvm",
-     "cse",
-     "one-shot-bufferize{bufferize-function-boundaries function-boundary-type-conversion=identity-layout-map}",
-     "convert-scf-to-cf",
-     "expand-strided-metadata",
-     "finalize-memref-to-llvm{index-bitwidth=? use-aligned-alloc=false use-generic-functions=false}",
-     "convert-func-to-llvm{index-bitwidth=? use-bare-ptr-memref-call-conv=false}",
-     "convert-arith-to-llvm{index-bitwidth=?}",
-     "convert-index-to-llvm{index-bitwidth=?}",
-     "convert-cf-to-llvm{index-bitwidth=?}",
-     "reconcile-unrealized-casts"],
+     "sparsifier{enable-runtime-library=false enable-index-optimizations=true pd=?}"],
 
     "omp":
     ["sparse-assembler",
@@ -140,9 +127,17 @@ def apply_passes(args: argparse.Namespace, src: str, kernel: str, pipeline: str,
     return module, Path(out_file_name)
 
 
-encodings = {SparseFormats.CSR: "#sparse_tensor.encoding<{ map = (d0, d1) -> (d0: dense, d1: compressed) }>",
-             SparseFormats.CSC: "#sparse_tensor.encoding<{ map = (d0, d1) -> (d1: dense, d0: compressed) }>",
-             SparseFormats.COO: "#sparse_tensor.encoding<{ map = (d0, d1) -> (d0: compressed(nonunique), d1: singleton(soa)) }>"}
+def get_encoding(form: SparseFormats, index_type: np.dtype) -> str:
+    with ir.Context() as ctx, ir.Location.unknown():
+        bitwidth = np_to_mlir_type[index_type]().width
+    encodings = {SparseFormats.CSR: f"#sparse_tensor.encoding<{{ map = (d0, d1) -> (d0: dense, d1: compressed), "
+                                    f"posWidth={bitwidth}, crdWidth={bitwidth} }}>",
+                 SparseFormats.CSC: f"#sparse_tensor.encoding<{{ map = (d0, d1) -> (d1: dense, d0: compressed), "
+                                    f"posWidth={bitwidth}, crdWidth={bitwidth} }}>",
+                 SparseFormats.COO: f"#sparse_tensor.encoding<{{ map = (d0, d1) -> (d0: compressed(nonunique), d1: singleton(soa)), "
+                                    f"posWidth={bitwidth}, crdWidth={bitwidth} }}>"}
+
+    return encodings[form]
 
 
 def get_jinja() -> jinja2.Environment:
@@ -168,7 +163,7 @@ def render_template_for_spmv(args: argparse.Namespace) -> str:
     jinja = get_jinja()
 
     # Prepare template parameters
-    encoding = encodings[SparseFormats(args.matrix_format)]
+    encoding = get_encoding(SparseFormats(args.matrix_format), args.itype)
     dtype = to_mlir_type[args.dtype]
     if args.sparse_vec:
         vtype = f"tensor<{args.j}x{dtype}, #sparse_tensor.encoding<{{ map = (d0) -> (d0 : compressed) }}>>"
@@ -201,7 +196,7 @@ def render_template_for_spmm(args: argparse.Namespace) -> str:
     jinja = get_jinja()
 
     # Prepare template parameters
-    encoding = encodings[SparseFormats(args.matrix_format)]
+    encoding = get_encoding(SparseFormats(args.matrix_format), args.itype)
     dtype = to_mlir_type[args.dtype]
 
     dense_mat_type = f"tensor<{args.j}x{args.k}x{dtype}>"
