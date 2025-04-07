@@ -106,3 +106,10 @@ class SuiteSparse(metaclass=Singleton):
         else:
             raise RuntimeError(f"Failed to download {url_file}: {response.status_code}")
 
+    def get_top_half_biggest_matrices(self, by: str = "num_of_cols") -> List[str]:
+        df_sorted = self.df.sort_values(by=by, ascending=False)
+        top_half = df_sorted.head(len(df_sorted) // 2)
+        return top_half["name"].tolist()
+
+    def get_kind(self, mtx: str) -> str:
+        return self.get_meta(mtx, "kind")

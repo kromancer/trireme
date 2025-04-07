@@ -7,40 +7,44 @@ import sys
 from suite_sparse import SuiteSparse
 
 
-def compute_hms_for_work_metrics(data):
-    nnz_per_llc = []
-    nnz_per_ms = []
-    for mtx, data in data.items():
-        nnz = int(ss.get_meta(mtx, "num_of_entries"))
-        if "mem_load_uops_retired.dram_hit" in data:
-            nnz_per_llc.append((data["mem_load_uops_retired.dram_hit"] * 1000) / nnz)
-
-        time_field = "mean_ms" if "mean_ms" in data else "time_ms"
-        if time_field in data:
-            nnz_per_ms.append(nnz / data[time_field])
-
-    ha_llc = None
-    if len(nnz_per_llc) > 0:
-        ha_llc = harmonic_mean(nnz_per_llc)
-
-    ha_ms = None
-    if len(nnz_per_ms) > 0:
-        ha_ms = harmonic_mean(nnz_per_ms)
-
-    return ha_llc, ha_ms
-
-
 if __name__ == "__main__":
-    rep = sys.argv[1]
+    rep = Path(sys.argv[1])
+    assert Path(rep).exists(), f"{rep} does not exist"
 
-    with open(rep, "r") as f:
-        dat = json.load(f)
+    with open(rep, "r") as f, open(rep.parent / ("bak-" + rep.name), "w") as bak:
+        data = json.load(f)
+        bak.write(json.dumps(data, indent=4))
 
     ss = SuiteSparse(Path("."))
 
-    base_llc, base_ms = compute_hms_for_work_metrics(dat)
+    all_llc_per_knnz = []
+    all_nnz_per_ms = []
+    for mtx, v in data.items():
+        nnz = int(ss.get_meta(mtx, "num_of_entries"))
 
-    print("work metrics:", base_llc, base_ms)
+        if "mem_load_uops_retired.dram_hit" in v:
+            llc_per_knnz = (v["mem_load_uops_retired.dram_hit"] * 1000) / nnz
+            v["llc_per_knnz"] = llc_per_knnz
+            all_llc_per_knnz.append(llc_per_knnz)
+
+        time_field = "mean_ms" if "mean_ms" in v else "time_ms"
+        if time_field in v:
+            nnz_per_ms = nnz / v[time_field]
+            v["nnz_per_ms"] = nnz_per_ms
+            all_nnz_per_ms.append(nnz_per_ms)
+
+    ha_llc = None
+    if len(all_llc_per_knnz) > 0:
+        ha_llc = harmonic_mean(all_llc_per_knnz)
+
+    ha_ms = None
+    if len(all_nnz_per_ms) > 0:
+        ha_ms = harmonic_mean(all_nnz_per_ms)
+
+    print("work metrics:", ha_llc, ha_ms)
+
+    with open(rep, "w") as f:
+        f.write(json.dumps(data, indent=4))
 
 
 
