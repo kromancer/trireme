@@ -53,6 +53,6 @@ def run_with_aot(args: Namespace, partial_cmd: List[str], res: np.ndarray, sp_ma
 
                     match = re.search(r"Exec time: ([0-9.]+)s", result.stdout)
                     assert match is not None, "Execution time not found in the output."
+                    exec_times.append(float(match.group(1)))
 
-            exec_times.append(float(match.group(1)))
             rep_man.log_execution_times_secs(exec_times)
