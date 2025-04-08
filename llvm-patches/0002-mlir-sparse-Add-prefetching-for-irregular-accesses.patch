@@ -1,4 +1,4 @@
-From 5bec79a08a5609c4cca01ad021b2a604ab868df1 Mon Sep 17 00:00:00 2001
+From ba8d0fe4930049c73269d29e27c04b0e5ef70917 Mon Sep 17 00:00:00 2001
 From: Konstantinos Sotiropoulos <konstantinos.sotiropoulos@chalmers.se>
 Date: Fri, 3 Jan 2025 10:42:07 +0100
 Subject: [PATCH 2/5] [mlir][sparse] Add prefetching for irregular accesses
@@ -10,11 +10,11 @@ Subject: [PATCH 2/5] [mlir][sparse] Add prefetching for irregular accesses
  .../Transforms/SparseTensorPasses.cpp         |   3 +-
  .../Transforms/Utils/CodegenEnv.cpp           |   4 +-
  .../Transforms/Utils/CodegenEnv.h             |   2 +-
- .../Transforms/Utils/LoopEmitter.cpp          | 108 +++++++++++++++++-
- .../Transforms/Utils/LoopEmitter.h            |  14 ++-
+ .../Transforms/Utils/LoopEmitter.cpp          | 123 +++++++++++++++++-
+ .../Transforms/Utils/LoopEmitter.h            |  14 +-
  .../Transforms/Utils/SparseTensorIterator.cpp |   2 -
  .../Transforms/Utils/SparseTensorIterator.h   |   1 -
- 10 files changed, 135 insertions(+), 17 deletions(-)
+ 10 files changed, 150 insertions(+), 17 deletions(-)
 
 diff --git a/mlir/include/mlir/Dialect/SparseTensor/Pipelines/Passes.h b/mlir/include/mlir/Dialect/SparseTensor/Pipelines/Passes.h
 index efbe5c56a219..14ab25c4ee9f 100644
@@ -140,7 +140,7 @@ index 34b793ee11e4..dc1d9e7d4fb4 100644
    /// Generates loop boundary statements (entering/exiting loops). The function
    /// passes and updates the passed-in parameters.
 diff --git a/mlir/lib/Dialect/SparseTensor/Transforms/Utils/LoopEmitter.cpp b/mlir/lib/Dialect/SparseTensor/Transforms/Utils/LoopEmitter.cpp
-index ea5533dfc6ba..82530c1c033a 100644
+index ea5533dfc6ba..d401f29003e3 100644
 --- a/mlir/lib/Dialect/SparseTensor/Transforms/Utils/LoopEmitter.cpp
 +++ b/mlir/lib/Dialect/SparseTensor/Transforms/Utils/LoopEmitter.cpp
 @@ -116,19 +116,22 @@ static Value tryFoldTensors(Value t) {
@@ -218,7 +218,7 @@ index ea5533dfc6ba..82530c1c033a 100644
      }
      // NOTE: we can also prepare for 0 lvl here in advance, this will hoist
      // some loop preparation from tensor iteration, but will also (undesirably)
-@@ -683,9 +710,84 @@ Operation *LoopEmitter::enterCoIterationOverTensorsAtLvls(
+@@ -683,9 +710,99 @@ Operation *LoopEmitter::enterCoIterationOverTensorsAtLvls(
    }
  
    // Enter dense tensor levels.
@@ -226,79 +226,94 @@ index ea5533dfc6ba..82530c1c033a 100644
 +  for (SparseIterator *it : raIters) {
      it->locate(builder, loc, iv);
  
++    // prefetcing is off, skip
 +    if (prefetchDistance == 0)
 +      continue;
++
++    // iv is not defined by a load, skip
++    if (dyn_cast_or_null<mlir::BlockArgument>(iv))
++      continue;
++
++    // iv comes from a load to an index type
++    auto loadOp = dyn_cast_or_null<memref::LoadOp>(iv.getDefiningOp());
++
++    // iv comes from a load to an int type which is extui -> index_cast
++    // happens when sparse format specifies width
++    if (loadOp == nullptr) {
++      auto index_cast = dyn_cast_or_null<arith::IndexCastOp>(iv.getDefiningOp());
++      assert(index_cast != nullptr);
++      auto extui = dyn_cast_or_null<arith::ExtUIOp>(index_cast.getOperand().getDefiningOp());
++      assert(index_cast != nullptr);
++      loadOp = dyn_cast_or_null<memref::LoadOp>(extui.getOperand().getDefiningOp());
++      assert(loadOp != nullptr);
++    }
 +
 +    // Prefetch for an indirect access c[crd[ii]]
 +    // where:
 +    // - c is a dense/batch level
 +    // - ii is the position of the iterator of a compressed level
-+    if (auto loadOp = dyn_cast_or_null<memref::LoadOp>(iv.getDefiningOp())) {
-+      const auto indices = loadOp.getIndices();
++    const auto indices = loadOp.getIndices();
 +
-+      assert(spIters.size() == 1 && "Expected only one sparse iterator");
-+      const auto numOfCrds = numOfExplicitlyStoredCrds[spIters.front()->tid][spIters.front()->lvl];
-+      const auto bound = SUBI(numOfCrds, C_IDX(1)).getResult();
++    assert(spIters.size() == 1 && "Expected only one sparse iterator");
++    const auto numOfCrds = numOfExplicitlyStoredCrds[spIters.front()->tid][spIters.front()->lvl];
++    const auto bound = SUBI(numOfCrds, C_IDX(1)).getResult();
 +
-+      const auto crdBuf = loadOp.getMemRef();
++    const auto crdBuf = loadOp.getMemRef();
 +
-+      // Find out if the random access iterator corresponds to the last level
-+      // of the tensor
-+      auto stt = getSparseTensorType(tensors[it->tid]);
-+      const Level lvlRank = stt.getLvlRank();
-+      const bool isLastLvl = it->lvl >= lvlRank - 1;
++    // Find out if the random access iterator corresponds to the last level
++    // of the tensor
++    auto stt = getSparseTensorType(tensors[it->tid]);
++    const Level lvlRank = stt.getLvlRank();
++    const bool isLastLvl = it->lvl >= lvlRank - 1;
 +
-+      // Find out if the current loop is the innermost loop
-+      // If not, use a prefetch distance of 1.
-+      // The numOfLoops of the linalg op is implicit, via the capacity of the
-+      // loopStack vector
-+      auto prefDist =
-+          C_IDX(getCurrentDepth() >= loopStack.capacity() - 1 ? prefetchDistance : 1);
-+      auto prefDoubleDist =
-+          C_IDX(getCurrentDepth() >= loopStack.capacity() - 1 ? 2 * prefetchDistance : 1);
++    // Find out if the current loop is the innermost loop
++    // If not, use a prefetch distance of 1.
++    // The numOfLoops of the linalg op is implicit, via the capacity of the
++    // loopStack vector
++    auto prefDist = C_IDX(getCurrentDepth() >= loopStack.capacity() - 1 ? prefetchDistance : 1);
++    auto prefDoubleDist = C_IDX(getCurrentDepth() >= loopStack.capacity() - 1 ? 2 * prefetchDistance : 1);
 +
-+      // prefetch crd[ii + 2 * distance]
-+      auto plusDoubleDist = ADDI(indices[0], prefDoubleDist);
-+      builder.create<memref::PrefetchOp>(loc, crdBuf, plusDoubleDist.getResult(), false, 2, true);
++    // prefetch crd[ii + 2 * distance]
++    auto plusDoubleDist = ADDI(indices[0], prefDoubleDist);
++    builder.create<memref::PrefetchOp>(loc, crdBuf, plusDoubleDist.getResult(), false, 2, true);
 +
-+      // load crd[min(ii + distance, upperBound)]
-+      auto plusDist = ADDI(indices[0], prefDist);
-+      auto cmp = CMPI(ult, plusDist, bound);
-+      Value loadIdx = SELECT(cmp, plusDist, bound).getResult();
-+      auto prefIdx = sparse_tensor::genIndexLoad(builder, loc, crdBuf, loadIdx);
++    // load crd[min(ii + distance, upperBound)]
++    auto plusDist = ADDI(indices[0], prefDist);
++    auto cmp = CMPI(ult, plusDist, bound);
++    Value loadIdx = SELECT(cmp, plusDist, bound).getResult();
++    auto prefIdx = sparse_tensor::genIndexLoad(builder, loc, crdBuf, loadIdx);
 +
-+      // prefetch c[crd[min(ii + distance, upperBound)]]
-+      SmallVector<Value> prefIndices;
-+      bool isWrite = false;
++    // prefetch c[crd[min(ii + distance, upperBound)]]
++    SmallVector<Value> prefIndices;
++    bool isWrite = false;
 +
-+      Value posOrValbuf;
++    Value posOrValbuf;
++    if (it->isBatchIterator()) {
++      posOrValbuf = getValBuffer()[it->tid];
++    } else {
++      const auto &stl = *lvls[it->tid][it->lvl + 1];
++      posOrValbuf = stl.getLvlBuffers()[0]; // Pos buffer
++    }
++
++    // Prepare the indices for the prefetch
++    // First, get all indices before current level
++    SmallVector<Value> valPosits = getValPosits(it->tid);
++    prefIndices.append(valPosits.begin(), valPosits.begin() + it->lvl);
++    prefIndices.push_back(prefIdx);
++
++    if (isLastLvl) {
++      // Prefetch for writes only on the last level of an output tensor
++      if (isOutputTensor(it->tid))
++        isWrite = true;
++    } else {
 +      if (it->isBatchIterator()) {
-+        posOrValbuf = getValBuffer()[it->tid];
-+      } else {
-+        const auto &stl = *lvls[it->tid][it->lvl + 1];
-+        posOrValbuf = stl.getLvlBuffers()[0]; // Pos buffer
-+      }
-+
-+      // Prepare the indices for the prefetch
-+      // First, get all indices before current level
-+      SmallVector<Value> valPosits = getValPosits(it->tid);
-+      prefIndices.append(valPosits.begin(), valPosits.begin() + it->lvl);
-+      prefIndices.push_back(prefIdx);
-+
-+      if (isLastLvl) {
-+        // Prefetch for writes only on the last level of an output tensor
-+        if (isOutputTensor(it->tid))
-+          isWrite = true;
-+      } else {
-+        if (it->isBatchIterator()) {
-+          for (unsigned i = it->lvl + 1; i < lvlRank; i++) {
-+            prefIndices.push_back(C_IDX(0));
-+          }
++        for (unsigned i = it->lvl + 1; i < lvlRank; i++) {
++          prefIndices.push_back(C_IDX(0));
 +        }
 +      }
-+
-+      builder.create<memref::PrefetchOp>(loc, posOrValbuf, prefIndices, isWrite, 2, true);
 +    }
++
++    builder.create<memref::PrefetchOp>(loc, posOrValbuf, prefIndices, isWrite, 2, true);
 +  }
 +
    // NOTE: we can also prepare for next dim here in advance

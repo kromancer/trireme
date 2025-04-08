@@ -56,7 +56,7 @@ def main():
 
     if args.optimization in ["omp", "pref-mlir-omp", "pref-ains-omp"]:
         pipeline = "omp"
-    elif args.optimization == "vect-vl4":
+    elif args.optimization in ["vect-vl4", "pref-mlir-vect-vl4"]:
         pipeline = "vect-vl4"
     else:
         pipeline = "base"

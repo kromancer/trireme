@@ -44,7 +44,7 @@ def add_dtype_arg(parser: ArgumentParser, arg_name="--dtype", h="Data type of th
 
 def add_opt_arg(parser: ArgumentParser):
     parser.add_argument("-o", "--optimization",
-                        choices=["no-opt", "omp", "vect-vl4", "pref-mlir", "pref-mlir-omp",
+                        choices=["no-opt", "omp", "vect-vl4", "pref-mlir", "pref-mlir-omp", "pref-mlir-vect-vl4",
                                  "pref-ains", "pref-ains-omp", "pref-spe"],
                         default="no-opt",
                         help="Use an optimized version of the kernel")

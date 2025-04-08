@@ -212,6 +212,7 @@ def render_template_for_spmm(args: argparse.Namespace) -> str:
 
     template_names = {"no-opt": f"spmm.mlir.jinja2",
                       "vect-vl4": f"spmm.mlir.jinja2",
+                      "pref-mlir-vect-vl4": f"spmm.mlir.jinja2",
                       "omp": f"spmm.mlir.jinja2",
                       "pref-mlir": f"spmm.mlir.jinja2",
                       "pref-mlir-omp": f"spmm.mlir.jinja2"}
