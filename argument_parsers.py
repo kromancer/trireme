@@ -33,13 +33,12 @@ def add_synth_tensor_arg(parser: ArgumentParser, num_dims=2):
     add_dtype_arg(parser)
 
 
-def add_dtype_arg(parser: ArgumentParser):
+def add_dtype_arg(parser: ArgumentParser, arg_name="--dtype", h="Data type of the generated matrix"):
     # ensure that "types" can be converted to np.dtype
     types = [np.dtype("float64").name, np.dtype("float32"), np.dtype("int64").name,
              np.dtype("int32").name, np.dtype("bool")]
-    parser.add_argument("--dtype", type=str, choices=[str(t) for t in types],
-                        default=types[0],
-                        help="Data type of the generated matrix")
+    parser.add_argument(arg_name, type=str, choices=[str(t) for t in types],
+                        default=types[0], help=h)
     return parser
 
 

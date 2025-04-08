@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 import sys
 from _socket import gethostname
-from statistics import mean, stdev
+from statistics import mean, stdev, StatisticsError
 from git import Repo
 from typing import List
 
@@ -33,8 +33,11 @@ class ReportManager:
     @staticmethod
     def get_stats(etimes_ns: List[int]):
         m = round(mean(etimes_ns) / 1000000, 3)
-        std_dev = round(stdev(etimes_ns) / 1000000, 3)
-        cv = round(std_dev / m, 3) if m != 0 else 0
+        if len(etimes_ns) >= 2:
+            std_dev = round(stdev(etimes_ns) / 1000000, 3)
+            cv = round(std_dev / m, 3) if m != 0 else 0
+        else:
+            std_dev, cv = 0, 0
         return m, std_dev, cv
 
     def append_placeholder(self, args: str = None):

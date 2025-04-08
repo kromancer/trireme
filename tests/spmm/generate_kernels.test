@@ -1,1 +1,3 @@
-# RUN: python %S/../../generate_kernel.py -o no-opt --matrix-format csr --dtype float64 spmm -k 2
+# RUN: python %S/../../generate_kernel.py -o no-opt --matrix-format csr --dtype float64 --itype int32 spmm -k 2
+# RUN: python %S/../../generate_kernel.py -o pref-mlir --matrix-format csr --dtype float64 --itype int64 spmm -k 2
+# RUN: python %S/../../generate_kernel.py -o vect-vl4 --matrix-format csr --dtype float64 --itype int32 spmm -k 2

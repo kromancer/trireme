@@ -42,23 +42,28 @@ pipelines = {
     "vect-vl4":
     ["sparse-assembler",
      "sparse-reinterpret-map",
-     "sparsification{enable-runtime-library=false}",
-     "loop-invariant-code-motion",
-     "sparse-vectorization{vl=4}",
-     "sparse-tensor-codegen",
-     "sparse-storage-specifier-to-llvm",
-     "cse",
-     "one-shot-bufferize{bufferize-function-boundaries function-boundary-type-conversion=identity-layout-map}",
-     "convert-scf-to-cf",
-     "expand-strided-metadata",
-     "lower-affine",
-     f"convert-vector-to-llvm{{{'enable-x86vector' if machine() == 'x86_64' else 'enable-arm-neon'} index-bitwidth=?}}",
-     "convert-func-to-llvm{index-bitwidth=? use-bare-ptr-memref-call-conv=false}",
-     "finalize-memref-to-llvm{index-bitwidth=? use-aligned-alloc=false use-generic-functions=false}",
-     "convert-arith-to-llvm{index-bitwidth=?}",
-     "convert-index-to-llvm{index-bitwidth=?}",
-     "convert-cf-to-llvm{index-bitwidth=?}",
-     "reconcile-unrealized-casts"]
+     f"sparsifier{{{'enable-x86vector' if machine() == 'x86_64' else 'enable-arm-neon'} vl=4 enable-runtime-library=false enable-index-optimizations=true pd=?}}"]
+
+    # "vect-vl4":
+    # ["sparse-assembler",
+    #  "sparse-reinterpret-map",
+    #  "sparsification{enable-runtime-library=false}",
+    #  "loop-invariant-code-motion",
+    #  "sparse-vectorization{vl=4}",
+    #  "sparse-tensor-codegen",
+    #  "sparse-storage-specifier-to-llvm",
+    #  "cse",
+    #  "one-shot-bufferize{bufferize-function-boundaries function-boundary-type-conversion=identity-layout-map}",
+    #  "convert-scf-to-cf",
+    #  "expand-strided-metadata",
+    #  "lower-affine",
+    #  f"convert-vector-to-llvm{{{'enable-x86vector' if machine() == 'x86_64' else 'enable-arm-neon'} index-bitwidth=?}}",
+    #  "convert-func-to-llvm{index-bitwidth=? use-bare-ptr-memref-call-conv=false}",
+    #  "finalize-memref-to-llvm{index-bitwidth=? use-aligned-alloc=false use-generic-functions=false}",
+    #  "convert-arith-to-llvm{index-bitwidth=?}",
+    #  "convert-index-to-llvm{index-bitwidth=?}",
+    #  "convert-cf-to-llvm{index-bitwidth=?}",
+    #  "reconcile-unrealized-casts"]
 }
 
 # defer execution by using lambdas, requires an active MLIR "Context"
@@ -163,7 +168,7 @@ def render_template_for_spmv(args: argparse.Namespace) -> str:
     jinja = get_jinja()
 
     # Prepare template parameters
-    encoding = get_encoding(SparseFormats(args.matrix_format), args.itype)
+    encoding = get_encoding(SparseFormats(args.matrix_format), np.dtype(args.itype))
     dtype = to_mlir_type[args.dtype]
     if args.sparse_vec:
         vtype = f"tensor<{args.j}x{dtype}, #sparse_tensor.encoding<{{ map = (d0) -> (d0 : compressed) }}>>"
@@ -196,7 +201,7 @@ def render_template_for_spmm(args: argparse.Namespace) -> str:
     jinja = get_jinja()
 
     # Prepare template parameters
-    encoding = get_encoding(SparseFormats(args.matrix_format), args.itype)
+    encoding = get_encoding(SparseFormats(args.matrix_format), np.dtype(args.itype))
     dtype = to_mlir_type[args.dtype]
 
     dense_mat_type = f"tensor<{args.j}x{args.k}x{dtype}>"
@@ -206,16 +211,15 @@ def render_template_for_spmm(args: argparse.Namespace) -> str:
     add_op, mul_op = get_semiring(dtype)
 
     template_names = {"no-opt": f"spmm.mlir.jinja2",
-                      "vect-vl4": f"spmv.mlir.jinja2",
-                      "omp": f"spmv.mlir.jinja2",
+                      "vect-vl4": f"spmm.mlir.jinja2",
+                      "omp": f"spmm.mlir.jinja2",
                       "pref-mlir": f"spmm.mlir.jinja2",
-                      "pref-mlir-omp": f"spmv.mlir.jinja2"}
+                      "pref-mlir-omp": f"spmm.mlir.jinja2"}
 
     spmm_template = jinja.get_template(template_names[args.optimization])
     spmv_rendered = spmm_template.render(encoding=encoding, sp_mat_type=sp_mat_type, dense_mat_type=dense_mat_type,
                                          out_type=out_type, add_op=add_op, mul_op=mul_op, dtype=dtype,
                                          rows=args.i, cols=args.j,
-                                         pd=args.prefetch_distance, loc_hint=args.locality_hint,
                                          is_symmetric=args.symmetric)
     return spmv_rendered
 
@@ -271,7 +275,8 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Generate mlir, from the linalg to the llvm dialect, for given kernel")
     add_sparse_format_arg(parser, "matrix")
     add_opt_arg(parser)
-    add_dtype_arg(parser)
+    add_dtype_arg(parser, "--dtype", "Data type")
+    add_dtype_arg(parser, "--itype", "Index type")
     add_locality_hint_arg(parser)
     add_prefetch_distance_arg(parser)
     parser.add_argument("--symmetric", action="store_true",

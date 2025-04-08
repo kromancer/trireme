@@ -51,7 +51,7 @@ def main():
     make_work_dir_and_cd_to_it(__file__)
 
     spmm = render_template_for_spmm(args)
-    with open("spmm.0. mlir", "w") as f:
+    with open("spmm.0.mlir", "w") as f:
         f.write(spmm)
 
     if args.optimization in ["omp", "pref-mlir-omp", "pref-ains-omp"]:
@@ -62,7 +62,7 @@ def main():
         pipeline = "base"
 
     with ir.Context(), ir.Location.unknown():
-        llvm_mlir, out = apply_passes(args=args, src=spmm, kernel="spmv", pipeline=pipeline, index_type=itype)
+        llvm_mlir, out = apply_passes(args=args, src=spmm, kernel="spmm", pipeline=pipeline, index_type=itype)
 
     # Translate MLIR's llvm dialect to llvm IR, compile and link
     llvm_ir = translate_to_llvm_ir(out, "spmm").resolve()
