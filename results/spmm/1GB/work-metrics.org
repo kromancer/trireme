@@ -1,7 +1,0 @@
-* work metrics
-
-no-opt.json:        49464.106631776114 nnz/ms
-no-opt-amp.json:    52881.657495179614 nnz/ms
-
-pref-mlir.json:     47271.24875191363 nnz/ms
-pref-mlir-amp.json: 50209.02551749319 nnz/ms

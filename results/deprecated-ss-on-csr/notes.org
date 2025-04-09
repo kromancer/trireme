@@ -1,6 +1,0 @@
-* deprecation notice
-
-The following results are deprecated for the following reasons:
-
-- caches were not flushed between reps (they were warm)
-- profiling data was collected with perf record - not an appropriate method since it adds overhead
