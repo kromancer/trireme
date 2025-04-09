@@ -2,7 +2,7 @@
 # RUN: python %S/../../generate_kernel.py --matrix-format coo spmv
 # RUN: python %S/../../generate_kernel.py --matrix-format csc spmv
 # RUN: python %S/../../generate_kernel.py --matrix-format csc spmv --sparse-vec
-# RUN: python %S/../../generate_kernel.py --matrix-format csr --dtype float64 spmv
+# RUN: python %S/../../generate_kernel.py --matrix-format csr --dtype float64 --itype int32 spmv
 # RUN: python %S/../../generate_kernel.py --matrix-format csr --dtype bool spmv
 # RUN: python %S/../../generate_kernel.py --matrix-format csr -o pref-mlir spmv
 # RUN: python %S/../../generate_kernel.py --matrix-format coo -o pref-mlir spmv

@@ -1,4 +1,4 @@
-From ba8d0fe4930049c73269d29e27c04b0e5ef70917 Mon Sep 17 00:00:00 2001
+From 3aec78fcf75bd12179ee474132993586189adcbd Mon Sep 17 00:00:00 2001
 From: Konstantinos Sotiropoulos <konstantinos.sotiropoulos@chalmers.se>
 Date: Fri, 3 Jan 2025 10:42:07 +0100
 Subject: [PATCH 2/5] [mlir][sparse] Add prefetching for irregular accesses
@@ -10,11 +10,11 @@ Subject: [PATCH 2/5] [mlir][sparse] Add prefetching for irregular accesses
  .../Transforms/SparseTensorPasses.cpp         |   3 +-
  .../Transforms/Utils/CodegenEnv.cpp           |   4 +-
  .../Transforms/Utils/CodegenEnv.h             |   2 +-
- .../Transforms/Utils/LoopEmitter.cpp          | 123 +++++++++++++++++-
+ .../Transforms/Utils/LoopEmitter.cpp          | 129 +++++++++++++++++-
  .../Transforms/Utils/LoopEmitter.h            |  14 +-
  .../Transforms/Utils/SparseTensorIterator.cpp |   2 -
  .../Transforms/Utils/SparseTensorIterator.h   |   1 -
- 10 files changed, 150 insertions(+), 17 deletions(-)
+ 10 files changed, 156 insertions(+), 17 deletions(-)
 
 diff --git a/mlir/include/mlir/Dialect/SparseTensor/Pipelines/Passes.h b/mlir/include/mlir/Dialect/SparseTensor/Pipelines/Passes.h
 index efbe5c56a219..14ab25c4ee9f 100644
@@ -140,7 +140,7 @@ index 34b793ee11e4..dc1d9e7d4fb4 100644
    /// Generates loop boundary statements (entering/exiting loops). The function
    /// passes and updates the passed-in parameters.
 diff --git a/mlir/lib/Dialect/SparseTensor/Transforms/Utils/LoopEmitter.cpp b/mlir/lib/Dialect/SparseTensor/Transforms/Utils/LoopEmitter.cpp
-index ea5533dfc6ba..d401f29003e3 100644
+index ea5533dfc6ba..c3ca62d2c373 100644
 --- a/mlir/lib/Dialect/SparseTensor/Transforms/Utils/LoopEmitter.cpp
 +++ b/mlir/lib/Dialect/SparseTensor/Transforms/Utils/LoopEmitter.cpp
 @@ -116,19 +116,22 @@ static Value tryFoldTensors(Value t) {
@@ -218,7 +218,7 @@ index ea5533dfc6ba..d401f29003e3 100644
      }
      // NOTE: we can also prepare for 0 lvl here in advance, this will hoist
      // some loop preparation from tensor iteration, but will also (undesirably)
-@@ -683,9 +710,99 @@ Operation *LoopEmitter::enterCoIterationOverTensorsAtLvls(
+@@ -683,9 +710,105 @@ Operation *LoopEmitter::enterCoIterationOverTensorsAtLvls(
    }
  
    // Enter dense tensor levels.
@@ -241,12 +241,18 @@ index ea5533dfc6ba..d401f29003e3 100644
 +    // happens when sparse format specifies width
 +    if (loadOp == nullptr) {
 +      auto index_cast = dyn_cast_or_null<arith::IndexCastOp>(iv.getDefiningOp());
-+      assert(index_cast != nullptr);
-+      auto extui = dyn_cast_or_null<arith::ExtUIOp>(index_cast.getOperand().getDefiningOp());
-+      assert(index_cast != nullptr);
-+      loadOp = dyn_cast_or_null<memref::LoadOp>(extui.getOperand().getDefiningOp());
-+      assert(loadOp != nullptr);
++      assert(index_cast != nullptr && "expected index cast");
++
++      if (auto extui = dyn_cast_or_null<arith::ExtUIOp>(index_cast.getOperand().getDefiningOp())) {
++        // bitwidth is 32
++        loadOp = dyn_cast_or_null<memref::LoadOp>(extui.getOperand().getDefiningOp());
++        assert(loadOp != nullptr && "expected load op");
++      } else {
++        // bitwidth is 64
++        loadOp = dyn_cast_or_null<memref::LoadOp>(index_cast.getOperand().getDefiningOp());
++      }
 +    }
++    assert(loadOp != nullptr && "expected load op");
 +
 +    // Prefetch for an indirect access c[crd[ii]]
 +    // where:

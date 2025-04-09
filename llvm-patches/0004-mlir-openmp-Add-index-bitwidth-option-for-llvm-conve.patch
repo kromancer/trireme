@@ -1,4 +1,4 @@
-From 0ab1c6d63d04e09fb272ea1deb49947b2130c0ef Mon Sep 17 00:00:00 2001
+From f7552ad033802ef73eb5f3f60622a2953a3edfe2 Mon Sep 17 00:00:00 2001
 From: Konstantinos Sotiropoulos <konstantinos.sotiropoulos@chalmers.se>
 Date: Thu, 13 Feb 2025 02:28:33 +0100
 Subject: [PATCH 4/5] [mlir][openmp] Add `index-bitwidth` option for llvm
