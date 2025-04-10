@@ -170,8 +170,9 @@ def render_template_for_spmv(args: argparse.Namespace) -> str:
     jinja = get_jinja()
 
     # Prepare template parameters
-    encoding = get_encoding(SparseFormats(args.matrix_format), np.dtype(args.itype))
+    encoding = get_encoding(SparseFormats(args.matrix_format), args.itype)
     dtype = to_mlir_type[args.dtype]
+    itype = to_mlir_type[args.itype.name]
     if args.sparse_vec:
         vtype = f"tensor<{args.j}x{dtype}, #sparse_tensor.encoding<{{ map = (d0) -> (d0 : compressed) }}>>"
     else:
@@ -193,8 +194,8 @@ def render_template_for_spmv(args: argparse.Namespace) -> str:
 
     spmv_template = jinja.get_template(template_names[args.optimization])
     spmv_rendered = spmv_template.render(encoding=encoding, mat_type=mat_type, vtype=vtype, out_type=out_type,
-                                         add_op=add_op, mul_op=mul_op, dtype=dtype, rows=args.i, cols=args.j,
-                                         pd=args.prefetch_distance, loc_hint=args.locality_hint,
+                                         add_op=add_op, mul_op=mul_op, dtype=dtype, itype=itype, rows=args.i,
+                                         cols=args.j, pd=args.prefetch_distance, loc_hint=args.locality_hint,
                                          is_symmetric=args.symmetric)
     return spmv_rendered
 

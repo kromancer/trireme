@@ -1,0 +1,2 @@
+# RUN: python %S/../../spmv.py -o pref-ains --check-output --matrix-format csr benchmark --repetitions 2 synthetic -i 1024 -j 2048 --dtype bool --density 0.5
+
