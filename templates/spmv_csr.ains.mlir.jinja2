@@ -122,7 +122,13 @@ func.func @spmv(%a_t: {{ out_type }},
             // Load Bj_crd[min(j + dist, j_end)]
             %jj_plus_dist = arith.addi %jj, %dist : index
             %jj_plus_dist_or_bound = arith.minui %jj_plus_dist, %bound : index
-            %Bj_crd_jj_plus_dist_or_bound = memref.load %Bj_crd[%jj_plus_dist_or_bound] : memref<?xindex>
+            %Bj_crd_jj_plus_dist_or_bound_itype = memref.load %Bj_crd[%jj_plus_dist_or_bound] : memref<?x{{ itype }}>
+        {% if itype == "i64" %}
+            %Bj_crd_jj_plus_dist_or_bound = arith.index_cast %Bj_crd_jj_plus_dist_or_bound_itype : {{ itype }} to index
+        {% else %}
+            %Bj_crd_jj_plus_dist_or_bound_extui = arith.extui %Bj_crd_jj_plus_dist_or_bound_itype : {{ itype }} to i64
+            %Bj_crd_jj_plus_dist_or_bound = arith.index_cast %Bj_crd_jj_plus_dist_or_bound_extui : i64 to index
+        {% endif %}
 
             // Prefetch a[Bj_crd[%Bj_crd_jj_plus_dist_or_seg_end]]
             %Bj_crd_jj_plus_dist_or_bound_itype = memref.load %Bj_crd[%jj_plus_dist_or_bound] : memref<?x{{ itype }}>
@@ -132,7 +138,6 @@ func.func @spmv(%a_t: {{ out_type }},
             %Bj_crd_jj_plus_dist_or_bound_extui = arith.extui %Bj_crd_jj_plus_dist_or_bound_itype : {{ itype }} to i64
             %Bj_crd_jj_plus_dist_or_bound = arith.index_cast %Bj_crd_jj_plus_dist_or_bound_extui : i64 to index
         {% endif %}
-
 
             %Bij = memref.load %B_vals[%jj] : memref<?x{{ dtype }}>
             %aj = memref.load %a[%j] : memref<{{ rows }}x{{ dtype }}>
