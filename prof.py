@@ -1,8 +1,6 @@
 from argparse import Namespace
 import json
-from pathlib import Path
 from subprocess import run
-from typing import List
 
 from common import is_in_path, read_config
 from report_manager import ReportManager

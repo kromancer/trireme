@@ -141,10 +141,7 @@ def get_encoding(form: SparseFormats, index_type: np.dtype) -> str:
                                     f"posWidth={bitwidth}, crdWidth={bitwidth} }}>",
                  SparseFormats.COO: f"#sparse_tensor.encoding<{{ map = (d0, d1) -> (d0: compressed(nonunique), d1: singleton(soa)), "
                                     f"posWidth={bitwidth}, crdWidth={bitwidth} }}>"}
-
-    # TODO: Delete this, this is a temp hack until sparsification pass is patched
-    enc = encodings[form]
-    return enc.replace(", posWidth=64, crdWidth=64", "")
+    return encodings[form]
 
 
 def get_jinja() -> jinja2.Environment:
