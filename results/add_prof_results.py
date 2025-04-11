@@ -16,7 +16,11 @@ if __name__ == "__main__":
 
     for mtx, v in bench_data.items():
         for e in prof_data[mtx]["perf-stat"]:
-            v[e["event"].replace("cpu_atom/", "").replace(":u/", "")] = float(e["counter-value"])
+            try:
+                count = float(e["counter-value"])
+            except ValueError:
+                continue
+            v[e["event"].replace("cpu_atom/", "").replace(":u/", "")] = count
 
     with open(bench, "w") as f:
         f.write(json.dumps(bench_data, indent=4))
