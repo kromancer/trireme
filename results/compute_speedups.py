@@ -1,8 +1,7 @@
 import argparse
-import json
-from pathlib import Path
 from statistics import geometric_mean
 
+from common import json_load, json_load_and_backup, json_store
 
 if __name__ == "__main__":
     argparser = argparse.ArgumentParser()
@@ -10,25 +9,16 @@ if __name__ == "__main__":
     argparser.add_argument("-o", "--optimized", type=str, required=True)
     args = argparser.parse_args()
 
-    base_file = Path(args.baseline)
-    assert base_file.exists(), f"{base_file} does not exist"
-    optimized_file = Path(args.optimized)
-    assert optimized_file.exists(), f"{optimized_file} does not exist"
-    with open(base_file, "r") as b, open(optimized_file, "r") as o, open(optimized_file.parent / ("bak-" + optimized_file.name), "w") as bak:
-        baseline = json.load(b)
-        optimized = json.load(o)
-        bak.write(json.dumps(optimized, indent=4))
+    baseline = json_load(args.baseline)
+    optimized = json_load_and_backup(args.optimized)
 
     speedups = []
     for mtx, v in optimized.items():
         time_field = "time_ms" if "time_ms" in v else "mean_ms"
-        v.setdefault("speed-ups", {})
         s = baseline[mtx][time_field] / v[time_field]
-        v["speed-ups"][str(base_file.resolve())] = s
+        v["speedup"] = s
         speedups.append(s)
 
-    new_data = dict(sorted(optimized.items(), key=lambda e: e[1]["speed-ups"][str(base_file.resolve())], reverse=True))
-    with open(optimized_file, "w") as f:
-        f.write(json.dumps(new_data, indent=4))
+    json_store(args.optimized, optimized)
 
     print("geomean speed-up:", geometric_mean(speedups))

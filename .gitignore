@@ -21,3 +21,4 @@
 **/.lit/
 /results.json
 /rep.json
+/results/__pycache__/

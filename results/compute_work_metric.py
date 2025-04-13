@@ -13,11 +13,6 @@ def compute_work_metric(data: Dict[str, Dict], mtx_list: List[str]) -> Tuple[flo
         v = data[mtx]
         nnz = int(v["num_of_entries"])
 
-        if "mem_load_uops_retired.dram_hit" in v:
-            llc_per_knnz = (v["mem_load_uops_retired.dram_hit"] * 1000) / nnz
-            v["llc_per_knnz"] = llc_per_knnz
-            all_llc_per_knnz.append(llc_per_knnz)
-
         time_field = "mean_ms" if "mean_ms" in v else "time_ms"
         if time_field in v:
             nnz_per_ms = nnz / v[time_field]
@@ -29,11 +24,12 @@ def compute_work_metric(data: Dict[str, Dict], mtx_list: List[str]) -> Tuple[flo
     return ha_llc, ha_ms
 
 
-def compute_work_metrics_for_percentage(data: Dict[str, Dict], percentage: float) -> Tuple[float, float]:
+def compute_work_metrics_for_percentage(data: Dict[str, Dict], percentage: float, field: str = "num_of_entries", up_or_low: str = "upper") -> Tuple[float, float]:
+    reverse_sort = (up_or_low == "upper")
     sorted_mtxs = sorted(
         data.items(),
-        key=lambda kv: kv[1].get("num_of_entries", 0),
-        reverse=True
+        key=lambda kv: kv[1].get(field, 0),
+        reverse=reverse_sort
     )
     keep_count = int(len(sorted_mtxs) * (percentage / 100.0))
     mtx_list = [k for k, _ in sorted_mtxs[:keep_count]]
@@ -53,10 +49,12 @@ if __name__ == "__main__":
         bak.write(json.dumps(dat, indent=4))
 
     arg2 = sys.argv[2] if len(sys.argv) > 2 else "100.0"
+    sort_field = sys.argv[3] if len(sys.argv) > 3 else "num_of_entries"
+    part = sys.argv[4] if len(sys.argv) > 4 else "upper"
     try:
         p = float(arg2)
         assert 0 < p <= 100, "Percentage must be in (0, 100]"
-        h_llc, h_ms = compute_work_metrics_for_percentage(dat, p)
+        h_llc, h_ms = compute_work_metrics_for_percentage(dat, p, sort_field, part)
     except ValueError:
         g = ast.literal_eval(arg2)
         h_llc, h_ms = compute_work_metrics_for_groups(dat, g)

@@ -1,0 +1,1271 @@
+{
+    "mawi_201512020330": {
+        "num_of_rows": "226196185",
+        "num_of_cols": "226196185",
+        "group": "MAWI",
+        "nnz_per_ms": 278630.04888947116,
+        "nnz_per_ms_mlir-pref": 277485.82347870426,
+        "nnz_per_ms_ains": 268738.5088661704,
+        "nnz_per_ms_ains-pref": 268738.5088661704
+    },
+    "kmer_V1r": {
+        "num_of_rows": "214005017",
+        "num_of_cols": "214005017",
+        "group": "GenBank",
+        "nnz_per_ms": 183791.57560068008,
+        "nnz_per_ms_mlir-pref": 156994.05062484124,
+        "nnz_per_ms_ains": 159595.4695974667,
+        "nnz_per_ms_ains-pref": 159595.4695974667
+    },
+    "AGATHA_2015": {
+        "num_of_rows": "183964077",
+        "num_of_cols": "183964077",
+        "group": "Sybrandt",
+        "nnz_per_ms": 111968.37762013309,
+        "nnz_per_ms_mlir-pref": 261008.91170000707,
+        "nnz_per_ms_ains": 133487.9410046985,
+        "nnz_per_ms_ains-pref": 133487.9410046985
+    },
+    "kmer_A2a": {
+        "num_of_rows": "170728175",
+        "num_of_cols": "170728175",
+        "group": "GenBank",
+        "nnz_per_ms": 171350.42422141173,
+        "nnz_per_ms_mlir-pref": 154773.67968351385,
+        "nnz_per_ms_ains": 153458.66561735095,
+        "nnz_per_ms_ains-pref": 153458.66561735095
+    },
+    "kmer_P1a": {
+        "num_of_rows": "139353211",
+        "num_of_cols": "139353211",
+        "group": "GenBank",
+        "nnz_per_ms": 170732.64331728677,
+        "nnz_per_ms_mlir-pref": 154914.0622996638,
+        "nnz_per_ms_ains": 152609.51576720833,
+        "nnz_per_ms_ains-pref": 152609.51576720833
+    },
+    "GAP-urand": {
+        "num_of_rows": "134217728",
+        "num_of_cols": "134217728",
+        "group": "GAP",
+        "nnz_per_ms": 21795.070933008537,
+        "nnz_per_ms_mlir-pref": 51687.14495718384,
+        "nnz_per_ms_ains": 19837.638777453343,
+        "nnz_per_ms_ains-pref": 19837.638777453343
+    },
+    "GAP-kron": {
+        "num_of_rows": "134217726",
+        "num_of_cols": "134217726",
+        "group": "GAP",
+        "nnz_per_ms": 96672.43173353375,
+        "nnz_per_ms_mlir-pref": 185865.10980115202,
+        "nnz_per_ms_ains": 113821.3299826376,
+        "nnz_per_ms_ains-pref": 113821.3299826376
+    },
+    "mawi_201512020130": {
+        "num_of_rows": "128568730",
+        "num_of_cols": "128568730",
+        "group": "MAWI",
+        "nnz_per_ms": 278960.24214178335,
+        "nnz_per_ms_mlir-pref": 277042.8920287136,
+        "nnz_per_ms_ains": 269893.7753440552,
+        "nnz_per_ms_ains-pref": 269893.7753440552
+    },
+    "webbase-2001": {
+        "num_of_rows": "118142155",
+        "num_of_cols": "118142155",
+        "group": "LAW",
+        "nnz_per_ms": 400399.1455456353,
+        "nnz_per_ms_mlir-pref": 392278.9973043259,
+        "nnz_per_ms_ains": 359791.99297224265,
+        "nnz_per_ms_ains-pref": 359791.99297224265
+    },
+    "Spielman_k600": {
+        "num_of_rows": "72180402",
+        "num_of_cols": "72180402",
+        "group": "FlowIPM22",
+        "nnz_per_ms": 209150.73414700862,
+        "nnz_per_ms_mlir-pref": 179643.11131794547,
+        "nnz_per_ms_ains": 174960.30687487975,
+        "nnz_per_ms_ains-pref": 174960.30687487975
+    },
+    "mawi_201512020030": {
+        "num_of_rows": "68863315",
+        "num_of_cols": "68863315",
+        "group": "MAWI",
+        "nnz_per_ms": 273482.0279647203,
+        "nnz_per_ms_mlir-pref": 274137.045814341,
+        "nnz_per_ms_ains": 266299.9018841074,
+        "nnz_per_ms_ains-pref": 266299.9018841074
+    },
+    "kmer_U1a": {
+        "num_of_rows": "67716231",
+        "num_of_cols": "67716231",
+        "group": "GenBank",
+        "nnz_per_ms": 177005.32156618807,
+        "nnz_per_ms_mlir-pref": 159266.27271630766,
+        "nnz_per_ms_ains": 158463.50014992413,
+        "nnz_per_ms_ains-pref": 158463.50014992413
+    },
+    "com-Friendster": {
+        "num_of_rows": "65608366",
+        "num_of_cols": "65608366",
+        "group": "SNAP",
+        "nnz_per_ms": 114372.1180690793,
+        "nnz_per_ms_mlir-pref": 237730.3762432361,
+        "nnz_per_ms_ains": 125509.98201080039,
+        "nnz_per_ms_ains-pref": 125509.98201080039
+    },
+    "GAP-twitter": {
+        "num_of_rows": "61578415",
+        "num_of_cols": "61578415",
+        "group": "GAP",
+        "nnz_per_ms": 121935.06237965486,
+        "nnz_per_ms_mlir-pref": 208049.16822123993,
+        "nnz_per_ms_ains": 120850.57332598303,
+        "nnz_per_ms_ains-pref": 120850.57332598303
+    },
+    "kmer_V2a": {
+        "num_of_rows": "55042369",
+        "num_of_cols": "55042369",
+        "group": "GenBank",
+        "nnz_per_ms": 173548.6691689259,
+        "nnz_per_ms_mlir-pref": 155027.38361797042,
+        "nnz_per_ms_ains": 154817.18202129184,
+        "nnz_per_ms_ains-pref": 154817.18202129184
+    },
+    "europe_osm": {
+        "num_of_rows": "50912018",
+        "num_of_cols": "50912018",
+        "group": "DIMACS10",
+        "nnz_per_ms": 155031.82610743193,
+        "nnz_per_ms_mlir-pref": 181400.0290953315,
+        "nnz_per_ms_ains": 156097.79340642586,
+        "nnz_per_ms_ains-pref": 156097.79340642586
+    },
+    "sk-2005": {
+        "num_of_rows": "50636154",
+        "num_of_cols": "50636154",
+        "group": "LAW",
+        "nnz_per_ms": 742433.0421623759,
+        "nnz_per_ms_mlir-pref": 618908.4749370198,
+        "nnz_per_ms_ains": 623781.2524578788,
+        "nnz_per_ms_ains-pref": 623781.2524578788
+    },
+    "GAP-web": {
+        "num_of_rows": "50636151",
+        "num_of_cols": "50636151",
+        "group": "GAP",
+        "nnz_per_ms": 605351.0708775772,
+        "nnz_per_ms_mlir-pref": 541156.3322054319,
+        "nnz_per_ms_ains": 534010.2822045644,
+        "nnz_per_ms_ains-pref": 534010.2822045644
+    },
+    "Spielman_k500": {
+        "num_of_rows": "41792002",
+        "num_of_cols": "41792002",
+        "group": "FlowIPM22",
+        "nnz_per_ms": 209576.87916352757,
+        "nnz_per_ms_mlir-pref": 179556.28544170142,
+        "nnz_per_ms_ains": 174969.92167043645,
+        "nnz_per_ms_ains-pref": 174969.92167043645
+    },
+    "twitter7": {
+        "num_of_rows": "41652230",
+        "num_of_cols": "41652230",
+        "group": "SNAP",
+        "nnz_per_ms": 162183.91385042158,
+        "nnz_per_ms_mlir-pref": 321858.3384657848,
+        "nnz_per_ms_ains": 208727.94953133038,
+        "nnz_per_ms_ains-pref": 208727.94953133038
+    },
+    "it-2004": {
+        "num_of_rows": "41291594",
+        "num_of_cols": "41291594",
+        "group": "LAW",
+        "nnz_per_ms": 682377.5293723618,
+        "nnz_per_ms_mlir-pref": 583429.0327784854,
+        "nnz_per_ms_ains": 577753.6358713263,
+        "nnz_per_ms_ains-pref": 577753.6358713263
+    },
+    "uk-2005": {
+        "num_of_rows": "39459925",
+        "num_of_cols": "39459925",
+        "group": "LAW",
+        "nnz_per_ms": 607450.2173806285,
+        "nnz_per_ms_mlir-pref": 545229.979779022,
+        "nnz_per_ms_ains": 527495.710412962,
+        "nnz_per_ms_ains-pref": 527495.710412962
+    },
+    "mawi_201512020000": {
+        "num_of_rows": "35991342",
+        "num_of_cols": "35991342",
+        "group": "MAWI",
+        "nnz_per_ms": 265819.422962586,
+        "nnz_per_ms_mlir-pref": 270191.9899418121,
+        "nnz_per_ms_ains": 261353.08449988635,
+        "nnz_per_ms_ains-pref": 261353.08449988635
+    },
+    "MOLIERE_2016": {
+        "num_of_rows": "30239687",
+        "num_of_cols": "30239687",
+        "group": "Sybrandt",
+        "nnz_per_ms": 104498.63996116654,
+        "nnz_per_ms_mlir-pref": 198033.92144487688,
+        "nnz_per_ms_ains": 133298.8745683427,
+        "nnz_per_ms_ains-pref": 133298.8745683427
+    },
+    "nlpkkt240": {
+        "num_of_rows": "27993600",
+        "num_of_cols": "27993600",
+        "group": "Schenk",
+        "nnz_per_ms": 791496.1218531028,
+        "nnz_per_ms_mlir-pref": 544913.2664406344,
+        "nnz_per_ms_ains": 510503.1062132655,
+        "nnz_per_ms_ains-pref": 510503.1062132655
+    },
+    "road_usa": {
+        "num_of_rows": "23947347",
+        "num_of_cols": "23947347",
+        "group": "DIMACS10",
+        "nnz_per_ms": 139465.00326135,
+        "nnz_per_ms_mlir-pref": 122229.48853014848,
+        "nnz_per_ms_ains": 124777.80437288414,
+        "nnz_per_ms_ains-pref": 124777.80437288414
+    },
+    "GAP-road": {
+        "num_of_rows": "23947347",
+        "num_of_cols": "23947347",
+        "group": "GAP",
+        "nnz_per_ms": 97527.6201053986,
+        "nnz_per_ms_mlir-pref": 111510.34910663028,
+        "nnz_per_ms_ains": 102571.08162371529,
+        "nnz_per_ms_ains-pref": 102571.08162371529
+    },
+    "arabic-2005": {
+        "num_of_rows": "22744080",
+        "num_of_cols": "22744080",
+        "group": "LAW",
+        "nnz_per_ms": 692809.1844925358,
+        "nnz_per_ms_mlir-pref": 586554.113557889,
+        "nnz_per_ms_ains": 589605.0858640772,
+        "nnz_per_ms_ains-pref": 589605.0858640772
+    },
+    "Spielman_k400": {
+        "num_of_rows": "21413602",
+        "num_of_cols": "21413602",
+        "group": "FlowIPM22",
+        "nnz_per_ms": 209177.07112622805,
+        "nnz_per_ms_mlir-pref": 179643.95677717842,
+        "nnz_per_ms_ains": 174912.00705714346,
+        "nnz_per_ms_ains-pref": 174912.00705714346
+    },
+    "hugebubbles-00020": {
+        "num_of_rows": "21198119",
+        "num_of_cols": "21198119",
+        "group": "DIMACS10",
+        "nnz_per_ms": 146731.9733354565,
+        "nnz_per_ms_mlir-pref": 157570.6157982612,
+        "nnz_per_ms_ains": 128281.07156663436,
+        "nnz_per_ms_ains-pref": 128281.07156663436
+    },
+    "hugebubbles-00010": {
+        "num_of_rows": "19458087",
+        "num_of_cols": "19458087",
+        "group": "DIMACS10",
+        "nnz_per_ms": 145137.6456175587,
+        "nnz_per_ms_mlir-pref": 155374.44719289403,
+        "nnz_per_ms_ains": 125141.26324222278,
+        "nnz_per_ms_ains-pref": 125141.26324222278
+    },
+    "mawi_201512012345": {
+        "num_of_rows": "18571154",
+        "num_of_cols": "18571154",
+        "group": "MAWI",
+        "nnz_per_ms": 257229.23706206653,
+        "nnz_per_ms_mlir-pref": 265802.28082152054,
+        "nnz_per_ms_ains": 256096.68578399325,
+        "nnz_per_ms_ains-pref": 256096.68578399325
+    },
+    "uk-2002": {
+        "num_of_rows": "18520486",
+        "num_of_cols": "18520486",
+        "group": "LAW",
+        "nnz_per_ms": 553077.8297270527,
+        "nnz_per_ms_mlir-pref": 500287.4078051973,
+        "nnz_per_ms_ains": 491555.3372431696,
+        "nnz_per_ms_ains-pref": 491555.3372431696
+    },
+    "hugebubbles-00000": {
+        "num_of_rows": "18318143",
+        "num_of_cols": "18318143",
+        "group": "DIMACS10",
+        "nnz_per_ms": 285763.4266543568,
+        "nnz_per_ms_mlir-pref": 288569.7612977302,
+        "nnz_per_ms_ains": 258397.35790186105,
+        "nnz_per_ms_ains-pref": 258397.35790186105
+    },
+    "delaunay_n24": {
+        "num_of_rows": "16777216",
+        "num_of_cols": "16777216",
+        "group": "DIMACS10",
+        "nnz_per_ms": 200324.9397216037,
+        "nnz_per_ms_mlir-pref": 174577.25760443084,
+        "nnz_per_ms_ains": 177697.56751313052,
+        "nnz_per_ms_ains-pref": 177697.56751313052
+    },
+    "rgg_n_2_24_s0": {
+        "num_of_rows": "16777216",
+        "num_of_cols": "16777216",
+        "group": "DIMACS10",
+        "nnz_per_ms": 293260.9398309024,
+        "nnz_per_ms_mlir-pref": 271328.3621499584,
+        "nnz_per_ms_ains": 275053.8561680304,
+        "nnz_per_ms_ains-pref": 275053.8561680304
+    },
+    "nlpkkt200": {
+        "num_of_rows": "16240000",
+        "num_of_cols": "16240000",
+        "group": "Schenk",
+        "nnz_per_ms": 799999.1858728587,
+        "nnz_per_ms_mlir-pref": 545110.1709753289,
+        "nnz_per_ms_ains": 509672.8373393154,
+        "nnz_per_ms_ains-pref": 509672.8373393154
+    },
+    "hugetrace-00020": {
+        "num_of_rows": "16002413",
+        "num_of_cols": "16002413",
+        "group": "DIMACS10",
+        "nnz_per_ms": 158587.79177053855,
+        "nnz_per_ms_mlir-pref": 163976.38486614425,
+        "nnz_per_ms_ains": 149264.31134592378,
+        "nnz_per_ms_ains-pref": 149264.31134592378
+    },
+    "road_central": {
+        "num_of_rows": "14081816",
+        "num_of_cols": "14081816",
+        "group": "DIMACS10",
+        "nnz_per_ms": 119425.2873157894,
+        "nnz_per_ms_mlir-pref": 110409.87190015691,
+        "nnz_per_ms_ains": 110178.94451236611,
+        "nnz_per_ms_ains-pref": 110178.94451236611
+    },
+    "hugetrace-00010": {
+        "num_of_rows": "12057441",
+        "num_of_cols": "12057441",
+        "group": "DIMACS10",
+        "nnz_per_ms": 183718.5725933659,
+        "nnz_per_ms_mlir-pref": 182235.48174967308,
+        "nnz_per_ms_ains": 171206.40999846143,
+        "nnz_per_ms_ains-pref": 171206.40999846143
+    },
+    "asia_osm": {
+        "num_of_rows": "11950757",
+        "num_of_cols": "11950757",
+        "group": "DIMACS10",
+        "nnz_per_ms": 197012.07108588627,
+        "nnz_per_ms_mlir-pref": 186509.93102497098,
+        "nnz_per_ms_ains": 183824.51383390636,
+        "nnz_per_ms_ains-pref": 183824.51383390636
+    },
+    "germany_osm": {
+        "num_of_rows": "11548845",
+        "num_of_cols": "11548845",
+        "group": "DIMACS10",
+        "nnz_per_ms": 176724.80254660585,
+        "nnz_per_ms_mlir-pref": 176299.23824279167,
+        "nnz_per_ms_ains": 168730.66442950733,
+        "nnz_per_ms_ains-pref": 168730.66442950733
+    },
+    "stokes": {
+        "num_of_rows": "11449533",
+        "num_of_cols": "11449533",
+        "group": "VLSI",
+        "nnz_per_ms": 735083.5202666589,
+        "nnz_per_ms_mlir-pref": 604078.0745561481,
+        "nnz_per_ms_ains": 591447.5262608697,
+        "nnz_per_ms_ains-pref": 591447.5262608697
+    },
+    "wb-edu": {
+        "num_of_rows": "9845725",
+        "num_of_cols": "9845725",
+        "group": "Gleich",
+        "nnz_per_ms": 363546.56839204853,
+        "nnz_per_ms_mlir-pref": 328980.26056400855,
+        "nnz_per_ms_ains": 327932.1295421868,
+        "nnz_per_ms_ains-pref": 327932.1295421868
+    },
+    "Spielman_k300": {
+        "num_of_rows": "9045202",
+        "num_of_cols": "9045202",
+        "group": "FlowIPM22",
+        "nnz_per_ms": 207785.55863120378,
+        "nnz_per_ms_mlir-pref": 179601.8523404929,
+        "nnz_per_ms_ains": 174924.1161663212,
+        "nnz_per_ms_ains-pref": 174924.1161663212
+    },
+    "rgg_n_2_23_s0": {
+        "num_of_rows": "8388608",
+        "num_of_cols": "8388608",
+        "group": "DIMACS10",
+        "nnz_per_ms": 286645.10480711353,
+        "nnz_per_ms_mlir-pref": 263257.4387768872,
+        "nnz_per_ms_ains": 271916.7850121043,
+        "nnz_per_ms_ains-pref": 271916.7850121043
+    },
+    "delaunay_n23": {
+        "num_of_rows": "8388608",
+        "num_of_cols": "8388608",
+        "group": "DIMACS10",
+        "nnz_per_ms": 200287.82003116293,
+        "nnz_per_ms_mlir-pref": 173949.29672482307,
+        "nnz_per_ms_ains": 178093.03788667152,
+        "nnz_per_ms_ains-pref": 178093.03788667152
+    },
+    "nlpkkt160": {
+        "num_of_rows": "8345600",
+        "num_of_cols": "8345600",
+        "group": "Schenk",
+        "nnz_per_ms": 810059.3901433276,
+        "nnz_per_ms_mlir-pref": 550255.1991452597,
+        "nnz_per_ms_ains": 514766.24962663697,
+        "nnz_per_ms_ains-pref": 514766.24962663697
+    },
+    "Hardesty3": {
+        "num_of_rows": "8217820",
+        "num_of_cols": "7591564",
+        "group": "Hardesty",
+        "nnz_per_ms": 753597.9730988487,
+        "nnz_per_ms_mlir-pref": 462728.48942688043,
+        "nnz_per_ms_ains": 452261.0687688597,
+        "nnz_per_ms_ains-pref": 452261.0687688597
+    },
+    "great-britain_osm": {
+        "num_of_rows": "7733822",
+        "num_of_cols": "7733822",
+        "group": "DIMACS10",
+        "nnz_per_ms": 185721.08082999947,
+        "nnz_per_ms_mlir-pref": 174534.04546242385,
+        "nnz_per_ms_ains": 170557.61234477803,
+        "nnz_per_ms_ains-pref": 170557.61234477803
+    },
+    "indochina-2004": {
+        "num_of_rows": "7414866",
+        "num_of_cols": "7414866",
+        "group": "LAW",
+        "nnz_per_ms": 740038.3127631436,
+        "nnz_per_ms_mlir-pref": 610288.8027280268,
+        "nnz_per_ms_ains": 614346.1815516355,
+        "nnz_per_ms_ains-pref": 614346.1815516355
+    },
+    "hugetric-00020": {
+        "num_of_rows": "7122792",
+        "num_of_cols": "7122792",
+        "group": "DIMACS10",
+        "nnz_per_ms": 161993.05209563265,
+        "nnz_per_ms_mlir-pref": 157899.1041947399,
+        "nnz_per_ms_ains": 141773.4192849591,
+        "nnz_per_ms_ains-pref": 141773.4192849591
+    },
+    "adaptive": {
+        "num_of_rows": "6815744",
+        "num_of_cols": "6815744",
+        "group": "DIMACS10",
+        "nnz_per_ms": 433062.5194407097,
+        "nnz_per_ms_mlir-pref": 373722.1151670175,
+        "nnz_per_ms_ains": 373955.99313259014,
+        "nnz_per_ms_ains-pref": 373955.99313259014
+    },
+    "italy_osm": {
+        "num_of_rows": "6686493",
+        "num_of_cols": "6686493",
+        "group": "DIMACS10",
+        "nnz_per_ms": 203987.51176043754,
+        "nnz_per_ms_mlir-pref": 189521.89749464992,
+        "nnz_per_ms_ains": 186909.07540475109,
+        "nnz_per_ms_ains-pref": 186909.07540475109
+    },
+    "hugetric-00010": {
+        "num_of_rows": "6592765",
+        "num_of_cols": "6592765",
+        "group": "DIMACS10",
+        "nnz_per_ms": 163321.42464775758,
+        "nnz_per_ms_mlir-pref": 158925.18943580403,
+        "nnz_per_ms_ains": 143645.4755220775,
+        "nnz_per_ms_ains-pref": 143645.4755220775
+    },
+    "hugetric-00000": {
+        "num_of_rows": "5824554",
+        "num_of_cols": "5824554",
+        "group": "DIMACS10",
+        "nnz_per_ms": 317846.177922059,
+        "nnz_per_ms_mlir-pref": 290499.6374377158,
+        "nnz_per_ms_ains": 282673.50462759926,
+        "nnz_per_ms_ains-pref": 282673.50462759926
+    },
+    "circuit5M": {
+        "num_of_rows": "5558326",
+        "num_of_cols": "5558326",
+        "group": "Freescale",
+        "nnz_per_ms": 757203.4214171863,
+        "nnz_per_ms_mlir-pref": 529755.112720593,
+        "nnz_per_ms_ains": 536474.2966943237,
+        "nnz_per_ms_ains-pref": 536474.2966943237
+    },
+    "ljournal-2008": {
+        "num_of_rows": "5363260",
+        "num_of_cols": "5363260",
+        "group": "LAW",
+        "nnz_per_ms": 320852.0878714856,
+        "nnz_per_ms_mlir-pref": 361470.90210895386,
+        "nnz_per_ms_ains": 335890.06264852936,
+        "nnz_per_ms_ains-pref": 335890.06264852936
+    },
+    "cage15": {
+        "num_of_rows": "5154859",
+        "num_of_cols": "5154859",
+        "group": "vanHeukelum",
+        "nnz_per_ms": 259790.98515963467,
+        "nnz_per_ms_mlir-pref": 236706.21571383232,
+        "nnz_per_ms_ains": 226157.7493919133,
+        "nnz_per_ms_ains-pref": 226157.7493919133
+    },
+    "soc-LiveJournal1": {
+        "num_of_rows": "4847571",
+        "num_of_cols": "4847571",
+        "group": "SNAP",
+        "nnz_per_ms": 288292.44434304547,
+        "nnz_per_ms_mlir-pref": 344503.7848903979,
+        "nnz_per_ms_ains": 309054.8384437998,
+        "nnz_per_ms_ains-pref": 309054.8384437998
+    },
+    "channel-500x100x100-b050": {
+        "num_of_rows": "4802000",
+        "num_of_cols": "4802000",
+        "group": "DIMACS10",
+        "nnz_per_ms": 665522.7584911209,
+        "nnz_per_ms_mlir-pref": 536603.9643046625,
+        "nnz_per_ms_ains": 546409.6865542475,
+        "nnz_per_ms_ains-pref": 546409.6865542475
+    },
+    "rajat31": {
+        "num_of_rows": "4690002",
+        "num_of_cols": "4690002",
+        "group": "Rajat",
+        "nnz_per_ms": 173920.71793194782,
+        "nnz_per_ms_mlir-pref": 162951.08961556663,
+        "nnz_per_ms_ains": 178100.88575947037,
+        "nnz_per_ms_ains-pref": 178100.88575947037
+    },
+    "hugetrace-00000": {
+        "num_of_rows": "4588484",
+        "num_of_cols": "4588484",
+        "group": "DIMACS10",
+        "nnz_per_ms": 310088.7560628189,
+        "nnz_per_ms_mlir-pref": 283541.70917237015,
+        "nnz_per_ms_ains": 273906.4459743021,
+        "nnz_per_ms_ains-pref": 273906.4459743021
+    },
+    "vas_stokes_4M": {
+        "num_of_rows": "4382246",
+        "num_of_cols": "4382246",
+        "group": "VLSI",
+        "nnz_per_ms": 780966.9017879824,
+        "nnz_per_ms_mlir-pref": 600415.4157785532,
+        "nnz_per_ms_ains": 594767.4881670405,
+        "nnz_per_ms_ains-pref": 594767.4881670405
+    },
+    "delaunay_n22": {
+        "num_of_rows": "4194304",
+        "num_of_cols": "4194304",
+        "group": "DIMACS10",
+        "nnz_per_ms": 200128.9732770374,
+        "nnz_per_ms_mlir-pref": 174111.3283547187,
+        "nnz_per_ms_ains": 177459.7034080572,
+        "nnz_per_ms_ains-pref": 177459.7034080572
+    },
+    "rgg_n_2_22_s0": {
+        "num_of_rows": "4194304",
+        "num_of_cols": "4194304",
+        "group": "DIMACS10",
+        "nnz_per_ms": 281597.3932074429,
+        "nnz_per_ms_mlir-pref": 261053.89968162795,
+        "nnz_per_ms_ains": 266785.3406545992,
+        "nnz_per_ms_ains-pref": 266785.3406545992
+    },
+    "NLR": {
+        "num_of_rows": "4163763",
+        "num_of_cols": "4163763",
+        "group": "DIMACS10",
+        "nnz_per_ms": 170448.13012391224,
+        "nnz_per_ms_mlir-pref": 171233.0641700158,
+        "nnz_per_ms_ains": 145517.147355039,
+        "nnz_per_ms_ains-pref": 145517.147355039
+    },
+    "Queen_4147": {
+        "num_of_rows": "4147110",
+        "num_of_cols": "4147110",
+        "group": "Janna",
+        "nnz_per_ms": 835918.2812270174,
+        "nnz_per_ms_mlir-pref": 538573.8049296465,
+        "nnz_per_ms_ains": 510898.6341829509,
+        "nnz_per_ms_ains-pref": 510898.6341829509
+    },
+    "venturiLevel3": {
+        "num_of_rows": "4026819",
+        "num_of_cols": "4026819",
+        "group": "DIMACS10",
+        "nnz_per_ms": 358623.5654255023,
+        "nnz_per_ms_mlir-pref": 313856.672180624,
+        "nnz_per_ms_ains": 313189.0958651623,
+        "nnz_per_ms_ains-pref": 313189.0958651623
+    },
+    "com-LiveJournal": {
+        "num_of_rows": "3997962",
+        "num_of_cols": "3997962",
+        "group": "SNAP",
+        "nnz_per_ms": 262927.40093605244,
+        "nnz_per_ms_mlir-pref": 270344.95472773694,
+        "nnz_per_ms_ains": 256439.8087710795,
+        "nnz_per_ms_ains-pref": 256439.8087710795
+    },
+    "AS365": {
+        "num_of_rows": "3799275",
+        "num_of_cols": "3799275",
+        "group": "DIMACS10",
+        "nnz_per_ms": 172773.54551955202,
+        "nnz_per_ms_mlir-pref": 173531.91918836496,
+        "nnz_per_ms_ains": 150280.1341513552,
+        "nnz_per_ms_ains-pref": 150280.1341513552
+    },
+    "patents": {
+        "num_of_rows": "3774768",
+        "num_of_cols": "3774768",
+        "group": "Pajek",
+        "nnz_per_ms": 189732.01883789073,
+        "nnz_per_ms_mlir-pref": 197783.23697894646,
+        "nnz_per_ms_ains": 177867.68130405853,
+        "nnz_per_ms_ains-pref": 177867.68130405853
+    },
+    "cit-Patents": {
+        "num_of_rows": "3774768",
+        "num_of_cols": "3774768",
+        "group": "SNAP",
+        "nnz_per_ms": 196311.99908730498,
+        "nnz_per_ms_mlir-pref": 211304.86505431982,
+        "nnz_per_ms_ains": 187844.88846283744,
+        "nnz_per_ms_ains-pref": 187844.88846283744
+    },
+    "333SP": {
+        "num_of_rows": "3712815",
+        "num_of_cols": "3712815",
+        "group": "DIMACS10",
+        "nnz_per_ms": 241137.3925086259,
+        "nnz_per_ms_mlir-pref": 220345.77319444486,
+        "nnz_per_ms_ains": 215329.4888445211,
+        "nnz_per_ms_ains-pref": 215329.4888445211
+    },
+    "wikipedia-20070206": {
+        "num_of_rows": "3566907",
+        "num_of_cols": "3566907",
+        "group": "Gleich",
+        "nnz_per_ms": 251565.99737542338,
+        "nnz_per_ms_mlir-pref": 333896.7857799607,
+        "nnz_per_ms_ains": 291231.8749660459,
+        "nnz_per_ms_ains-pref": 291231.8749660459
+    },
+    "nlpkkt120": {
+        "num_of_rows": "3542400",
+        "num_of_cols": "3542400",
+        "group": "Schenk",
+        "nnz_per_ms": 800805.1342970945,
+        "nnz_per_ms_mlir-pref": 549907.5969601753,
+        "nnz_per_ms_ains": 514839.27678341395,
+        "nnz_per_ms_ains-pref": 514839.27678341395
+    },
+    "circuit5M_dc": {
+        "num_of_rows": "3523317",
+        "num_of_cols": "3523317",
+        "group": "Freescale",
+        "nnz_per_ms": 403613.52455010475,
+        "nnz_per_ms_mlir-pref": 356457.2742619271,
+        "nnz_per_ms_ains": 338923.20460001775,
+        "nnz_per_ms_ains-pref": 338923.20460001775
+    },
+    "M6": {
+        "num_of_rows": "3501776",
+        "num_of_cols": "3501776",
+        "group": "DIMACS10",
+        "nnz_per_ms": 175319.49844495233,
+        "nnz_per_ms_mlir-pref": 176799.37643412576,
+        "nnz_per_ms_ains": 153355.47086053068,
+        "nnz_per_ms_ains-pref": 153355.47086053068
+    },
+    "Freescale1": {
+        "num_of_rows": "3428755",
+        "num_of_cols": "3428755",
+        "group": "Freescale",
+        "nnz_per_ms": 455313.42366998194,
+        "nnz_per_ms_mlir-pref": 416057.7462658163,
+        "nnz_per_ms_ains": 396946.5659516521,
+        "nnz_per_ms_ains-pref": 396946.5659516521
+    },
+    "wikipedia-20061104": {
+        "num_of_rows": "3148440",
+        "num_of_cols": "3148440",
+        "group": "Gleich",
+        "nnz_per_ms": 256080.6685380217,
+        "nnz_per_ms_mlir-pref": 333574.17646640306,
+        "nnz_per_ms_ains": 294959.1075561148,
+        "nnz_per_ms_ains-pref": 294959.1075561148
+    },
+    "com-Orkut": {
+        "num_of_rows": "3072441",
+        "num_of_cols": "3072441",
+        "group": "SNAP",
+        "nnz_per_ms": 388179.69243774755,
+        "nnz_per_ms_mlir-pref": 408573.9025413254,
+        "nnz_per_ms_ains": 368086.318434253,
+        "nnz_per_ms_ains-pref": 368086.318434253
+    },
+    "Freescale2": {
+        "num_of_rows": "2999349",
+        "num_of_cols": "2999349",
+        "group": "Freescale",
+        "nnz_per_ms": 232896.0942178022,
+        "nnz_per_ms_mlir-pref": 204943.8142720913,
+        "nnz_per_ms_ains": 190367.97486806265,
+        "nnz_per_ms_ains-pref": 190367.97486806265
+    },
+    "FullChip": {
+        "num_of_rows": "2987012",
+        "num_of_cols": "2987012",
+        "group": "Freescale",
+        "nnz_per_ms": 457724.39203873347,
+        "nnz_per_ms_mlir-pref": 426360.3517611279,
+        "nnz_per_ms_ains": 399182.8481069937,
+        "nnz_per_ms_ains-pref": 399182.8481069937
+    },
+    "wikipedia-20060925": {
+        "num_of_rows": "2983494",
+        "num_of_cols": "2983494",
+        "group": "Gleich",
+        "nnz_per_ms": 258041.5507517105,
+        "nnz_per_ms_mlir-pref": 333544.8072427606,
+        "nnz_per_ms_ains": 296633.5306586062,
+        "nnz_per_ms_ains-pref": 296633.5306586062
+    },
+    "Bump_2911": {
+        "num_of_rows": "2911419",
+        "num_of_cols": "2911419",
+        "group": "Janna",
+        "nnz_per_ms": 820019.3176237204,
+        "nnz_per_ms_mlir-pref": 550300.8885472872,
+        "nnz_per_ms_ains": 519393.81777326146,
+        "nnz_per_ms_ains-pref": 519393.81777326146
+    },
+    "memchip": {
+        "num_of_rows": "2707524",
+        "num_of_cols": "2707524",
+        "group": "Freescale",
+        "nnz_per_ms": 489161.9988855978,
+        "nnz_per_ms_mlir-pref": 424049.5234826601,
+        "nnz_per_ms_ains": 407568.2642851034,
+        "nnz_per_ms_ains-pref": 407568.2642851034
+    },
+    "Spielman_k200": {
+        "num_of_rows": "2686802",
+        "num_of_cols": "2686802",
+        "group": "FlowIPM22",
+        "nnz_per_ms": 206857.9103806829,
+        "nnz_per_ms_mlir-pref": 179560.58570839593,
+        "nnz_per_ms_ains": 174769.3489301294,
+        "nnz_per_ms_ains-pref": 174769.3489301294
+    },
+    "relat9": {
+        "num_of_rows": "12360060",
+        "num_of_cols": "549336",
+        "group": "JGD_Relat",
+        "nnz_per_ms": 603353.843601181,
+        "nnz_per_ms_mlir-pref": 439992.2743814422,
+        "nnz_per_ms_ains": 395494.9293335188,
+        "nnz_per_ms_ains-pref": 395494.9293335188
+    },
+    "sx-stackoverflow": {
+        "num_of_rows": "2601977",
+        "num_of_cols": "2601977",
+        "group": "SNAP",
+        "nnz_per_ms": 177726.20409933082,
+        "nnz_per_ms_mlir-pref": 227535.87603332775,
+        "nnz_per_ms_ains": 182249.0805420979,
+        "nnz_per_ms_ains-pref": 182249.0805420979
+    },
+    "wiki-Talk": {
+        "num_of_rows": "2394385",
+        "num_of_cols": "2394385",
+        "group": "SNAP",
+        "nnz_per_ms": 340063.38843702804,
+        "nnz_per_ms_mlir-pref": 372069.2951192584,
+        "nnz_per_ms_ains": 347127.66839951335,
+        "nnz_per_ms_ains-pref": 347127.66839951335
+    },
+    "CurlCurl_4": {
+        "num_of_rows": "2380515",
+        "num_of_cols": "2380515",
+        "group": "Bodendiek",
+        "nnz_per_ms": 613331.7989938125,
+        "nnz_per_ms_mlir-pref": 435086.48117366957,
+        "nnz_per_ms_ains": 386579.954483758,
+        "nnz_per_ms_ains-pref": 386579.954483758
+    },
+    "netherlands_osm": {
+        "num_of_rows": "2216688",
+        "num_of_cols": "2216688",
+        "group": "DIMACS10",
+        "nnz_per_ms": 164174.2323366824,
+        "nnz_per_ms_mlir-pref": 146561.04545796054,
+        "nnz_per_ms_ains": 147709.42756266386,
+        "nnz_per_ms_ains-pref": 147709.42756266386
+    },
+    "Cube_Coup_dt0": {
+        "num_of_rows": "2164760",
+        "num_of_cols": "2164760",
+        "group": "Janna",
+        "nnz_per_ms": 841720.7206780527,
+        "nnz_per_ms_mlir-pref": 555611.1983243155,
+        "nnz_per_ms_ains": 526187.8618951144,
+        "nnz_per_ms_ains-pref": 526187.8618951144
+    },
+    "Cube_Coup_dt6": {
+        "num_of_rows": "2164760",
+        "num_of_cols": "2164760",
+        "group": "Janna",
+        "nnz_per_ms": 839580.2978205045,
+        "nnz_per_ms_mlir-pref": 555542.4714717852,
+        "nnz_per_ms_ains": 526400.4891392883,
+        "nnz_per_ms_ains-pref": 526400.4891392883
+    },
+    "vas_stokes_2M": {
+        "num_of_rows": "2146677",
+        "num_of_cols": "2146677",
+        "group": "VLSI",
+        "nnz_per_ms": 758090.9862312438,
+        "nnz_per_ms_mlir-pref": 606535.3403092603,
+        "nnz_per_ms_ains": 602206.8948299871,
+        "nnz_per_ms_ains-pref": 602206.8948299871
+    },
+    "packing-500x100x100-b050": {
+        "num_of_rows": "2145852",
+        "num_of_cols": "2145852",
+        "group": "DIMACS10",
+        "nnz_per_ms": 523432.4057417193,
+        "nnz_per_ms_mlir-pref": 433295.04559470084,
+        "nnz_per_ms_ains": 443910.7926342495,
+        "nnz_per_ms_ains-pref": 443910.7926342495
+    },
+    "delaunay_n21": {
+        "num_of_rows": "2097152",
+        "num_of_cols": "2097152",
+        "group": "DIMACS10",
+        "nnz_per_ms": 199966.2453694654,
+        "nnz_per_ms_mlir-pref": 174062.90592331602,
+        "nnz_per_ms_ains": 177634.82331549382,
+        "nnz_per_ms_ains-pref": 177634.82331549382
+    },
+    "rgg_n_2_21_s0": {
+        "num_of_rows": "2097152",
+        "num_of_cols": "2097152",
+        "group": "DIMACS10",
+        "nnz_per_ms": 277485.0704246933,
+        "nnz_per_ms_mlir-pref": 254546.00558708294,
+        "nnz_per_ms_ains": 258606.136007454,
+        "nnz_per_ms_ains-pref": 258606.136007454
+    },
+    "kron_g500-logn21": {
+        "num_of_rows": "2097152",
+        "num_of_cols": "2097152",
+        "group": "DIMACS10",
+        "nnz_per_ms": 243596.68276125117,
+        "nnz_per_ms_mlir-pref": 233770.9046202388,
+        "nnz_per_ms_ains": 131582.40460646598,
+        "nnz_per_ms_ains-pref": 131582.40460646598
+    },
+    "kkt_power": {
+        "num_of_rows": "2063494",
+        "num_of_cols": "2063494",
+        "group": "Zaoui",
+        "nnz_per_ms": 250577.54224734489,
+        "nnz_per_ms_mlir-pref": 214217.00872879024,
+        "nnz_per_ms_ains": 203142.1000141564,
+        "nnz_per_ms_ains-pref": 203142.1000141564
+    },
+    "HV15R": {
+        "num_of_rows": "2017169",
+        "num_of_cols": "2017169",
+        "group": "Fluorem",
+        "nnz_per_ms": 751358.419361012,
+        "nnz_per_ms_mlir-pref": 629010.055105203,
+        "nnz_per_ms_ains": 636494.5894011353,
+        "nnz_per_ms_ains-pref": 636494.5894011353
+    },
+    "roadNet-CA": {
+        "num_of_rows": "1971281",
+        "num_of_cols": "1971281",
+        "group": "SNAP",
+        "nnz_per_ms": 151245.5889548249,
+        "nnz_per_ms_mlir-pref": 134658.8757526052,
+        "nnz_per_ms_ains": 135901.45131143637,
+        "nnz_per_ms_ains-pref": 135901.45131143637
+    },
+    "GL7d19": {
+        "num_of_rows": "1911130",
+        "num_of_cols": "1955309",
+        "group": "JGD_GL7d",
+        "nnz_per_ms": 226015.4662742569,
+        "nnz_per_ms_mlir-pref": 248539.80208832773,
+        "nnz_per_ms_ains": 217341.34425007572,
+        "nnz_per_ms_ains-pref": 217341.34425007572
+    },
+    "cont1_l": {
+        "num_of_rows": "1918399",
+        "num_of_cols": "1921596",
+        "group": "Mittelmann",
+        "nnz_per_ms": 609348.1048855305,
+        "nnz_per_ms_mlir-pref": 492737.10173565126,
+        "nnz_per_ms_ains": 490804.3273425231,
+        "nnz_per_ms_ains-pref": 490804.3273425231
+    },
+    "wiki-topcats": {
+        "num_of_rows": "1791489",
+        "num_of_cols": "1791489",
+        "group": "SNAP",
+        "nnz_per_ms": 351362.9949856001,
+        "nnz_per_ms_mlir-pref": 367109.38033134316,
+        "nnz_per_ms_ains": 355882.00344750547,
+        "nnz_per_ms_ains-pref": 355882.00344750547
+    },
+    "GL7d18": {
+        "num_of_rows": "1955309",
+        "num_of_cols": "1548650",
+        "group": "JGD_GL7d",
+        "nnz_per_ms": 234577.1644341859,
+        "nnz_per_ms_mlir-pref": 261364.02190460174,
+        "nnz_per_ms_ains": 221391.6171046845,
+        "nnz_per_ms_ains-pref": 221391.6171046845
+    },
+    "cont11_l": {
+        "num_of_rows": "1468599",
+        "num_of_cols": "1961394",
+        "group": "Mittelmann",
+        "nnz_per_ms": 600138.1332500892,
+        "nnz_per_ms_mlir-pref": 488333.6054866101,
+        "nnz_per_ms_ains": 484762.70667483157,
+        "nnz_per_ms_ains-pref": 484762.70667483157
+    },
+    "as-Skitter": {
+        "num_of_rows": "1696415",
+        "num_of_cols": "1696415",
+        "group": "SNAP",
+        "nnz_per_ms": 287926.3115281612,
+        "nnz_per_ms_mlir-pref": 265559.73078543256,
+        "nnz_per_ms_ains": 264621.4131286378,
+        "nnz_per_ms_ains-pref": 264621.4131286378
+    },
+    "GL7d20": {
+        "num_of_rows": "1437547",
+        "num_of_cols": "1911130",
+        "group": "JGD_GL7d",
+        "nnz_per_ms": 228882.6728672072,
+        "nnz_per_ms_mlir-pref": 258585.9945450818,
+        "nnz_per_ms_ains": 221537.90286242796,
+        "nnz_per_ms_ains-pref": 221537.90286242796
+    },
+    "ss": {
+        "num_of_rows": "1652680",
+        "num_of_cols": "1652680",
+        "group": "VLSI",
+        "nnz_per_ms": 768194.4315504215,
+        "nnz_per_ms_mlir-pref": 613040.5799913566,
+        "nnz_per_ms_ains": 607587.4529933059,
+        "nnz_per_ms_ains-pref": 607587.4529933059
+    },
+    "rel9": {
+        "num_of_rows": "9888048",
+        "num_of_cols": "274669",
+        "group": "JGD_Relat",
+        "nnz_per_ms": 582809.2186915152,
+        "nnz_per_ms_mlir-pref": 422892.57571696595,
+        "nnz_per_ms_ains": 384843.50761485705,
+        "nnz_per_ms_ains-pref": 384843.50761485705
+    },
+    "wikipedia-20051105": {
+        "num_of_rows": "1634989",
+        "num_of_cols": "1634989",
+        "group": "Gleich",
+        "nnz_per_ms": 284608.0297387057,
+        "nnz_per_ms_mlir-pref": 335740.281196035,
+        "nnz_per_ms_ains": 321224.8223375018,
+        "nnz_per_ms_ains-pref": 321224.8223375018
+    },
+    "soc-Pokec": {
+        "num_of_rows": "1632803",
+        "num_of_cols": "1632803",
+        "group": "SNAP",
+        "nnz_per_ms": 307477.3804156722,
+        "nnz_per_ms_mlir-pref": 353752.2555305262,
+        "nnz_per_ms_ains": 333590.3935753822,
+        "nnz_per_ms_ains-pref": 333590.3935753822
+    },
+    "Transport": {
+        "num_of_rows": "1602111",
+        "num_of_cols": "1602111",
+        "group": "Janna",
+        "nnz_per_ms": 300278.59209417744,
+        "nnz_per_ms_mlir-pref": 263840.3721377476,
+        "nnz_per_ms_ains": 250671.10577005177,
+        "nnz_per_ms_ains-pref": 250671.10577005177
+    },
+    "G3_circuit": {
+        "num_of_rows": "1585478",
+        "num_of_cols": "1585478",
+        "group": "AMD",
+        "nnz_per_ms": 309163.5726738555,
+        "nnz_per_ms_mlir-pref": 247393.1577009772,
+        "nnz_per_ms_ains": 230215.9168427158,
+        "nnz_per_ms_ains-pref": 230215.9168427158
+    },
+    "Flan_1565": {
+        "num_of_rows": "1564794",
+        "num_of_cols": "1564794",
+        "group": "Janna",
+        "nnz_per_ms": 848383.6213783209,
+        "nnz_per_ms_mlir-pref": 543833.6755157745,
+        "nnz_per_ms_ains": 518520.8136614904,
+        "nnz_per_ms_ains-pref": 518520.8136614904
+    },
+    "af_shell10": {
+        "num_of_rows": "1508065",
+        "num_of_cols": "1508065",
+        "group": "Schenk_AFE",
+        "nnz_per_ms": 830820.9753594856,
+        "nnz_per_ms_mlir-pref": 555382.5250725049,
+        "nnz_per_ms_ains": 510584.78989379894,
+        "nnz_per_ms_ains-pref": 510584.78989379894
+    },
+    "cage14": {
+        "num_of_rows": "1505785",
+        "num_of_cols": "1505785",
+        "group": "vanHeukelum",
+        "nnz_per_ms": 263599.53013235185,
+        "nnz_per_ms_mlir-pref": 232811.38658721602,
+        "nnz_per_ms_ains": 224255.38334117213,
+        "nnz_per_ms_ains-pref": 224255.38334117213
+    },
+    "ML_Geer": {
+        "num_of_rows": "1504002",
+        "num_of_cols": "1504002",
+        "group": "Janna",
+        "nnz_per_ms": 411078.6859199931,
+        "nnz_per_ms_mlir-pref": 289749.3275016989,
+        "nnz_per_ms_ains": 291901.6344503321,
+        "nnz_per_ms_ains-pref": 291901.6344503321
+    },
+    "Hook_1498": {
+        "num_of_rows": "1498023",
+        "num_of_cols": "1498023",
+        "group": "Janna",
+        "nnz_per_ms": 665348.6683378512,
+        "nnz_per_ms_mlir-pref": 479072.3218298432,
+        "nnz_per_ms_ains": 452274.0817703866,
+        "nnz_per_ms_ains-pref": 452274.0817703866
+    },
+    "atmosmodm": {
+        "num_of_rows": "1489752",
+        "num_of_cols": "1489752",
+        "group": "Bourchtein",
+        "nnz_per_ms": 198198.50272145166,
+        "nnz_per_ms_mlir-pref": 191313.92341703514,
+        "nnz_per_ms_ains": 207691.19304459827,
+        "nnz_per_ms_ains-pref": 207691.19304459827
+    },
+    "atmosmodl": {
+        "num_of_rows": "1489752",
+        "num_of_cols": "1489752",
+        "group": "Bourchtein",
+        "nnz_per_ms": 198194.69624804103,
+        "nnz_per_ms_mlir-pref": 191385.59344822916,
+        "nnz_per_ms_ains": 207927.2076660837,
+        "nnz_per_ms_ains-pref": 207927.2076660837
+    },
+    "Long_Coup_dt0": {
+        "num_of_rows": "1470152",
+        "num_of_cols": "1470152",
+        "group": "Janna",
+        "nnz_per_ms": 763714.3508475466,
+        "nnz_per_ms_mlir-pref": 520727.32723063853,
+        "nnz_per_ms_ains": 490576.2353753339,
+        "nnz_per_ms_ains-pref": 490576.2353753339
+    },
+    "Long_Coup_dt6": {
+        "num_of_rows": "1470152",
+        "num_of_cols": "1470152",
+        "group": "Janna",
+        "nnz_per_ms": 764423.1578928306,
+        "nnz_per_ms_mlir-pref": 520827.5573602708,
+        "nnz_per_ms_ains": 487706.21500259097,
+        "nnz_per_ms_ains-pref": 487706.21500259097
+    },
+    "StocF-1465": {
+        "num_of_rows": "1465137",
+        "num_of_cols": "1465137",
+        "group": "Janna",
+        "nnz_per_ms": 329535.0668706122,
+        "nnz_per_ms_mlir-pref": 296791.9231138767,
+        "nnz_per_ms_ains": 279050.89911045454,
+        "nnz_per_ms_ains-pref": 279050.89911045454
+    },
+    "nv2": {
+        "num_of_rows": "1453908",
+        "num_of_cols": "1453908",
+        "group": "VLSI",
+        "nnz_per_ms": 108347.91005616069,
+        "nnz_per_ms_mlir-pref": 117326.50456321011,
+        "nnz_per_ms_ains": 100615.29589246982,
+        "nnz_per_ms_ains-pref": 100615.29589246982
+    },
+    "Hamrle3": {
+        "num_of_rows": "1447360",
+        "num_of_cols": "1447360",
+        "group": "Hamrle",
+        "nnz_per_ms": 659843.0355678797,
+        "nnz_per_ms_mlir-pref": 454381.8650757682,
+        "nnz_per_ms_ains": 395606.6204165381,
+        "nnz_per_ms_ains-pref": 395606.6204165381
+    },
+    "belgium_osm": {
+        "num_of_rows": "1441295",
+        "num_of_cols": "1441295",
+        "group": "DIMACS10",
+        "nnz_per_ms": 187538.72295854037,
+        "nnz_per_ms_mlir-pref": 170226.2955295513,
+        "nnz_per_ms_ains": 170090.86320040384,
+        "nnz_per_ms_ains-pref": 170090.86320040384
+    },
+    "Geo_1438": {
+        "num_of_rows": "1437960",
+        "num_of_cols": "1437960",
+        "group": "Janna",
+        "nnz_per_ms": 708576.748935129,
+        "nnz_per_ms_mlir-pref": 493580.94189253636,
+        "nnz_per_ms_ains": 462739.10137418035,
+        "nnz_per_ms_ains-pref": 462739.10137418035
+    },
+    "roadNet-TX": {
+        "num_of_rows": "1393383",
+        "num_of_cols": "1393383",
+        "group": "SNAP",
+        "nnz_per_ms": 147691.05434870324,
+        "nnz_per_ms_mlir-pref": 131022.86828576493,
+        "nnz_per_ms_ains": 131283.79601638264,
+        "nnz_per_ms_ains-pref": 131283.79601638264
+    },
+    "Serena": {
+        "num_of_rows": "1391349",
+        "num_of_cols": "1391349",
+        "group": "Janna",
+        "nnz_per_ms": 683017.9562277012,
+        "nnz_per_ms_mlir-pref": 495211.13198557886,
+        "nnz_per_ms_ains": 465919.27413853357,
+        "nnz_per_ms_ains-pref": 465919.27413853357
+    },
+    "in-2004": {
+        "num_of_rows": "1382908",
+        "num_of_cols": "1382908",
+        "group": "LAW",
+        "nnz_per_ms": 594216.7231598728,
+        "nnz_per_ms_mlir-pref": 494267.68731830595,
+        "nnz_per_ms_ains": 501070.8256076394,
+        "nnz_per_ms_ains-pref": 501070.8256076394
+    },
+    "LargeRegFile": {
+        "num_of_rows": "2111154",
+        "num_of_cols": "801374",
+        "group": "Stevenson",
+        "nnz_per_ms": 524344.4370207757,
+        "nnz_per_ms_mlir-pref": 420321.60436627024,
+        "nnz_per_ms_ains": 373378.31714721565,
+        "nnz_per_ms_ains-pref": 373378.31714721565
+    },
+    "atmosmodd": {
+        "num_of_rows": "1270432",
+        "num_of_cols": "1270432",
+        "group": "Bourchtein",
+        "nnz_per_ms": 198414.46340705792,
+        "nnz_per_ms_mlir-pref": 191414.35746656448,
+        "nnz_per_ms_ains": 207416.7498070516,
+        "nnz_per_ms_ains-pref": 207416.7498070516
+    },
+    "atmosmodj": {
+        "num_of_rows": "1270432",
+        "num_of_cols": "1270432",
+        "group": "Bourchtein",
+        "nnz_per_ms": 198427.41599641636,
+        "nnz_per_ms_mlir-pref": 191390.2525343541,
+        "nnz_per_ms_ains": 207565.71433953644,
+        "nnz_per_ms_ains-pref": 207565.71433953644
+    },
+    "thermal2": {
+        "num_of_rows": "1228045",
+        "num_of_cols": "1228045",
+        "group": "Schmid",
+        "nnz_per_ms": 170075.57978196233,
+        "nnz_per_ms_mlir-pref": 174525.37136139063,
+        "nnz_per_ms_ains": 158463.60548803347,
+        "nnz_per_ms_ains-pref": 158463.60548803347
+    },
+    "CurlCurl_3": {
+        "num_of_rows": "1219574",
+        "num_of_cols": "1219574",
+        "group": "Bodendiek",
+        "nnz_per_ms": 610005.2692971118,
+        "nnz_per_ms_mlir-pref": 434683.83841949695,
+        "nnz_per_ms_ains": 386383.016354347,
+        "nnz_per_ms_ains-pref": 386383.016354347
+    },
+    "GL7d17": {
+        "num_of_rows": "1548650",
+        "num_of_cols": "955128",
+        "group": "JGD_GL7d",
+        "nnz_per_ms": 253640.5948395298,
+        "nnz_per_ms_mlir-pref": 292234.49766971485,
+        "nnz_per_ms_ains": 231978.99355894153,
+        "nnz_per_ms_ains-pref": 231978.99355894153
+    },
+    "dgreen": {
+        "num_of_rows": "1200611",
+        "num_of_cols": "1200611",
+        "group": "VLSI",
+        "nnz_per_ms": 125434.82555165561,
+        "nnz_per_ms_mlir-pref": 121643.27100637382,
+        "nnz_per_ms_ains": 114167.71296138164,
+        "nnz_per_ms_ains-pref": 114167.71296138164
+    },
+    "dielFilterV2real": {
+        "num_of_rows": "1157456",
+        "num_of_cols": "1157456",
+        "group": "Dziekonski",
+        "nnz_per_ms": 456084.2806322551,
+        "nnz_per_ms_mlir-pref": 400801.8853123663,
+        "nnz_per_ms_ains": 392016.64370296546,
+        "nnz_per_ms_ains-pref": 392016.64370296546
+    },
+    "wiki-talk-temporal": {
+        "num_of_rows": "1140149",
+        "num_of_cols": "1140149",
+        "group": "SNAP",
+        "nnz_per_ms": 225198.99566557567,
+        "nnz_per_ms_mlir-pref": 240520.92644675547,
+        "nnz_per_ms_ains": 209966.1855670103,
+        "nnz_per_ms_ains-pref": 209966.1855670103
+    }
+}
