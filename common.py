@@ -222,3 +222,29 @@ np_to_mlir_type = {
     "int32": "i32",
     "bool": "i1"
 }
+
+
+def json_load(file: Union[str, Path]) -> Dict[str, Dict]:
+    file = Path(file)
+    assert file.exists(), f"{file} does not exist"
+
+    with open(file, "r") as f, open(file.parent / ("bak-" + file.name), "w") as bak:
+        data = json.load(f)
+
+    return data
+
+
+def json_load_and_backup(file: Union[str, Path]) -> Dict[str, Dict]:
+    file = Path(file)
+    assert file.exists(), f"{file} does not exist"
+
+    with open(file, "r") as f, open(file.parent / ("bak-" + file.name), "w") as bak:
+        data = json.load(f)
+        bak.write(json.dumps(data, indent=4))
+
+    return data
+
+
+def json_store(file: Union[str, Path], data: Dict[str, Dict]):
+    with open(file, "w") as f:
+        f.write(json.dumps(data, indent=4))
