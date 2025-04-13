@@ -6,7 +6,7 @@ import sys
 from _socket import gethostname
 from statistics import mean, stdev, StatisticsError
 from git import Repo
-from typing import List
+from typing import Dict, List
 
 
 class ReportManager:
@@ -47,6 +47,9 @@ class ReportManager:
         pass
 
     def log_execution_times_ns(self, etimes_ns: List[int]):
+        pass
+
+    def log_events(self, events: Dict[str, List[int]]):
         pass
 
     def log_execution_times_secs(self, etimes_s: List[float]):
@@ -112,6 +115,10 @@ class DefaultReportManager(ReportManager):
         data[-1].update(new_entry)
         with open(self.rep_file, 'w') as f:
             f.write(json.dumps(data, indent=4))
+
+    def log_events(self, events: Dict[str, List[int]]):
+        print(events)
+        self.append_result(events)
 
     def log_execution_times_ns(self, etimes_ns: List[int]):
         m, std_dev, cv = self.get_stats(etimes_ns)
