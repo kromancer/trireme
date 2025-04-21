@@ -20,6 +20,9 @@
         "--cputype", "atom",
         "--level", "6",
 	"--single-thread",
-	"--json"
+	"--raw",
+	"--quiet",
+	"--csv", ",",
+	"--output", "toplev.csv"
     ]
 }

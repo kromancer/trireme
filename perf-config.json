@@ -25,7 +25,8 @@
 	    "topdown_be_bound.serialization:u",
 	    "topdown_be_bound.non_mem_scheduler:u",
 	    "topdown_be_bound.register:u",
-	    "topdown_be_bound.alloc_restrictions:u"
+	    "topdown_be_bound.alloc_restrictions:u",
+	    "topdown_retiring.all:u"
         ],
         "pcore": [
             "mem_inst_retired.all_loads:upp"
@@ -33,25 +34,25 @@
     },
     "stat-bottlenecks": [
 	"stat",
-	"-e", "cpu_clk_unhalted.core:u,mem_bound_stalls.load:u,topdown_bad_speculation.mispredict:u,topdown_be_bound.mem_scheduler:u,topdown_be_bound.reorder_buffer:u,mem_scheduler_block.ld_buf:u,mem_load_uops_retired.l2_hit:u",
+	"-e", "mem_bound_stalls.load:u,topdown_bad_speculation.mispredict:u,topdown_fe_bound.all:u,topdown_be_bound.all:u,topdown_retiring.all:u",
 	"-j",
 	"-o", "perf-stat.json"
     ],
-    "stat-topdown": [
+    "stat-be": [
 	"stat",
-	"-e", "topdown_be_bound.non_mem_scheduler:u,topdown_be_bound.alloc_restrictions:u,topdown_fe_bound.frontend_bandwidth:u,topdown_fe_bound.frontend_latency:u,mem_scheduler_block.rsv:u",
+	"-e", "topdown_be_bound.alloc_restrictions:u,topdown_be_bound.non_mem_scheduler:u,topdown_be_bound.mem_scheduler:u,topdown_be_bound.reorder_buffer:u,topdown_be_bound.register:u",
 	"-j",
 	"-o", "perf-stat.json"
     ],
     "stat-mem": [
         "stat",
-	"-e", "mem_load_uops_retired.dram_hit:u,mem_scheduler_block.rsv:u,mem_load_uops_retired.l3_hit:u,ld_head.any_at_ret:u,ld_head.l1_miss_at_ret:u,topdown_retiring.all:u",
+	"-e", "mem_uops_retired.all_loads:u,mem_load_uops_retired.dram_hit:u,mem_load_uops_retired.l3_hit:u,mem_load_uops_retired.l2_hit:u,cpu_clk_unhalted.core:u,inst_retired.any:u",
 	"-j",
 	"-o", "perf-stat.json"
     ],
     "stat-mem-2": [
 	"stat",
-	"-e", "mem_uops_retired.all_loads:u,mem_bound_stalls.load_l2_hit:u,mem_bound_stalls.load_llc_hit:u,mem_bound_stalls.load_dram_hit:u,mem_scheduler_block.rsv:u",
+	"-e", "mem_scheduler_block.rsv:u,mem_bound_stalls.load_l2_hit:u,mem_bound_stalls.load_llc_hit:u,mem_bound_stalls.load_dram_hit:u,mem_scheduler_block.rsv:u",
 	"-j" ,
 	"-o", "perf-stat.json"
     ],

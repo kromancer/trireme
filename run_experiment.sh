@@ -69,7 +69,7 @@ set_uncore_freq() {
     if [[ -f "$init_max_freq_file" ]]; then
         # Read the frequency value from initial_max_freq_khz
         init_freq=$(cat "$init_max_freq_file")
-	
+
         # Write the frequency value to min and max freq files
         echo "$init_freq" > "$min_freq_file"
         echo "$init_freq" > "$max_freq_file"
@@ -99,7 +99,7 @@ check_isolated() {
     local core=$1
     local isolated
     isolated=$(cat /sys/devices/system/cpu/isolated)
-    
+
     # Expand ranges like 8-15 into individual core numbers
     for token in ${isolated//,/ }; do
         if [[ $token == *-* ]]; then
@@ -111,7 +111,7 @@ check_isolated() {
             [[ $token -eq $core ]] && echo "✅ core $core is isolated" && return 0
         fi
     done
-    
+
     echo "❌ core is NOT isolated"
 }
 
@@ -137,5 +137,4 @@ for core in "${cores[@]}"; do
     check_isolated "$core"
 done
 
-cset shield -e -- apptainer exec --writable-tmpfs --memory 120G --memory-swap 120G trireme.sif sh -c "cd trireme && taskset -c $1 ./experiment.sh"
-
+cset shield -e -- apptainer exec --writable-tmpfs --memory 120G --memory-swap 120G trireme.sif sh -c "cd trireme && taskset -c $1 $2"
