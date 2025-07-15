@@ -1,8 +1,44 @@
 * Building the container image
 
+The project uses [[https://apptainer.org/docs/user/main/quick_start.html][Apptainer]] for containerized environment management based on Ubuntu 22.04.
+Build the container image using:
+
 #+begin_src sh
 sudo apptainer build [path where image should be placed]/trireme.sif trireme.def
 #+end_src
+
+For a native installation you may try following the steps in [[file:trireme.def][trireme.def]]
+
+* Usage
+
+The three main entry points are:
+- [[file:spmv.py][spmv.py]]
+- [[file:spmm.py][spmm.py]]
+- [[file:suite_sparse.py][suite_sparse.py]]
+
+Example use cases can be found in tests/
+To run all tests:
+#+begin_src sh
+lit -j1 -a tests
+#+end_src
+
+* System Configuration
+
+The [[file:run_experiment.sh][run_experiment.sh]] script provides a comprehensive system configuration for consistent performance measurements on an Alderlake E-core.
+It performs the following optimizations:
+
+CPU Configuration
+- Turbo Boost: Disables Intel Turbo Boost to ensure consistent CPU frequencies
+- HWP (Hardware P-States): Manages Intel P-state driver configuration
+- Performance Governor: Sets CPU frequency scaling governor to "performance" mode
+- Fixed Frequency: Locks CPU cores to maximum frequency to eliminate frequency scaling effects
+- Uncore Frequency: Sets uncore (cache/memory controller) frequency to maximum
+- Deep Idle States: Disables deep CPU idle states to reduce wake-up latency
+
+#### Memory Configuration
+- ASLR: Disables Address Space Layout Randomization for consistent memory layout
+- Swap Prevention: Configures `vm.overcommit_memory=0` and `vm.swappiness=0` to prevent swapping
+- Memory Isolation: Ensures cores are isolated from kernel scheduling
 
 * Working with CSR on SuiteSparse matrices
 
@@ -11,10 +47,3 @@ Converting them to CSR using scipy.sparse (as implemented in this repo) requires
 On the experiment system—an i9-12900K with 128GB RAM (its maximum capacity)—these transformations will require swap space.
 
 See [[./convert_ss_to_csr.sh]] for details.
-
-* Running tests
-
-Use one worker thread, some modules are not thread safe
-#+begin_src sh
-lit -j1 -a tests
-#+end_src
