@@ -4,7 +4,7 @@ from platform import machine
 from os import chdir, environ, getcwd, makedirs
 from pathlib import Path
 from subprocess import run
-from typing import Tuple
+from typing import Tuple, Union
 
 import jinja2
 import numpy as np
@@ -132,7 +132,10 @@ def apply_passes(args: argparse.Namespace, src: str, kernel: str, pipeline: str,
     return module, Path(out_file_name)
 
 
-def get_encoding(form: SparseFormats, index_type: np.dtype) -> str:
+def get_encoding(form: SparseFormats, index_type: Union[np.dtype, str]) -> str:
+    if isinstance(index_type, str):
+        index_type = np.dtype(index_type)
+
     with ir.Context() as ctx, ir.Location.unknown():
         bitwidth = np_to_mlir_type[index_type]().width
     encodings = {SparseFormats.CSR: f"#sparse_tensor.encoding<{{ map = (d0, d1) -> (d0: dense, d1: compressed), "
@@ -169,7 +172,8 @@ def render_template_for_spmv(args: argparse.Namespace) -> str:
     # Prepare template parameters
     encoding = get_encoding(SparseFormats(args.matrix_format), args.itype)
     dtype = to_mlir_type[args.dtype]
-    itype = to_mlir_type[args.itype.name]
+    itype = to_mlir_type[args.itype.name if isinstance(args.itype, np.dtype) else args.itype]
+
     if args.sparse_vec:
         vtype = f"tensor<{args.j}x{dtype}, #sparse_tensor.encoding<{{ map = (d0) -> (d0 : compressed) }}>>"
     else:
