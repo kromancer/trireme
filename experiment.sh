@@ -1,6 +1,6 @@
 #!/bin/bash
 
-source /home/paul/venv/bin/activate
+source /venv/bin/activate
 source /opt/intel/oneapi/setvars.sh
 
 export LC_ALL=C
