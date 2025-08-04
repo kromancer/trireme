@@ -25,45 +25,12 @@ pipelines = {
     "omp":
     ["sparse-assembler",
      "sparse-reinterpret-map",
-     "sparsification{enable-runtime-library=false pd=? parallelization-strategy=dense-outer-loop}",
-     "loop-invariant-code-motion",
-     "sparse-tensor-codegen",
-     "sparse-storage-specifier-to-llvm",
-     "cse",
-     "one-shot-bufferize{bufferize-function-boundaries function-boundary-type-conversion=identity-layout-map}",
-     "convert-scf-to-openmp",
-     "canonicalize",
-     "convert-scf-to-cf",
-     "expand-strided-metadata",
-     "convert-openmp-to-llvm{index-bitwidth=?}",
-     "canonicalize",
-     "reconcile-unrealized-casts"],
+     "sparsifier{enable-runtime-library=false enable-index-optimizations=true parallelization-strategy=dense-outer-loop pd=?}"],
 
     "vect-vl4":
     ["sparse-assembler",
      "sparse-reinterpret-map",
      f"sparsifier{{{'enable-x86vector' if machine() == 'x86_64' else 'enable-arm-neon'} vl=4 enable-runtime-library=false enable-index-optimizations=true pd=?}}"]
-
-    # "vect-vl4":
-    # ["sparse-assembler",
-    #  "sparse-reinterpret-map",
-    #  "sparsification{enable-runtime-library=false}",
-    #  "loop-invariant-code-motion",
-    #  "sparse-vectorization{vl=4}",
-    #  "sparse-tensor-codegen",
-    #  "sparse-storage-specifier-to-llvm",
-    #  "cse",
-    #  "one-shot-bufferize{bufferize-function-boundaries function-boundary-type-conversion=identity-layout-map}",
-    #  "convert-scf-to-cf",
-    #  "expand-strided-metadata",
-    #  "lower-affine",
-    #  f"convert-vector-to-llvm{{{'enable-x86vector' if machine() == 'x86_64' else 'enable-arm-neon'} index-bitwidth=?}}",
-    #  "convert-func-to-llvm{index-bitwidth=? use-bare-ptr-memref-call-conv=false}",
-    #  "finalize-memref-to-llvm{index-bitwidth=? use-aligned-alloc=false use-generic-functions=false}",
-    #  "convert-arith-to-llvm{index-bitwidth=?}",
-    #  "convert-index-to-llvm{index-bitwidth=?}",
-    #  "convert-cf-to-llvm{index-bitwidth=?}",
-    #  "reconcile-unrealized-casts"]
 }
 
 # defer execution by using lambdas, requires an active MLIR "Context"
