@@ -42,6 +42,13 @@ def add_dtype_arg(parser: ArgumentParser, arg_name="--dtype", h="Data type of th
     return parser
 
 
+def add_itype_arg(parser: ArgumentParser, arg_name="--dtype", h="Data type of the generated matrix"):
+    types = [np.dtype("int64").name, np.dtype("int32").name, np.dtype("int8").name]
+    parser.add_argument(arg_name, type=str, choices=[str(t) for t in types],
+                        default=types[0], help=h)
+    return parser
+
+
 def add_opt_arg(parser: ArgumentParser):
     parser.add_argument("-o", "--optimization",
                         choices=["no-opt", "omp", "vect-vl4", "pref-mlir", "pref-mlir-omp", "pref-mlir-vect-vl4",

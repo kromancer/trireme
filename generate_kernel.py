@@ -12,7 +12,7 @@ import numpy as np
 from mlir import ir
 from mlir.passmanager import *
 
-from argument_parsers import (add_dimension_args, add_dtype_arg, add_locality_hint_arg, add_opt_arg,
+from argument_parsers import (add_dimension_args, add_dtype_arg, add_itype_arg, add_locality_hint_arg, add_opt_arg,
                               add_prefetch_distance_arg, add_sparse_format_arg)
 from common import SparseFormats, make_work_dir_and_cd_to_it
 
@@ -281,7 +281,7 @@ def parse_args() -> argparse.Namespace:
     add_sparse_format_arg(parser, "matrix")
     add_opt_arg(parser)
     add_dtype_arg(parser, "--dtype", "Data type")
-    add_dtype_arg(parser, "--itype", "Index type")
+    add_itype_arg(parser, "--itype", "Index type")
     add_locality_hint_arg(parser)
     add_prefetch_distance_arg(parser)
     parser.add_argument("--symmetric", action="store_true",
