@@ -8,7 +8,7 @@ import numpy as np
 
 from argument_parsers import (add_args_for_benchmark, add_opt_arg, add_synth_tensor_arg, add_output_check_arg,
                               add_sparse_format_arg, add_prefetch_distance_arg, add_locality_hint_arg,
-                              add_args_for_profile)
+                              add_args_for_profile, add_workdir_args)
 from common import build_with_cmake, make_work_dir_and_cd_to_it, np_to_mlir_type, SparseFormats
 from generate_kernel import apply_passes, render_template_for_spmv, translate_to_llvm_ir
 from hwpref_controller import HwprefController
@@ -45,7 +45,7 @@ def main():
     mat_buffs, _, itype = get_storage_buffers(mat, SparseFormats(args.matrix_format))
     args.itype = itype
 
-    make_work_dir_and_cd_to_it(__file__)
+    make_work_dir_and_cd_to_it(__file__, args.re_use)
 
     spmv = render_template_for_spmv(args)
     with open("spmv.0. mlir", "w") as f:
@@ -93,6 +93,7 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="(Sparse Matrix)x(Dense Vector) Multiplication (SpMV) with MLIR")
 
     # common arguments
+    add_workdir_args(parser)
     add_prefetch_distance_arg(parser)
     add_locality_hint_arg(parser)
     parser.add_argument("--sparse-vec", action="store_true", help="Use sparse vector")

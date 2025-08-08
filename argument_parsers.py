@@ -72,6 +72,11 @@ def add_prefetch_distance_arg(parser: ArgumentParser):
     parser.add_argument("-pd", "--prefetch-distance", type=int, default=0)
 
 
+def add_workdir_args(parser: ArgumentParser):
+    parser.add_argument("--re-use", action="store_true",
+                        help="Do not create a unique working directory for compilation artifacts")
+
+
 def add_locality_hint_arg(parser: ArgumentParser):
     parser.add_argument("-l", "--locality-hint", type=int, choices=[0, 1, 2, 3], default=2,
                         help="Temporal locality hint for prefetch instructions, "

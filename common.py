@@ -74,8 +74,11 @@ def timeit(func: Callable) -> Callable:
     return wrapper
 
 
-def make_work_dir_and_cd_to_it(file_path: str):
-    build_path = Path(f"./workdir-{getpid()}-{Path(file_path).name}")
+def make_work_dir_and_cd_to_it(file_path: str, re_use: bool = False):
+    if re_use:
+        build_path = Path(f"./workdir-{Path(file_path).name}")
+    else:
+        build_path = Path(f"./workdir-{getpid()}-{int(time())}-{Path(file_path).name}")
 
     if build_path.exists():
         rmtree(build_path)

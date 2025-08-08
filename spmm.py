@@ -9,7 +9,7 @@ from scipy.sparse import diags_array
 
 from argument_parsers import (add_args_for_benchmark, add_opt_arg, add_synth_tensor_arg, add_output_check_arg,
                               add_sparse_format_arg, add_prefetch_distance_arg, add_locality_hint_arg,
-                              add_args_for_profile, add_k_dimension_arg)
+                              add_args_for_profile, add_k_dimension_arg, add_workdir_args)
 from common import build_with_cmake, make_work_dir_and_cd_to_it, np_to_mlir_type, SparseFormats
 from generate_kernel import apply_passes, render_template_for_spmm, translate_to_llvm_ir
 from hwpref_controller import HwprefController
@@ -48,7 +48,7 @@ def main():
     sp_mat_buffers, dtype, itype = get_storage_buffers(sp_mat, SparseFormats(args.matrix_format))
     args.itype = itype
 
-    make_work_dir_and_cd_to_it(__file__)
+    make_work_dir_and_cd_to_it(__file__, args.re_use)
 
     spmm = render_template_for_spmm(args)
     with open("spmm.0.mlir", "w") as f:
@@ -97,6 +97,7 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="(Sparse Matrix)x(Matrix) Multiplication (SpMM)")
 
     # common arguments
+    add_workdir_args(parser)
     add_prefetch_distance_arg(parser)
     add_locality_hint_arg(parser)
     add_opt_arg(parser)
